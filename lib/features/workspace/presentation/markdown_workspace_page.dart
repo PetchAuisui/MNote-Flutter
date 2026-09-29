@@ -649,6 +649,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         builder: (context, constraints) {
           final colorScheme = Theme.of(context).colorScheme;
           final textScaler = MediaQuery.textScalerOf(context);
+          final editorStyle = Theme.of(
+            context,
+          ).textTheme.bodyLarge!.merge(_editorTextStyle);
           final lineCount = '\n'.allMatches(_textController.text).length + 1;
           final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
           const horizontalTextPadding = 28.0;
@@ -677,10 +680,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       maxLines: null,
                       textAlignVertical: TextAlignVertical.top,
                       keyboardType: TextInputType.multiline,
-                      style: _editorTextStyle,
+                      style: editorStyle,
+                      strutStyle: StrutStyle.fromTextStyle(editorStyle),
                       decoration: const InputDecoration(
                         hintText: 'Read Markdown. Write freely.',
                         filled: false,
+                        isCollapsed: true,
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
                       ),
@@ -704,8 +709,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           key: const Key('line-number-gutter'),
                           painter: _LineNumberPainter(
                             textController: _textController,
-                            editorStyle: _editorTextStyle,
-                            numberStyle: _editorTextStyle.copyWith(
+                            editorStyle: editorStyle,
+                            numberStyle: editorStyle.copyWith(
                               fontSize: 12,
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -845,6 +850,7 @@ class _LineNumberPainter extends CustomPainter {
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
       textScaler: textScaler,
+      strutStyle: StrutStyle.fromTextStyle(style),
     );
   }
 

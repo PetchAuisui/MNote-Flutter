@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -208,6 +209,138 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace.updateContent(nextText);
   }
 
+  void _toggleInlineFormat(
+    String prefix,
+    String suffix, {
+    required String placeholder,
+  }) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final selected = selection.textInside(value.text);
+
+    if (selected.isNotEmpty &&
+        selected.startsWith(prefix) &&
+        selected.endsWith(suffix) &&
+        selected.length >= prefix.length + suffix.length) {
+      final body = selected.substring(
+        prefix.length,
+        selected.length - suffix.length,
+      );
+      _applyTextEdit(
+        value.text.replaceRange(start, end, body),
+        TextSelection(baseOffset: start, extentOffset: start + body.length),
+      );
+      return;
+    }
+
+    final hasSurroundingMarkers =
+        start >= prefix.length &&
+        end + suffix.length <= value.text.length &&
+        value.text.substring(start - prefix.length, start) == prefix &&
+        value.text.substring(end, end + suffix.length) == suffix;
+    if (hasSurroundingMarkers) {
+      final nextText = value.text.replaceRange(
+        start - prefix.length,
+        end + suffix.length,
+        selected,
+      );
+      _applyTextEdit(
+        nextText,
+        TextSelection(
+          baseOffset: start - prefix.length,
+          extentOffset: end - prefix.length,
+        ),
+      );
+      return;
+    }
+
+    _replaceSelection(prefix, suffix, placeholder: placeholder);
+  }
+
+  void _formatSelectedLines({
+    required String prefix,
+    required String placeholder,
+    Pattern? removePattern,
+  }) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final lineStart = start == 0
+        ? 0
+        : value.text.lastIndexOf('\n', start - 1) + 1;
+    final nextLineBreak = value.text.indexOf('\n', end);
+    final lineEnd = nextLineBreak == -1 ? value.text.length : nextLineBreak;
+    final block = value.text.substring(lineStart, lineEnd);
+    final source = block.isEmpty ? placeholder : block;
+    final lines = source.split('\n');
+    final shouldRemove =
+        removePattern != null &&
+        lines.every((line) => line.startsWith(removePattern));
+    final replacement = lines
+        .map((line) {
+          if (shouldRemove) return line.replaceFirst(removePattern, '');
+          final cleanLine = removePattern == null
+              ? line
+              : line.replaceFirst(removePattern, '');
+          return '$prefix$cleanLine';
+        })
+        .join('\n');
+
+    _applyTextEdit(
+      value.text.replaceRange(lineStart, lineEnd, replacement),
+      TextSelection(
+        baseOffset: lineStart,
+        extentOffset: lineStart + replacement.length,
+      ),
+    );
+  }
+
+  void _applyHeading(int level) {
+    _formatSelectedLines(
+      prefix: '${'#' * level} ',
+      placeholder: 'หัวข้อ',
+      removePattern: RegExp(r'^#{1,6}\s+'),
+    );
+  }
+
+  void _insertCodeBlock() {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final selected = selection.textInside(value.text);
+    final body = selected.isEmpty ? 'code' : selected;
+    final leadingBreak =
+        selection.start > 0 && value.text[selection.start - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        selection.end < value.text.length && value.text[selection.end] != '\n'
+        ? '\n'
+        : '';
+    final replacement = '$leadingBreak```\n$body\n```$trailingBreak';
+    final bodyStart = selection.start + leadingBreak.length + 4;
+    _applyTextEdit(
+      value.text.replaceRange(selection.start, selection.end, replacement),
+      TextSelection(
+        baseOffset: bodyStart,
+        extentOffset: bodyStart + body.length,
+      ),
+    );
+  }
+
+  void _applyTextEdit(String text, TextSelection selection) {
+    _textController.value = TextEditingValue(text: text, selection: selection);
+    _workspace.updateContent(text);
+  }
+
   Future<void> _insertImage() async {
     final image = await widget.imagePicker.pick();
     if (image == null || !mounted) return;
@@ -376,74 +509,27 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildFormattingToolbar() {
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        children: [
-          _formatButton(
-            icon: Icons.title_rounded,
-            tooltip: 'หัวข้อ',
-            onPressed: () => _replaceSelection('# ', '', placeholder: 'หัวข้อ'),
-          ),
-          _formatButton(
-            icon: Icons.format_bold_rounded,
-            tooltip: 'ตัวหนา',
-            onPressed: () =>
-                _replaceSelection('**', '**', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.format_italic_rounded,
-            tooltip: 'ตัวเอียง',
-            onPressed: () =>
-                _replaceSelection('_', '_', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.format_list_bulleted_rounded,
-            tooltip: 'รายการ',
-            onPressed: () => _replaceSelection('- ', '', placeholder: 'รายการ'),
-          ),
-          _formatButton(
-            icon: Icons.format_quote_rounded,
-            tooltip: 'ข้อความอ้างอิง',
-            onPressed: () =>
-                _replaceSelection('> ', '', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.code_rounded,
-            tooltip: 'โค้ด',
-            onPressed: () =>
-                _replaceSelection('\n```\n', '\n```\n', placeholder: 'code'),
-          ),
-          _formatButton(
-            icon: Icons.link_rounded,
-            tooltip: 'ลิงก์',
-            onPressed: () =>
-                _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
-          ),
-          _formatButton(
-            icon: Icons.image_outlined,
-            tooltip: 'แทรกรูป',
-            onPressed: _insertImage,
-          ),
-        ],
+    return MarkdownFormattingToolbar(
+      onHeading: _applyHeading,
+      onBold: () =>
+          _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+      onItalic: () =>
+          _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+      onList: () => _formatSelectedLines(
+        prefix: '- ',
+        placeholder: 'รายการ',
+        removePattern: '- ',
       ),
-    );
-  }
-
-  Widget _formatButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: IconButton.outlined(
-        onPressed: onPressed,
-        tooltip: tooltip,
-        icon: Icon(icon, size: 20),
+      onQuote: () => _formatSelectedLines(
+        prefix: '> ',
+        placeholder: 'ข้อความอ้างอิง',
+        removePattern: '> ',
       ),
+      onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
+      onCodeBlock: _insertCodeBlock,
+      onLink: () =>
+          _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+      onImage: _insertImage,
     );
   }
 

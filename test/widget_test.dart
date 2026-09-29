@@ -16,7 +16,53 @@ void main() {
     expect(find.text('Read Markdown. Write freely.'), findsOneWidget);
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
     expect(find.byKey(const Key('line-number-gutter')), findsOneWidget);
+    expect(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      findsOneWidget,
+    );
     expect(_lineNumberLabel('เลขบรรทัด 1'), findsOneWidget);
+  });
+
+  testWidgets('applies a heading level to the current line', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'Project title',
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-heading')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('หัวข้อ 2'));
+    await tester.pumpAndSettle();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, '## Project title');
+  });
+
+  testWidgets('formats multiple selected lines as a list', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'first\nsecond',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 12,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pump();
+
+    expect(editor.controller?.text, '- first\n- second');
   });
 
   testWidgets('updates line numbers while editing Markdown', (tester) async {
@@ -81,6 +127,32 @@ void main() {
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows labeled toolbar actions on an iPad-sized screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 1366);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+
+    expect(find.text('ตัวหนา'), findsOneWidget);
+    expect(find.text('ตัวเอียง'), findsOneWidget);
+    expect(find.text('รายการ'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-700, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('รูปภาพ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -49,4 +49,14 @@ void main() {
     expect(controller.document.isDirty, isFalse);
     expect(repository.saveCalls, 1);
   });
+
+  test('renames the current document', () {
+    final controller = WorkspaceController(FakeDocumentRepository());
+    addTearDown(controller.dispose);
+
+    controller.updateName('ideas.md');
+
+    expect(controller.document.name, 'ideas.md');
+    expect(controller.document.isDirty, isTrue);
+  });
 }

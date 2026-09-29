@@ -25,6 +25,12 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateName(String name) {
+    if (name == _document.name) return;
+    _document = _document.rename(name);
+    notifyListeners();
+  }
+
   void setMode(WorkspaceMode mode) {
     if (mode == _mode) return;
     _mode = mode;

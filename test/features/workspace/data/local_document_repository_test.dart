@@ -72,4 +72,21 @@ void main() {
     expect(saved?.uri, storage.saveUri);
     expect(saved?.isDirty, isFalse);
   });
+
+  test('uses Save As when an opened document is renamed', () async {
+    storage.saveUri = Uri.file('/tmp/renamed.md');
+    final document = MarkdownDocument.opened(
+      name: 'notes.md',
+      content: 'content',
+      uri: Uri.file('/tmp/notes.md'),
+    ).rename('renamed.md');
+
+    final saved = await repository.save(document);
+
+    expect(storage.saveAsCalls, 1);
+    expect(storage.savedAsName, 'renamed.md');
+    expect(storage.writtenUri, isNull);
+    expect(saved?.name, 'renamed.md');
+    expect(saved?.isDirty, isFalse);
+  });
 }

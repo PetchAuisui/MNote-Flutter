@@ -2,6 +2,7 @@ class MarkdownDocument {
   const MarkdownDocument({
     required this.name,
     required this.content,
+    required this.savedName,
     required this.savedContent,
     this.uri,
   });
@@ -14,6 +15,7 @@ class MarkdownDocument {
     return MarkdownDocument(
       name: name,
       content: content,
+      savedName: name,
       savedContent: content,
       uri: uri,
     );
@@ -23,21 +25,34 @@ class MarkdownDocument {
     return MarkdownDocument(
       name: 'Untitled.md',
       content: content,
+      savedName: 'Untitled.md',
       savedContent: '',
     );
   }
 
   final String name;
   final String content;
+  final String savedName;
   final String savedContent;
   final Uri? uri;
 
-  bool get isDirty => content != savedContent;
+  bool get isDirty => name != savedName || content != savedContent;
 
   MarkdownDocument edit(String value) {
     return MarkdownDocument(
       name: name,
       content: value,
+      savedName: savedName,
+      savedContent: savedContent,
+      uri: uri,
+    );
+  }
+
+  MarkdownDocument rename(String value) {
+    return MarkdownDocument(
+      name: value,
+      content: content,
+      savedName: savedName,
       savedContent: savedContent,
       uri: uri,
     );
@@ -47,6 +62,7 @@ class MarkdownDocument {
     return MarkdownDocument(
       name: name,
       content: content,
+      savedName: name,
       savedContent: content,
       uri: uri,
     );

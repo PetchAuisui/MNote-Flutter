@@ -25,4 +25,17 @@ void main() {
     expect(document.uri, isNull);
     expect(document.isDirty, isTrue);
   });
+
+  test('renaming a document marks it as dirty until saved', () {
+    final document = MarkdownDocument.untitled().rename('meeting.md');
+
+    expect(document.name, 'meeting.md');
+    expect(document.isDirty, isTrue);
+
+    final saved = document.markSaved(
+      name: document.name,
+      uri: Uri.file('/tmp/meeting.md'),
+    );
+    expect(saved.isDirty, isFalse);
+  });
 }

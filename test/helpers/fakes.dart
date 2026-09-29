@@ -9,6 +9,7 @@ class FakeDocumentStorage implements DocumentStorage {
   Uri? saveUri;
   Uri? writtenUri;
   Uint8List? writtenBytes;
+  String? savedAsName;
   int saveAsCalls = 0;
 
   @override
@@ -17,6 +18,7 @@ class FakeDocumentStorage implements DocumentStorage {
   @override
   Future<Uri?> saveAs({required String name, required Uint8List bytes}) async {
     saveAsCalls += 1;
+    savedAsName = name;
     writtenBytes = bytes;
     return saveUri;
   }

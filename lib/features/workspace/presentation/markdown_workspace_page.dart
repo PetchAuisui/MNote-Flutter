@@ -28,7 +28,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   late final WorkspaceController _workspace;
   late final TextEditingController _textController;
+  late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
+  late final FocusNode _titleFocusNode;
+  bool _isEditingTitle = false;
 
   @override
   void initState() {
@@ -36,7 +39,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace = WorkspaceController(widget.repository)
       ..addListener(_onWorkspaceChanged);
     _textController = TextEditingController(text: _workspace.document.content);
+    _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
+    _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
   }
 
   @override
@@ -45,7 +50,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ..removeListener(_onWorkspaceChanged)
       ..dispose();
     _textController.dispose();
+    _titleController.dispose();
     _editorScrollController.dispose();
+    _titleFocusNode
+      ..removeListener(_onTitleFocusChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -57,7 +66,52 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         selection: TextSelection.collapsed(offset: content.length),
       );
     }
+    if (!_isEditingTitle && _titleController.text != _workspace.document.name) {
+      _titleController.text = _workspace.document.name;
+    }
     if (mounted) setState(() {});
+  }
+
+  void _onTitleFocusChanged() {
+    if (!_titleFocusNode.hasFocus && _isEditingTitle) {
+      _finishEditingTitle();
+    }
+  }
+
+  void _startEditingTitle() {
+    setState(() => _isEditingTitle = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _titleFocusNode.requestFocus();
+      final extensionStart = _titleController.text.lastIndexOf('.');
+      _titleController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: extensionStart > 0
+            ? extensionStart
+            : _titleController.text.length,
+      );
+    });
+  }
+
+  void _finishEditingTitle() {
+    if (!_isEditingTitle) return;
+    final name = _normalizedDocumentName(_titleController.text);
+    setState(() => _isEditingTitle = false);
+    _workspace.updateName(name);
+    _titleController.text = _workspace.document.name;
+    _titleFocusNode.unfocus();
+  }
+
+  String _normalizedDocumentName(String value) {
+    final name = value.trim();
+    if (name.isEmpty) return _workspace.document.name;
+    final lowerName = name.toLowerCase();
+    if (lowerName.endsWith('.md') ||
+        lowerName.endsWith('.markdown') ||
+        lowerName.endsWith('.txt')) {
+      return name;
+    }
+    return '$name.md';
   }
 
   Future<bool> _confirmDiscardChanges() async {
@@ -179,7 +233,50 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(document.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (_isEditingTitle)
+              TextField(
+                key: const Key('document-title-field'),
+                controller: _titleController,
+                focusNode: _titleFocusNode,
+                maxLines: 1,
+                textInputAction: TextInputAction.done,
+                style: Theme.of(context).textTheme.titleLarge,
+                decoration: const InputDecoration(
+                  filled: false,
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onSubmitted: (_) => _finishEditingTitle(),
+                onTapOutside: (_) => _finishEditingTitle(),
+              )
+            else
+              Tooltip(
+                message: 'แก้ไขชื่อเอกสาร',
+                child: InkWell(
+                  key: const Key('document-title'),
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: _startEditingTitle,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          document.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Text(_statusLabel, style: Theme.of(context).textTheme.labelSmall),
           ],
         ),

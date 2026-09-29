@@ -34,6 +34,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('renames a document from the app bar', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+
+    await tester.tap(find.byKey(const Key('document-title')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const Key('document-title-field')),
+      'Project notes',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(find.text('Project notes.md'), findsOneWidget);
+    expect(find.text('ยังไม่ได้บันทึก'), findsOneWidget);
+    expect(find.byKey(const Key('document-title-field')), findsNothing);
+  });
+
   testWidgets('edits Markdown and renders a preview', (tester) async {
     await tester.pumpWidget(
       MnoteApp(documentRepository: FakeDocumentRepository()),

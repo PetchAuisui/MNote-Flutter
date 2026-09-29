@@ -8,6 +8,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onItalic,
     required this.onList,
     required this.onQuote,
+    required this.onLineBreak,
+    required this.onHorizontalRule,
     required this.onInlineCode,
     required this.onCodeBlock,
     required this.onLink,
@@ -19,6 +21,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onItalic;
   final VoidCallback onList;
   final VoidCallback onQuote;
+  final VoidCallback onLineBreak;
+  final VoidCallback onHorizontalRule;
   final VoidCallback onInlineCode;
   final VoidCallback onCodeBlock;
   final VoidCallback onLink;
@@ -88,6 +92,22 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                     showLabel: showLabels,
                     onPressed: onQuote,
                   ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-line-break'),
+                    icon: Icons.keyboard_return_rounded,
+                    label: 'BR',
+                    tooltip: 'ขึ้นบรรทัดใหม่ (BR)',
+                    showLabel: showLabels,
+                    onPressed: onLineBreak,
+                  ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-horizontal-rule'),
+                    icon: Icons.horizontal_rule_rounded,
+                    label: 'HR',
+                    tooltip: 'เส้นคั่นแนวนอน (HR)',
+                    showLabel: showLabels,
+                    onPressed: onHorizontalRule,
+                  ),
                   _ToolbarMenuButton<_CodeStyle>(
                     buttonKey: const Key('toolbar-code'),
                     icon: Icons.code_rounded,
@@ -150,6 +170,7 @@ class _ToolbarActionButton extends StatelessWidget {
     required this.buttonKey,
     required this.icon,
     required this.label,
+    this.tooltip,
     required this.showLabel,
     required this.onPressed,
   });
@@ -157,6 +178,7 @@ class _ToolbarActionButton extends StatelessWidget {
   final Key buttonKey;
   final IconData icon;
   final String label;
+  final String? tooltip;
   final bool showLabel;
   final VoidCallback onPressed;
 
@@ -178,7 +200,7 @@ class _ToolbarActionButton extends StatelessWidget {
           : IconButton.filledTonal(
               key: buttonKey,
               onPressed: onPressed,
-              tooltip: label,
+              tooltip: tooltip ?? label,
               icon: Icon(icon, size: 21),
             ),
     );

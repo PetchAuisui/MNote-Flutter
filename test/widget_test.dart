@@ -85,6 +85,28 @@ void main() {
     expect(editor.controller?.text, '- first\n- second');
   });
 
+  testWidgets('inserts BR and HR Markdown tokens', (tester) async {
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
+
+    await tester.tap(find.byKey(const Key('toolbar-line-break')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('toolbar-horizontal-rule')));
+    await tester.pump();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, 'first<br>\n---\n');
+  });
+
   testWidgets('updates line numbers while editing Markdown', (tester) async {
     await tester.pumpWidget(
       MnoteApp(documentRepository: FakeDocumentRepository()),

@@ -336,6 +336,37 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  void _insertLineBreak() {
+    _insertAtSelectionEnd('<br>\n');
+  }
+
+  void _insertHorizontalRule() {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final leadingBreak = offset > 0 && value.text[offset - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        offset < value.text.length && value.text[offset] != '\n' ? '\n' : '';
+    _insertAtSelectionEnd('$leadingBreak---\n$trailingBreak');
+  }
+
+  void _insertAtSelectionEnd(String token) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final nextText = value.text.replaceRange(offset, offset, token);
+    _applyTextEdit(
+      nextText,
+      TextSelection.collapsed(offset: offset + token.length),
+    );
+  }
+
   void _applyTextEdit(String text, TextSelection selection) {
     _textController.value = TextEditingValue(text: text, selection: selection);
     _workspace.updateContent(text);
@@ -525,6 +556,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         placeholder: 'ข้อความอ้างอิง',
         removePattern: '> ',
       ),
+      onLineBreak: _insertLineBreak,
+      onHorizontalRule: _insertHorizontalRule,
       onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
       onCodeBlock: _insertCodeBlock,
       onLink: () =>

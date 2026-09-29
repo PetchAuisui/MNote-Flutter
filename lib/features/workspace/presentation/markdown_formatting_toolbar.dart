@@ -7,6 +7,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onBold,
     required this.onItalic,
     required this.onList,
+    required this.onOrderedList,
     required this.onQuote,
     required this.onLineBreak,
     required this.onHorizontalRule,
@@ -20,6 +21,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onBold;
   final VoidCallback onItalic;
   final VoidCallback onList;
+  final VoidCallback onOrderedList;
   final VoidCallback onQuote;
   final VoidCallback onLineBreak;
   final VoidCallback onHorizontalRule;
@@ -81,9 +83,16 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                   _ToolbarActionButton(
                     buttonKey: const Key('toolbar-list'),
                     icon: Icons.format_list_bulleted_rounded,
-                    label: 'รายการ',
+                    label: 'รายการหัวข้อ',
                     showLabel: showLabels,
                     onPressed: onList,
+                  ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-ordered-list'),
+                    icon: Icons.format_list_numbered_rounded,
+                    label: 'รายการตัวเลข',
+                    showLabel: showLabels,
+                    onPressed: onOrderedList,
                   ),
                   _ToolbarActionButton(
                     buttonKey: const Key('toolbar-quote'),

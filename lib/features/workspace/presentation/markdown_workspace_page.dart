@@ -262,9 +262,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _formatSelectedLines({
-    required String prefix,
+    required String Function(int index) prefixBuilder,
     required String placeholder,
-    Pattern? removePattern,
+    required Pattern removePattern,
+    bool toggle = true,
   }) {
     final value = _textController.value;
     final selection = value.selection.isValid
@@ -281,15 +282,15 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final source = block.isEmpty ? placeholder : block;
     final lines = source.split('\n');
     final shouldRemove =
-        removePattern != null &&
-        lines.every((line) => line.startsWith(removePattern));
+        toggle && lines.every((line) => line.startsWith(removePattern));
     final replacement = lines
-        .map((line) {
+        .asMap()
+        .entries
+        .map((entry) {
+          final line = entry.value;
           if (shouldRemove) return line.replaceFirst(removePattern, '');
-          final cleanLine = removePattern == null
-              ? line
-              : line.replaceFirst(removePattern, '');
-          return '$prefix$cleanLine';
+          final cleanLine = line.replaceFirst(removePattern, '');
+          return '${prefixBuilder(entry.key)}$cleanLine';
         })
         .join('\n');
 
@@ -304,9 +305,18 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   void _applyHeading(int level) {
     _formatSelectedLines(
-      prefix: '${'#' * level} ',
+      prefixBuilder: (_) => '${'#' * level} ',
       placeholder: 'หัวข้อ',
       removePattern: RegExp(r'^#{1,6}\s+'),
+      toggle: false,
+    );
+  }
+
+  void _formatOrderedList() {
+    _formatSelectedLines(
+      prefixBuilder: (index) => '${index + 1}. ',
+      placeholder: 'รายการ',
+      removePattern: RegExp(r'^\d+\.\s+'),
     );
   }
 
@@ -547,12 +557,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       onItalic: () =>
           _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
       onList: () => _formatSelectedLines(
-        prefix: '- ',
+        prefixBuilder: (_) => '- ',
         placeholder: 'รายการ',
         removePattern: '- ',
       ),
+      onOrderedList: _formatOrderedList,
       onQuote: () => _formatSelectedLines(
-        prefix: '> ',
+        prefixBuilder: (_) => '> ',
         placeholder: 'ข้อความอ้างอิง',
         removePattern: '> ',
       ),

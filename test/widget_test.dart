@@ -85,6 +85,30 @@ void main() {
     expect(editor.controller?.text, '- first\n- second');
   });
 
+  testWidgets('formats multiple selected lines as an ordered list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'first\nsecond\nthird',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 18,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-ordered-list')));
+    await tester.pump();
+
+    expect(editor.controller?.text, '1. first\n2. second\n3. third');
+  });
+
   testWidgets('inserts BR and HR Markdown tokens', (tester) async {
     tester.view.physicalSize = const Size(1024, 768);
     tester.view.devicePixelRatio = 1;
@@ -96,6 +120,11 @@ void main() {
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
 
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-line-break')));
     await tester.pump();
     await tester.drag(
@@ -191,8 +220,8 @@ void main() {
 
     expect(find.text('ตัวหนา'), findsOneWidget);
     expect(find.text('ตัวเอียง'), findsOneWidget);
-    expect(find.text('รายการ'), findsOneWidget);
-    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
+    expect(find.text('รายการหัวข้อ'), findsOneWidget);
+    expect(find.text('รายการตัวเลข'), findsOneWidget);
 
     await tester.drag(
       find.byKey(const Key('markdown-formatting-toolbar')),
@@ -200,7 +229,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
     expect(find.text('เส้นคั่น'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-700, 0),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('รูปภาพ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

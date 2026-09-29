@@ -16,7 +16,224 @@ void main() {
     expect(find.text('Read Markdown. Write freely.'), findsOneWidget);
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
     expect(find.byKey(const Key('line-number-gutter')), findsOneWidget);
+    expect(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('toolbar-indent-list')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-outdent-list')), findsOneWidget);
+    final undo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-undo')),
+    );
+    final redo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-redo')),
+    );
+    expect(undo.onPressed, isNull);
+    expect(redo.onPressed, isNull);
     expect(_lineNumberLabel('เลขบรรทัด 1'), findsOneWidget);
+  });
+
+  testWidgets('undoes and redoes editor changes', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    final editorFinder = find.byKey(const Key('markdown-editor'));
+    await tester.tap(editorFinder);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.enterText(editorFinder, 'Draft');
+    await tester.pump(const Duration(milliseconds: 600));
+
+    var undo = tester.widget<IconButton>(find.byKey(const Key('toolbar-undo')));
+    expect(undo.onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('toolbar-undo')));
+    await tester.pump();
+
+    var editor = tester.widget<TextField>(editorFinder);
+    expect(editor.controller?.text, isEmpty);
+
+    final redo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-redo')),
+    );
+    expect(redo.onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('toolbar-redo')));
+    await tester.pump();
+
+    editor = tester.widget<TextField>(editorFinder);
+    expect(editor.controller?.text, 'Draft');
+  });
+
+  testWidgets('undoes a formatting toolbar action', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    final editorFinder = find.byKey(const Key('markdown-editor'));
+    await tester.tap(editorFinder);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.enterText(editorFinder, 'word');
+    await tester.pump(const Duration(milliseconds: 600));
+    final editor = tester.widget<TextField>(editorFinder);
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 4,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-bold')));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(editor.controller?.text, '**word**');
+
+    await tester.tap(find.byKey(const Key('toolbar-undo')));
+    await tester.pump();
+
+    expect(editor.controller?.text, 'word');
+  });
+
+  testWidgets('applies a heading level to the current line', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'Project title',
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-heading')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('หัวข้อ 2'));
+    await tester.pumpAndSettle();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, '## Project title');
+  });
+
+  testWidgets('supports four Markdown heading levels', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'Small heading',
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-heading')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('หัวข้อ 4'));
+    await tester.pumpAndSettle();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, '#### Small heading');
+  });
+
+  testWidgets('formats multiple selected lines as a list', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'first\nsecond',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 12,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('รายการหัวข้อ'));
+    await tester.pumpAndSettle();
+
+    expect(editor.controller?.text, '- first\n- second');
+  });
+
+  testWidgets('formats multiple selected lines as an ordered list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'first\nsecond\nthird',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 18,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('รายการตัวเลข'));
+    await tester.pumpAndSettle();
+
+    expect(editor.controller?.text, '1. first\n2. second\n3. third');
+  });
+
+  testWidgets('indents and outdents a nested list item', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      '- parent\n- child',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 9,
+      extentOffset: 16,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-indent-list')));
+    await tester.pump();
+
+    expect(editor.controller?.text, '- parent\n  - child');
+
+    await tester.tap(find.byKey(const Key('toolbar-outdent-list')));
+    await tester.pump();
+
+    expect(editor.controller?.text, '- parent\n- child');
+  });
+
+  testWidgets('inserts BR and HR Markdown tokens', (tester) async {
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
+
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-line-break')));
+    await tester.pump();
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-horizontal-rule')));
+    await tester.pump();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, 'first<br>\n---\n');
   });
 
   testWidgets('updates line numbers while editing Markdown', (tester) async {
@@ -81,6 +298,41 @@ void main() {
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows labeled toolbar actions on an iPad-sized screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 1366);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+
+    expect(find.text('ตัวหนา'), findsOneWidget);
+    expect(find.text('ตัวเอียง'), findsOneWidget);
+    expect(find.text('รายการ'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-700, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
+    expect(find.text('เส้นคั่น'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-700, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('รูปภาพ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

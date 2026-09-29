@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -31,6 +32,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
+  late UndoHistoryController _undoController;
+  int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
 
   @override
@@ -42,6 +45,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
+    _undoController = UndoHistoryController();
   }
 
   @override
@@ -52,6 +56,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _textController.dispose();
     _titleController.dispose();
     _editorScrollController.dispose();
+    _undoController.dispose();
     _titleFocusNode
       ..removeListener(_onTitleFocusChanged)
       ..dispose();
@@ -139,15 +144,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Future<void> _openDocument() async {
     if (!await _confirmDiscardChanges()) return;
-    await _runFileAction(
+    final opened = await _runFileAction(
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
     );
+    if (opened) _resetUndoHistory();
   }
 
   Future<void> _newDocument() async {
     if (!await _confirmDiscardChanges()) return;
     _workspace.newDocument();
+    _resetUndoHistory();
   }
 
   Future<void> _saveDocument({bool saveAs = false}) async {
@@ -157,12 +164,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  Future<void> _runFileAction(
+  Future<bool> _runFileAction(
     Future<bool> Function() action, {
     required String successMessage,
   }) async {
     final succeeded = await action();
-    if (!mounted) return;
+    if (!mounted) return succeeded;
     final error = _workspace.errorMessage;
     if (error != null) {
       _workspace.clearError();
@@ -174,6 +181,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         context,
       ).showSnackBar(SnackBar(content: Text(successMessage)));
     }
+    return succeeded;
+  }
+
+  void _resetUndoHistory() {
+    final previousController = _undoController;
+    _undoController = UndoHistoryController();
+    _editorHistoryRevision += 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      previousController.dispose();
+    });
+    if (mounted) setState(() {});
   }
 
   void _replaceSelection(
@@ -206,6 +224,210 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       selection: nextSelection,
     );
     _workspace.updateContent(nextText);
+  }
+
+  void _toggleInlineFormat(
+    String prefix,
+    String suffix, {
+    required String placeholder,
+  }) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final selected = selection.textInside(value.text);
+
+    if (selected.isNotEmpty &&
+        selected.startsWith(prefix) &&
+        selected.endsWith(suffix) &&
+        selected.length >= prefix.length + suffix.length) {
+      final body = selected.substring(
+        prefix.length,
+        selected.length - suffix.length,
+      );
+      _applyTextEdit(
+        value.text.replaceRange(start, end, body),
+        TextSelection(baseOffset: start, extentOffset: start + body.length),
+      );
+      return;
+    }
+
+    final hasSurroundingMarkers =
+        start >= prefix.length &&
+        end + suffix.length <= value.text.length &&
+        value.text.substring(start - prefix.length, start) == prefix &&
+        value.text.substring(end, end + suffix.length) == suffix;
+    if (hasSurroundingMarkers) {
+      final nextText = value.text.replaceRange(
+        start - prefix.length,
+        end + suffix.length,
+        selected,
+      );
+      _applyTextEdit(
+        nextText,
+        TextSelection(
+          baseOffset: start - prefix.length,
+          extentOffset: end - prefix.length,
+        ),
+      );
+      return;
+    }
+
+    _replaceSelection(prefix, suffix, placeholder: placeholder);
+  }
+
+  void _formatSelectedLines({
+    required String Function(int index) prefixBuilder,
+    required String placeholder,
+    required Pattern removePattern,
+    bool toggle = true,
+  }) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final lineStart = start == 0
+        ? 0
+        : value.text.lastIndexOf('\n', start - 1) + 1;
+    final nextLineBreak = value.text.indexOf('\n', end);
+    final lineEnd = nextLineBreak == -1 ? value.text.length : nextLineBreak;
+    final block = value.text.substring(lineStart, lineEnd);
+    final source = block.isEmpty ? placeholder : block;
+    final lines = source.split('\n');
+    final shouldRemove =
+        toggle && lines.every((line) => line.startsWith(removePattern));
+    final replacement = lines
+        .asMap()
+        .entries
+        .map((entry) {
+          final line = entry.value;
+          if (shouldRemove) return line.replaceFirst(removePattern, '');
+          final cleanLine = line.replaceFirst(removePattern, '');
+          return '${prefixBuilder(entry.key)}$cleanLine';
+        })
+        .join('\n');
+
+    _applyTextEdit(
+      value.text.replaceRange(lineStart, lineEnd, replacement),
+      TextSelection(
+        baseOffset: lineStart,
+        extentOffset: lineStart + replacement.length,
+      ),
+    );
+  }
+
+  void _applyHeading(int level) {
+    _formatSelectedLines(
+      prefixBuilder: (_) => '${'#' * level} ',
+      placeholder: 'หัวข้อ',
+      removePattern: RegExp(r'^#{1,6}\s+'),
+      toggle: false,
+    );
+  }
+
+  void _formatOrderedList() {
+    _formatSelectedLines(
+      prefixBuilder: (index) => '${index + 1}. ',
+      placeholder: 'รายการ',
+      removePattern: RegExp(r'^\d+\.\s+'),
+    );
+  }
+
+  void _changeListIndent({required bool increase}) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final lineStart = start == 0
+        ? 0
+        : value.text.lastIndexOf('\n', start - 1) + 1;
+    final nextLineBreak = value.text.indexOf('\n', end);
+    final lineEnd = nextLineBreak == -1 ? value.text.length : nextLineBreak;
+    final block = value.text.substring(lineStart, lineEnd);
+    final replacement = block
+        .split('\n')
+        .map(
+          (line) => increase
+              ? '  $line'
+              : line.replaceFirst(RegExp(r'^( {1,2}|\t)'), ''),
+        )
+        .join('\n');
+
+    _applyTextEdit(
+      value.text.replaceRange(lineStart, lineEnd, replacement),
+      TextSelection(
+        baseOffset: lineStart,
+        extentOffset: lineStart + replacement.length,
+      ),
+    );
+  }
+
+  void _insertCodeBlock() {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final selected = selection.textInside(value.text);
+    final body = selected.isEmpty ? 'code' : selected;
+    final leadingBreak =
+        selection.start > 0 && value.text[selection.start - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        selection.end < value.text.length && value.text[selection.end] != '\n'
+        ? '\n'
+        : '';
+    final replacement = '$leadingBreak```\n$body\n```$trailingBreak';
+    final bodyStart = selection.start + leadingBreak.length + 4;
+    _applyTextEdit(
+      value.text.replaceRange(selection.start, selection.end, replacement),
+      TextSelection(
+        baseOffset: bodyStart,
+        extentOffset: bodyStart + body.length,
+      ),
+    );
+  }
+
+  void _insertLineBreak() {
+    _insertAtSelectionEnd('<br>\n');
+  }
+
+  void _insertHorizontalRule() {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final leadingBreak = offset > 0 && value.text[offset - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        offset < value.text.length && value.text[offset] != '\n' ? '\n' : '';
+    _insertAtSelectionEnd('$leadingBreak---\n$trailingBreak');
+  }
+
+  void _insertAtSelectionEnd(String token) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final nextText = value.text.replaceRange(offset, offset, token);
+    _applyTextEdit(
+      nextText,
+      TextSelection.collapsed(offset: offset + token.length),
+    );
+  }
+
+  void _applyTextEdit(String text, TextSelection selection) {
+    _textController.value = TextEditingValue(text: text, selection: selection);
+    _workspace.updateContent(text);
   }
 
   Future<void> _insertImage() async {
@@ -376,73 +598,36 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildFormattingToolbar() {
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        children: [
-          _formatButton(
-            icon: Icons.title_rounded,
-            tooltip: 'หัวข้อ',
-            onPressed: () => _replaceSelection('# ', '', placeholder: 'หัวข้อ'),
-          ),
-          _formatButton(
-            icon: Icons.format_bold_rounded,
-            tooltip: 'ตัวหนา',
-            onPressed: () =>
-                _replaceSelection('**', '**', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.format_italic_rounded,
-            tooltip: 'ตัวเอียง',
-            onPressed: () =>
-                _replaceSelection('_', '_', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.format_list_bulleted_rounded,
-            tooltip: 'รายการ',
-            onPressed: () => _replaceSelection('- ', '', placeholder: 'รายการ'),
-          ),
-          _formatButton(
-            icon: Icons.format_quote_rounded,
-            tooltip: 'ข้อความอ้างอิง',
-            onPressed: () =>
-                _replaceSelection('> ', '', placeholder: 'ข้อความ'),
-          ),
-          _formatButton(
-            icon: Icons.code_rounded,
-            tooltip: 'โค้ด',
-            onPressed: () =>
-                _replaceSelection('\n```\n', '\n```\n', placeholder: 'code'),
-          ),
-          _formatButton(
-            icon: Icons.link_rounded,
-            tooltip: 'ลิงก์',
-            onPressed: () =>
-                _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
-          ),
-          _formatButton(
-            icon: Icons.image_outlined,
-            tooltip: 'แทรกรูป',
-            onPressed: _insertImage,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _formatButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: IconButton.outlined(
-        onPressed: onPressed,
-        tooltip: tooltip,
-        icon: Icon(icon, size: 20),
+    return ValueListenableBuilder<UndoHistoryValue>(
+      valueListenable: _undoController,
+      builder: (context, history, _) => MarkdownFormattingToolbar(
+        onUndo: history.canUndo ? _undoController.undo : null,
+        onRedo: history.canRedo ? _undoController.redo : null,
+        onHeading: _applyHeading,
+        onBold: () =>
+            _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+        onItalic: () =>
+            _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+        onList: () => _formatSelectedLines(
+          prefixBuilder: (_) => '- ',
+          placeholder: 'รายการ',
+          removePattern: '- ',
+        ),
+        onOrderedList: _formatOrderedList,
+        onIndentList: () => _changeListIndent(increase: true),
+        onOutdentList: () => _changeListIndent(increase: false),
+        onQuote: () => _formatSelectedLines(
+          prefixBuilder: (_) => '> ',
+          placeholder: 'ข้อความอ้างอิง',
+          removePattern: '> ',
+        ),
+        onLineBreak: _insertLineBreak,
+        onHorizontalRule: _insertHorizontalRule,
+        onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
+        onCodeBlock: _insertCodeBlock,
+        onLink: () =>
+            _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+        onImage: _insertImage,
       ),
     );
   }
@@ -461,68 +646,72 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               (constraints.maxWidth - gutterWidth - horizontalTextPadding)
                   .clamp(1.0, double.infinity);
 
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  left: gutterWidth,
-                  child: TextField(
-                    key: const Key('markdown-editor'),
-                    controller: _textController,
-                    scrollController: _editorScrollController,
-                    expands: true,
-                    minLines: null,
-                    maxLines: null,
-                    textAlignVertical: TextAlignVertical.top,
-                    keyboardType: TextInputType.multiline,
-                    style: _editorTextStyle,
-                    decoration: const InputDecoration(
-                      hintText: 'Read Markdown. Write freely.',
-                      filled: false,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
+          return KeyedSubtree(
+            key: ValueKey(_editorHistoryRevision),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    left: gutterWidth,
+                    child: TextField(
+                      key: const Key('markdown-editor'),
+                      controller: _textController,
+                      undoController: _undoController,
+                      scrollController: _editorScrollController,
+                      expands: true,
+                      minLines: null,
+                      maxLines: null,
+                      textAlignVertical: TextAlignVertical.top,
+                      keyboardType: TextInputType.multiline,
+                      style: _editorTextStyle,
+                      decoration: const InputDecoration(
+                        hintText: 'Read Markdown. Write freely.',
+                        filled: false,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
+                      ),
+                      onChanged: _workspace.updateContent,
                     ),
-                    onChanged: _workspace.updateContent,
                   ),
-                ),
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: gutterWidth,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(16),
-                    ),
-                    child: Semantics(
-                      label: lineCount == 1
-                          ? 'เลขบรรทัด 1'
-                          : 'เลขบรรทัด 1 ถึง $lineCount',
-                      child: CustomPaint(
-                        key: const Key('line-number-gutter'),
-                        painter: _LineNumberPainter(
-                          textController: _textController,
-                          editorStyle: _editorTextStyle,
-                          numberStyle: _editorTextStyle.copyWith(
-                            fontSize: 12,
-                            color: colorScheme.onSurfaceVariant,
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: gutterWidth,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(16),
+                      ),
+                      child: Semantics(
+                        label: lineCount == 1
+                            ? 'เลขบรรทัด 1'
+                            : 'เลขบรรทัด 1 ถึง $lineCount',
+                        child: CustomPaint(
+                          key: const Key('line-number-gutter'),
+                          painter: _LineNumberPainter(
+                            textController: _textController,
+                            editorStyle: _editorTextStyle,
+                            numberStyle: _editorTextStyle.copyWith(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            activeNumberColor: colorScheme.primary,
+                            backgroundColor: colorScheme.surfaceContainer,
+                            dividerColor: colorScheme.outlineVariant,
+                            textWidth: textWidth,
+                            textScaler: textScaler,
+                            scrollController: _editorScrollController,
                           ),
-                          activeNumberColor: colorScheme.primary,
-                          backgroundColor: colorScheme.surfaceContainer,
-                          dividerColor: colorScheme.outlineVariant,
-                          textWidth: textWidth,
-                          textScaler: textScaler,
-                          scrollController: _editorScrollController,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

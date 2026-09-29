@@ -580,7 +580,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 child: Card(
                   margin: EdgeInsets.zero,
                   elevation: 0,
-                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  color: Theme.of(context).colorScheme.surfaceContainer,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -657,7 +657,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             key: ValueKey(_editorHistoryRevision),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLowest,
+                color: colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
@@ -707,7 +707,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               color: colorScheme.onSurfaceVariant,
                             ),
                             activeNumberColor: colorScheme.primary,
-                            backgroundColor: colorScheme.surfaceContainerLowest,
+                            backgroundColor: colorScheme.surfaceContainer,
                             dividerColor: colorScheme.outlineVariant,
                             textWidth: textWidth,
                             textScaler: textScaler,

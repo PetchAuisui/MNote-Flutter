@@ -123,8 +123,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                         value: _ListStyle.indent,
                         child: ListTile(
                           leading: Icon(Icons.format_indent_increase_rounded),
-                          title: Text('เพิ่มระดับรายการ'),
-                          subtitle: Text('ทำเป็นรายการย่อย'),
+                          title: Text('ทำเป็นรายการย่อย'),
+                          subtitle: Text('เยื้องรายการที่เลือก'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -132,7 +132,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                         value: _ListStyle.outdent,
                         child: ListTile(
                           leading: Icon(Icons.format_indent_decrease_rounded),
-                          title: Text('ลดระดับรายการ'),
+                          title: Text('กลับสู่รายการหลัก'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),

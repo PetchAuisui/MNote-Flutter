@@ -131,14 +131,14 @@ void main() {
 
     await tester.tap(find.byKey(const Key('toolbar-list')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('เพิ่มระดับรายการ'));
+    await tester.tap(find.text('ทำเป็นรายการย่อย'));
     await tester.pumpAndSettle();
 
     expect(editor.controller?.text, '- parent\n  - child');
 
     await tester.tap(find.byKey(const Key('toolbar-list')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ลดระดับรายการ'));
+    await tester.tap(find.text('กลับสู่รายการหลัก'));
     await tester.pumpAndSettle();
 
     expect(editor.controller?.text, '- parent\n- child');

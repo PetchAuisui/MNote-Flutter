@@ -451,6 +451,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final document = _workspace.document;
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         toolbarHeight: 72,
         titleSpacing: 20,
         title: Column(
@@ -551,7 +554,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: SegmentedButton<WorkspaceMode>(
                 showSelectedIcon: false,
                 segments: const [

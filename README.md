@@ -85,7 +85,9 @@ lib/
 
 ## เริ่มต้นใช้งาน
 
-ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion` และ iOS 14 ขึ้นไป
+ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion` และ iOS 15 ขึ้นไป
+
+สำหรับ Xcode 27 โปรเจกต์กำหนด Debug simulator เป็น `arm64` เพื่อหลีกเลี่ยงข้อจำกัด `lipo -verify_arch` ของ Flutter 3.44; การ build สำหรับอุปกรณ์จริงและ Release ไม่ได้รับผลกระทบ
 
 ```bash
 flutter pub get

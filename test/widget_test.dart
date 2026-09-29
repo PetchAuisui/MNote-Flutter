@@ -20,6 +20,8 @@ void main() {
       find.byKey(const Key('markdown-formatting-toolbar')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('toolbar-indent-list')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-outdent-list')), findsOneWidget);
     expect(_lineNumberLabel('เลขบรรทัด 1'), findsOneWidget);
   });
 
@@ -129,17 +131,13 @@ void main() {
       extentOffset: 16,
     );
 
-    await tester.tap(find.byKey(const Key('toolbar-list')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('ทำเป็นรายการย่อย'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-indent-list')));
+    await tester.pump();
 
     expect(editor.controller?.text, '- parent\n  - child');
 
-    await tester.tap(find.byKey(const Key('toolbar-list')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('กลับสู่รายการหลัก'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-outdent-list')));
+    await tester.pump();
 
     expect(editor.controller?.text, '- parent\n- child');
   });

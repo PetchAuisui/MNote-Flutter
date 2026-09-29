@@ -95,10 +95,6 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                           onList();
                         case _ListStyle.ordered:
                           onOrderedList();
-                        case _ListStyle.indent:
-                          onIndentList();
-                        case _ListStyle.outdent:
-                          onOutdentList();
                       }
                     },
                     items: const [
@@ -118,25 +114,23 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: _ListStyle.indent,
-                        child: ListTile(
-                          leading: Icon(Icons.format_indent_increase_rounded),
-                          title: Text('ทำเป็นรายการย่อย'),
-                          subtitle: Text('เยื้องรายการที่เลือก'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: _ListStyle.outdent,
-                        child: ListTile(
-                          leading: Icon(Icons.format_indent_decrease_rounded),
-                          title: Text('กลับสู่รายการหลัก'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
                     ],
+                  ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-indent-list'),
+                    icon: Icons.format_indent_increase_rounded,
+                    label: 'ทำเป็นรายการย่อย',
+                    tooltip: 'ทำเป็นรายการย่อย',
+                    showLabel: false,
+                    onPressed: onIndentList,
+                  ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-outdent-list'),
+                    icon: Icons.format_indent_decrease_rounded,
+                    label: 'กลับสู่รายการหลัก',
+                    tooltip: 'กลับสู่รายการหลัก',
+                    showLabel: false,
+                    onPressed: onOutdentList,
                   ),
                   _ToolbarActionButton(
                     buttonKey: const Key('toolbar-quote'),
@@ -339,4 +333,4 @@ class _ToolbarDivider extends StatelessWidget {
 
 enum _CodeStyle { inline, block }
 
-enum _ListStyle { bulleted, ordered, indent, outdent }
+enum _ListStyle { bulleted, ordered }

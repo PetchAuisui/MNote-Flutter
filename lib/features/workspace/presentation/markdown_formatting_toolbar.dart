@@ -80,19 +80,37 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                     onPressed: onItalic,
                   ),
                   const _ToolbarDivider(),
-                  _ToolbarActionButton(
+                  _ToolbarMenuButton<_ListStyle>(
                     buttonKey: const Key('toolbar-list'),
                     icon: Icons.format_list_bulleted_rounded,
-                    label: 'รายการหัวข้อ',
+                    label: 'รายการ',
                     showLabel: showLabels,
-                    onPressed: onList,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-ordered-list'),
-                    icon: Icons.format_list_numbered_rounded,
-                    label: 'รายการตัวเลข',
-                    showLabel: showLabels,
-                    onPressed: onOrderedList,
+                    onSelected: (style) {
+                      switch (style) {
+                        case _ListStyle.bulleted:
+                          onList();
+                        case _ListStyle.ordered:
+                          onOrderedList();
+                      }
+                    },
+                    items: const [
+                      PopupMenuItem(
+                        value: _ListStyle.bulleted,
+                        child: ListTile(
+                          leading: Icon(Icons.format_list_bulleted_rounded),
+                          title: Text('รายการหัวข้อ'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _ListStyle.ordered,
+                        child: ListTile(
+                          leading: Icon(Icons.format_list_numbered_rounded),
+                          title: Text('รายการตัวเลข'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
                   _ToolbarActionButton(
                     buttonKey: const Key('toolbar-quote'),
@@ -294,3 +312,5 @@ class _ToolbarDivider extends StatelessWidget {
 }
 
 enum _CodeStyle { inline, block }
+
+enum _ListStyle { bulleted, ordered }

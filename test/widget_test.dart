@@ -80,7 +80,9 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('toolbar-list')));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('รายการหัวข้อ'));
+    await tester.pumpAndSettle();
 
     expect(editor.controller?.text, '- first\n- second');
   });
@@ -103,8 +105,10 @@ void main() {
       extentOffset: 18,
     );
 
-    await tester.tap(find.byKey(const Key('toolbar-ordered-list')));
-    await tester.pump();
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('รายการตัวเลข'));
+    await tester.pumpAndSettle();
 
     expect(editor.controller?.text, '1. first\n2. second\n3. third');
   });
@@ -220,8 +224,7 @@ void main() {
 
     expect(find.text('ตัวหนา'), findsOneWidget);
     expect(find.text('ตัวเอียง'), findsOneWidget);
-    expect(find.text('รายการหัวข้อ'), findsOneWidget);
-    expect(find.text('รายการตัวเลข'), findsOneWidget);
+    expect(find.text('รายการ'), findsOneWidget);
 
     await tester.drag(
       find.byKey(const Key('markdown-formatting-toolbar')),

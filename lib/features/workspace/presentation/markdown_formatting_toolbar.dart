@@ -8,6 +8,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onItalic,
     required this.onList,
     required this.onOrderedList,
+    required this.onIndentList,
+    required this.onOutdentList,
     required this.onQuote,
     required this.onLineBreak,
     required this.onHorizontalRule,
@@ -22,6 +24,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onItalic;
   final VoidCallback onList;
   final VoidCallback onOrderedList;
+  final VoidCallback onIndentList;
+  final VoidCallback onOutdentList;
   final VoidCallback onQuote;
   final VoidCallback onLineBreak;
   final VoidCallback onHorizontalRule;
@@ -91,6 +95,10 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                           onList();
                         case _ListStyle.ordered:
                           onOrderedList();
+                        case _ListStyle.indent:
+                          onIndentList();
+                        case _ListStyle.outdent:
+                          onOutdentList();
                       }
                     },
                     items: const [
@@ -107,6 +115,24 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                         child: ListTile(
                           leading: Icon(Icons.format_list_numbered_rounded),
                           title: Text('รายการตัวเลข'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: _ListStyle.indent,
+                        child: ListTile(
+                          leading: Icon(Icons.format_indent_increase_rounded),
+                          title: Text('เพิ่มระดับรายการ'),
+                          subtitle: Text('ทำเป็นรายการย่อย'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: _ListStyle.outdent,
+                        child: ListTile(
+                          leading: Icon(Icons.format_indent_decrease_rounded),
+                          title: Text('ลดระดับรายการ'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -313,4 +339,4 @@ class _ToolbarDivider extends StatelessWidget {
 
 enum _CodeStyle { inline, block }
 
-enum _ListStyle { bulleted, ordered }
+enum _ListStyle { bulleted, ordered, indent, outdent }

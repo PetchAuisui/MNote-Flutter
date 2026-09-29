@@ -320,6 +320,37 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  void _changeListIndent({required bool increase}) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final start = selection.start;
+    final end = selection.end;
+    final lineStart = start == 0
+        ? 0
+        : value.text.lastIndexOf('\n', start - 1) + 1;
+    final nextLineBreak = value.text.indexOf('\n', end);
+    final lineEnd = nextLineBreak == -1 ? value.text.length : nextLineBreak;
+    final block = value.text.substring(lineStart, lineEnd);
+    final replacement = block
+        .split('\n')
+        .map(
+          (line) => increase
+              ? '  $line'
+              : line.replaceFirst(RegExp(r'^( {1,2}|\t)'), ''),
+        )
+        .join('\n');
+
+    _applyTextEdit(
+      value.text.replaceRange(lineStart, lineEnd, replacement),
+      TextSelection(
+        baseOffset: lineStart,
+        extentOffset: lineStart + replacement.length,
+      ),
+    );
+  }
+
   void _insertCodeBlock() {
     final value = _textController.value;
     final selection = value.selection.isValid
@@ -562,6 +593,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         removePattern: '- ',
       ),
       onOrderedList: _formatOrderedList,
+      onIndentList: () => _changeListIndent(increase: true),
+      onOutdentList: () => _changeListIndent(increase: false),
       onQuote: () => _formatSelectedLines(
         prefixBuilder: (_) => '> ',
         placeholder: 'ข้อความอ้างอิง',

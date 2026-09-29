@@ -113,6 +113,37 @@ void main() {
     expect(editor.controller?.text, '1. first\n2. second\n3. third');
   });
 
+  testWidgets('indents and outdents a nested list item', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      '- parent\n- child',
+    );
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 9,
+      extentOffset: 16,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('เพิ่มระดับรายการ'));
+    await tester.pumpAndSettle();
+
+    expect(editor.controller?.text, '- parent\n  - child');
+
+    await tester.tap(find.byKey(const Key('toolbar-list')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ลดระดับรายการ'));
+    await tester.pumpAndSettle();
+
+    expect(editor.controller?.text, '- parent\n- child');
+  });
+
   testWidgets('inserts BR and HR Markdown tokens', (tester) async {
     tester.view.physicalSize = const Size(1024, 768);
     tester.view.devicePixelRatio = 1;

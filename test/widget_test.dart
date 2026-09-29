@@ -15,6 +15,23 @@ void main() {
     expect(find.text('แสดงผล'), findsOneWidget);
     expect(find.text('Read Markdown. Write freely.'), findsOneWidget);
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+    expect(find.byKey(const Key('line-number-gutter')), findsOneWidget);
+    expect(_lineNumberLabel('เลขบรรทัด 1'), findsOneWidget);
+  });
+
+  testWidgets('updates line numbers while editing Markdown', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      '# Title\n\nParagraph',
+    );
+    await tester.pump();
+
+    expect(_lineNumberLabel('เลขบรรทัด 1 ถึง 3'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('edits Markdown and renders a preview', (tester) async {
@@ -47,4 +64,10 @@ void main() {
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+Finder _lineNumberLabel(String label) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.label == label,
+  );
 }

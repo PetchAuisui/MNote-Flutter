@@ -20,8 +20,15 @@ class MarkdownWorkspacePage extends StatefulWidget {
 }
 
 class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
+  static const _editorTextStyle = TextStyle(
+    fontFamily: 'monospace',
+    fontSize: 15,
+    height: 1.55,
+  );
+
   late final WorkspaceController _workspace;
   late final TextEditingController _textController;
+  late final ScrollController _editorScrollController;
 
   @override
   void initState() {
@@ -29,6 +36,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace = WorkspaceController(widget.repository)
       ..addListener(_onWorkspaceChanged);
     _textController = TextEditingController(text: _workspace.document.content);
+    _editorScrollController = ScrollController();
   }
 
   @override
@@ -37,6 +45,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ..removeListener(_onWorkspaceChanged)
       ..dispose();
     _textController.dispose();
+    _editorScrollController.dispose();
     super.dispose();
   }
 
@@ -344,20 +353,82 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Widget _buildEditor() {
     return Padding(
       padding: const EdgeInsets.all(8),
-      child: TextField(
-        key: const Key('markdown-editor'),
-        controller: _textController,
-        expands: true,
-        minLines: null,
-        maxLines: null,
-        textAlignVertical: TextAlignVertical.top,
-        keyboardType: TextInputType.multiline,
-        style: const TextStyle(fontFamily: 'monospace', height: 1.55),
-        decoration: const InputDecoration(
-          hintText: 'Read Markdown. Write freely.',
-          contentPadding: EdgeInsets.all(16),
-        ),
-        onChanged: _workspace.updateContent,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final colorScheme = Theme.of(context).colorScheme;
+          final textScaler = MediaQuery.textScalerOf(context);
+          final lineCount = '\n'.allMatches(_textController.text).length + 1;
+          final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
+          const horizontalTextPadding = 28.0;
+          final textWidth =
+              (constraints.maxWidth - gutterWidth - horizontalTextPadding)
+                  .clamp(1.0, double.infinity);
+
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  left: gutterWidth,
+                  child: TextField(
+                    key: const Key('markdown-editor'),
+                    controller: _textController,
+                    scrollController: _editorScrollController,
+                    expands: true,
+                    minLines: null,
+                    maxLines: null,
+                    textAlignVertical: TextAlignVertical.top,
+                    keyboardType: TextInputType.multiline,
+                    style: _editorTextStyle,
+                    decoration: const InputDecoration(
+                      hintText: 'Read Markdown. Write freely.',
+                      filled: false,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
+                    ),
+                    onChanged: _workspace.updateContent,
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: gutterWidth,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(16),
+                    ),
+                    child: Semantics(
+                      label: lineCount == 1
+                          ? 'เลขบรรทัด 1'
+                          : 'เลขบรรทัด 1 ถึง $lineCount',
+                      child: CustomPaint(
+                        key: const Key('line-number-gutter'),
+                        painter: _LineNumberPainter(
+                          textController: _textController,
+                          editorStyle: _editorTextStyle,
+                          numberStyle: _editorTextStyle.copyWith(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          activeNumberColor: colorScheme.primary,
+                          backgroundColor: colorScheme.surfaceContainer,
+                          dividerColor: colorScheme.outlineVariant,
+                          textWidth: textWidth,
+                          textScaler: textScaler,
+                          scrollController: _editorScrollController,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -394,3 +465,116 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 }
 
 enum _DocumentAction { newDocument, saveAs }
+
+class _LineNumberPainter extends CustomPainter {
+  _LineNumberPainter({
+    required this.textController,
+    required this.editorStyle,
+    required this.numberStyle,
+    required this.activeNumberColor,
+    required this.backgroundColor,
+    required this.dividerColor,
+    required this.textWidth,
+    required this.textScaler,
+    required this.scrollController,
+  }) : super(repaint: Listenable.merge([textController, scrollController]));
+
+  final TextEditingController textController;
+  final TextStyle editorStyle;
+  final TextStyle numberStyle;
+  final Color activeNumberColor;
+  final Color backgroundColor;
+  final Color dividerColor;
+  final double textWidth;
+  final TextScaler textScaler;
+  final ScrollController scrollController;
+
+  static const _topPadding = 16.0;
+  static const _rightPadding = 10.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawColor(backgroundColor, BlendMode.src);
+    canvas.drawLine(
+      Offset(size.width - 0.5, 0),
+      Offset(size.width - 0.5, size.height),
+      Paint()
+        ..color = dividerColor
+        ..strokeWidth = 1,
+    );
+
+    final lines = textController.text.split('\n');
+    final activeLine = _activeLine;
+    var lineTop = _topPadding - _scrollOffset;
+
+    for (var index = 0; index < lines.length; index++) {
+      final editorPainter = _textPainter(
+        lines[index].isEmpty ? ' ' : lines[index],
+        editorStyle,
+      )..layout(maxWidth: textWidth);
+      final editorMetrics = editorPainter.computeLineMetrics();
+      final editorBaseline = editorMetrics.isEmpty
+          ? editorPainter.height
+          : editorMetrics.first.baseline;
+
+      final numberPainter = _textPainter(
+        '${index + 1}',
+        index == activeLine
+            ? numberStyle.copyWith(
+                color: activeNumberColor,
+                fontWeight: FontWeight.w700,
+              )
+            : numberStyle,
+      )..layout();
+      final numberMetrics = numberPainter.computeLineMetrics();
+      final numberBaseline = numberMetrics.isEmpty
+          ? numberPainter.height
+          : numberMetrics.first.baseline;
+
+      if (lineTop + editorPainter.height >= 0 && lineTop <= size.height) {
+        numberPainter.paint(
+          canvas,
+          Offset(
+            size.width - _rightPadding - numberPainter.width,
+            lineTop + editorBaseline - numberBaseline,
+          ),
+        );
+      }
+      lineTop += editorPainter.height;
+    }
+  }
+
+  TextPainter _textPainter(String text, TextStyle style) {
+    return TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: textScaler,
+    );
+  }
+
+  int get _activeLine {
+    final content = textController.text;
+    final selection = textController.selection;
+    final offset = selection.isValid
+        ? selection.extentOffset.clamp(0, content.length)
+        : content.length;
+    return '\n'.allMatches(content.substring(0, offset)).length;
+  }
+
+  double get _scrollOffset {
+    if (!scrollController.hasClients) return 0;
+    return scrollController.offset;
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineNumberPainter oldDelegate) {
+    return textController != oldDelegate.textController ||
+        editorStyle != oldDelegate.editorStyle ||
+        numberStyle != oldDelegate.numberStyle ||
+        activeNumberColor != oldDelegate.activeNumberColor ||
+        backgroundColor != oldDelegate.backgroundColor ||
+        dividerColor != oldDelegate.dividerColor ||
+        textWidth != oldDelegate.textWidth ||
+        textScaler != oldDelegate.textScaler;
+  }
+}

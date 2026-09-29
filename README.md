@@ -2,14 +2,25 @@
 
 Mnote คือ Mobile App สำหรับอ่านและแก้ไขเอกสาร Markdown พร้อมแนวทางต่อยอดเป็นพื้นที่จดบันทึกแบบหลายชั้น (layer) ผู้ใช้จะสามารถเขียน ไฮไลต์ และแทรกรูปโดยไม่ทำลายไฟล์ Markdown ต้นฉบับ
 
-> สถานะปัจจุบัน: วางโครง Flutter และ Material Design 3 แล้ว กำลังพัฒนา Markdown workspace ใน feature branch
+> สถานะปัจจุบัน: Markdown workspace ใช้งานได้บน feature branch `feature/markdown-editor`; annotation layer, cloud และ AI อยู่ใน roadmap ระยะถัดไป
+
+## ความสามารถที่ใช้งานได้แล้ว
+
+- เปิดไฟล์ `.md`, `.markdown` และ `.txt` ด้วย file picker ของระบบ
+- แก้ไขข้อความและติดตามสถานะที่ยังไม่ได้บันทึก
+- สลับระหว่างโหมดแก้ไขกับ preview แบบ GitHub Flavored Markdown
+- บันทึกไฟล์เดิมเมื่อระบบให้ file URI และใช้ Save As เป็น fallback
+- แทรก bold, italic, heading, list, quote, code, link และ image reference จาก toolbar
+- แสดงรูปจาก URL, absolute file URI และ relative path ของเอกสาร
+- ป้องกันการเปิด/สร้างเอกสารใหม่ทับงานที่ยังไม่ได้บันทึก
+- รองรับ Light/Dark mode ตามระบบ
 
 ## เป้าหมายของโครงการ
 
 - เปิดไฟล์ `.md`, `.markdown` และ `.txt` จากอุปกรณ์
 - อ่านและแก้ไข Markdown ภายในแอป
 - แสดงผล heading, list, quote, code block, link และ image
-- แทรกรูปลงในเอกสารและบันทึกกลับไปยังไฟล์เดิม
+- แทรกรูปเป็น Markdown image reference และบันทึกกลับไปยังเอกสาร
 - แยก annotation layer สำหรับปากกา ไฮไลต์ และรูปประกอบออกจาก Markdown ต้นฉบับ
 - ทำงานแบบ local-first และต่อยอดการ sync ข้ามอุปกรณ์
 - เพิ่ม AI assistant สำหรับสรุป ถาม-ตอบ และวิเคราะห์รูปภาพในระยะถัดไป
@@ -28,7 +39,7 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 
 ### Milestone 1 — Project foundation
 
-- Flutter project สำหรับ Android และ iOS
+- Flutter project สำหรับ Android, iOS, macOS และ Web
 - Material 3 theme และโครง feature-first
 - เอกสาร architecture, roadmap และ Git workflow
 
@@ -40,6 +51,8 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 - บันทึกและ Save As
 - แทรกรูปเป็น Markdown image syntax
 - unit/widget tests สำหรับ logic และหน้าจอหลัก
+
+สถานะ: พัฒนาแล้วบน `codex/markdown-editor`
 
 ### Milestone 3 — Annotation layer
 
@@ -62,18 +75,31 @@ lib/
 ├── app/                    # MaterialApp, navigation และ app-level setup
 ├── core/                   # theme, shared utilities และ shared widgets
 └── features/
-    └── workspace/          # document editor/viewer และ presentation
+    └── workspace/
+        ├── domain/         # document model และ repository contract
+        ├── data/           # native file/image picker และ local repository
+        └── presentation/   # controller และหน้า editor/preview
 ```
 
 แต่ละ feature จะค่อย ๆ แยกเป็น `domain`, `data` และ `presentation` เมื่อมี business logic มากพอ เพื่อหลีกเลี่ยง abstraction ที่ยังไม่จำเป็นในช่วงต้น
 
 ## เริ่มต้นใช้งาน
 
-ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`
+ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion`, iOS 15 ขึ้นไป และ macOS 12 ขึ้นไป
+
+สำหรับ Xcode 27 โปรเจกต์กำหนด Debug simulator เป็น `arm64` เพื่อหลีกเลี่ยงข้อจำกัด `lipo -verify_arch` ของ Flutter 3.44; การ build สำหรับอุปกรณ์จริงและ Release ไม่ได้รับผลกระทบ
 
 ```bash
 flutter pub get
 flutter run
+```
+
+เลือก platform โดยตรงได้ด้วย:
+
+```bash
+flutter run -d chrome
+flutter run -d macos
+flutter run -d 99DA51DC-293F-438F-819B-B5015B07905D # iPad Simulator
 ```
 
 ตรวจคุณภาพก่อน commit:
@@ -86,7 +112,7 @@ flutter test
 
 ## Git workflow
 
-`main` เก็บเฉพาะ baseline ที่ผ่านการตรวจสอบแล้ว งานแต่ละชุดพัฒนาใน branch แยก โดยใช้ชื่อที่สื่อความหมาย เช่น `codex/markdown-editor`
+`main` เก็บเฉพาะ baseline ที่ผ่านการตรวจสอบแล้ว งานแต่ละชุดพัฒนาใน branch แยก โดยใช้ชื่อที่สื่อความหมาย เช่น `feature/markdown-editor`
 
 แบ่ง commit ตามผลลัพธ์ที่ตรวจสอบได้:
 
@@ -105,6 +131,12 @@ flutter test
 - error, empty และ unsaved states มี feedback ที่เข้าใจได้
 - README และเอกสารที่เกี่ยวข้องตรงกับพฤติกรรมจริงของแอป
 
+## ข้อจำกัดของรุ่นปัจจุบัน
+
+- ปุ่มแทรกรูปเพิ่ม URI ของไฟล์ลงใน Markdown โดยตรง ยังไม่ได้คัดลอกรูปเข้า companion asset folder ดังนั้นลิงก์รูปอาจใช้ข้ามอุปกรณ์ไม่ได้
+- Android/iOS อาจส่ง document URI ที่เขียนทับตรง ๆ ไม่ได้ แอปจะเปิด Save As เพื่อให้ผู้ใช้เลือกปลายทางแทน
+- annotation layer, autosave, recent documents, local database, cloud sync และ AI ยังไม่ได้รวมใน milestone นี้
+
 ## เอกสารอ้างอิงของโครงการ
 
-รายละเอียดผลิตภัณฑ์ฉบับต้นทางอยู่ใน `Mnote.pdf` ซึ่งอธิบาย pain points, feature roadmap, Material Design 3, usability testing, testing strategy และขอบเขตเทคโนโลยี เอกสารดังกล่าวใช้เป็น product brief; การพัฒนาจริงแบ่งเป็น milestone ตาม README นี้
+README นี้สรุปจาก product brief `Mnote.pdf` ที่แนบมากับงาน ซึ่งอธิบาย pain points, feature roadmap, Material Design 3, usability testing, testing strategy และขอบเขตเทคโนโลยี เอกสารดังกล่าวไม่ได้ถูกคัดลอกเข้า repository; การพัฒนาจริงแบ่งเป็น milestone ตาม README นี้

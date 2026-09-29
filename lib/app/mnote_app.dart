@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/app_theme.dart';
-import 'package:mnote/features/workspace/presentation/workspace_placeholder_page.dart';
+import 'package:mnote/features/workspace/data/device_document_storage.dart';
+import 'package:mnote/features/workspace/data/local_document_repository.dart';
+import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 
 class MnoteApp extends StatelessWidget {
-  const MnoteApp({super.key});
+  const MnoteApp({super.key, this.documentRepository});
+
+  final DocumentRepository? documentRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +18,11 @@ class MnoteApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const WorkspacePlaceholderPage(),
+      home: MarkdownWorkspacePage(
+        repository:
+            documentRepository ??
+            const LocalDocumentRepository(DeviceDocumentStorage()),
+      ),
     );
   }
 }

@@ -45,21 +45,19 @@ class MarkdownFormattingToolbar extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
+      child: Material(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final showLabels = constraints.maxWidth >= 900;
             return SizedBox(
-              height: 58,
+              height: 64,
               child: ListView(
                 key: const Key('markdown-formatting-toolbar'),
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 children: [
                   _ToolbarActionButton(
                     buttonKey: const Key('toolbar-undo'),
@@ -254,20 +252,22 @@ class _ToolbarActionButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: showLabel
-          ? FilledButton.tonalIcon(
+          ? TextButton.icon(
               key: buttonKey,
               onPressed: onPressed,
               icon: Icon(icon, size: 19),
               label: Text(label),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(48, 44),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             )
-          : IconButton.filledTonal(
+          : IconButton(
               key: buttonKey,
               onPressed: onPressed,
               tooltip: tooltip ?? label,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: Icon(icon, size: 21),
             ),
     );
@@ -303,24 +303,24 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
         onSelected: onSelected,
         itemBuilder: (_) => items,
         borderRadius: BorderRadius.circular(20),
-        color: colorScheme.secondaryContainer,
+        color: colorScheme.surfaceContainer,
         child: Container(
-          height: 44,
+          height: 48,
           padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
           decoration: ShapeDecoration(
-            color: colorScheme.secondaryContainer,
+            color: Colors.transparent,
             shape: const StadiumBorder(),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 21, color: colorScheme.onSecondaryContainer),
+              Icon(icon, size: 21, color: colorScheme.onSurfaceVariant),
               if (showLabel) ...[
                 const SizedBox(width: 8),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -328,7 +328,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
               Icon(
                 Icons.arrow_drop_down_rounded,
                 size: 16,
-                color: colorScheme.onSecondaryContainer,
+                color: colorScheme.onSurfaceVariant,
               ),
             ],
           ),

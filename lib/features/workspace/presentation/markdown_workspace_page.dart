@@ -32,6 +32,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
+  late UndoHistoryController _undoController;
+  int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
 
   @override
@@ -43,6 +45,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
+    _undoController = UndoHistoryController();
   }
 
   @override
@@ -53,6 +56,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _textController.dispose();
     _titleController.dispose();
     _editorScrollController.dispose();
+    _undoController.dispose();
     _titleFocusNode
       ..removeListener(_onTitleFocusChanged)
       ..dispose();
@@ -140,15 +144,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Future<void> _openDocument() async {
     if (!await _confirmDiscardChanges()) return;
-    await _runFileAction(
+    final opened = await _runFileAction(
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
     );
+    if (opened) _resetUndoHistory();
   }
 
   Future<void> _newDocument() async {
     if (!await _confirmDiscardChanges()) return;
     _workspace.newDocument();
+    _resetUndoHistory();
   }
 
   Future<void> _saveDocument({bool saveAs = false}) async {
@@ -158,12 +164,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  Future<void> _runFileAction(
+  Future<bool> _runFileAction(
     Future<bool> Function() action, {
     required String successMessage,
   }) async {
     final succeeded = await action();
-    if (!mounted) return;
+    if (!mounted) return succeeded;
     final error = _workspace.errorMessage;
     if (error != null) {
       _workspace.clearError();
@@ -175,6 +181,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         context,
       ).showSnackBar(SnackBar(content: Text(successMessage)));
     }
+    return succeeded;
+  }
+
+  void _resetUndoHistory() {
+    final previousController = _undoController;
+    _undoController = UndoHistoryController();
+    _editorHistoryRevision += 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      previousController.dispose();
+    });
+    if (mounted) setState(() {});
   }
 
   void _replaceSelection(
@@ -581,32 +598,37 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildFormattingToolbar() {
-    return MarkdownFormattingToolbar(
-      onHeading: _applyHeading,
-      onBold: () =>
-          _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
-      onItalic: () =>
-          _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
-      onList: () => _formatSelectedLines(
-        prefixBuilder: (_) => '- ',
-        placeholder: 'รายการ',
-        removePattern: '- ',
+    return ValueListenableBuilder<UndoHistoryValue>(
+      valueListenable: _undoController,
+      builder: (context, history, _) => MarkdownFormattingToolbar(
+        onUndo: history.canUndo ? _undoController.undo : null,
+        onRedo: history.canRedo ? _undoController.redo : null,
+        onHeading: _applyHeading,
+        onBold: () =>
+            _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+        onItalic: () =>
+            _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+        onList: () => _formatSelectedLines(
+          prefixBuilder: (_) => '- ',
+          placeholder: 'รายการ',
+          removePattern: '- ',
+        ),
+        onOrderedList: _formatOrderedList,
+        onIndentList: () => _changeListIndent(increase: true),
+        onOutdentList: () => _changeListIndent(increase: false),
+        onQuote: () => _formatSelectedLines(
+          prefixBuilder: (_) => '> ',
+          placeholder: 'ข้อความอ้างอิง',
+          removePattern: '> ',
+        ),
+        onLineBreak: _insertLineBreak,
+        onHorizontalRule: _insertHorizontalRule,
+        onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
+        onCodeBlock: _insertCodeBlock,
+        onLink: () =>
+            _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+        onImage: _insertImage,
       ),
-      onOrderedList: _formatOrderedList,
-      onIndentList: () => _changeListIndent(increase: true),
-      onOutdentList: () => _changeListIndent(increase: false),
-      onQuote: () => _formatSelectedLines(
-        prefixBuilder: (_) => '> ',
-        placeholder: 'ข้อความอ้างอิง',
-        removePattern: '> ',
-      ),
-      onLineBreak: _insertLineBreak,
-      onHorizontalRule: _insertHorizontalRule,
-      onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
-      onCodeBlock: _insertCodeBlock,
-      onLink: () =>
-          _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
-      onImage: _insertImage,
     );
   }
 
@@ -624,68 +646,72 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               (constraints.maxWidth - gutterWidth - horizontalTextPadding)
                   .clamp(1.0, double.infinity);
 
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  left: gutterWidth,
-                  child: TextField(
-                    key: const Key('markdown-editor'),
-                    controller: _textController,
-                    scrollController: _editorScrollController,
-                    expands: true,
-                    minLines: null,
-                    maxLines: null,
-                    textAlignVertical: TextAlignVertical.top,
-                    keyboardType: TextInputType.multiline,
-                    style: _editorTextStyle,
-                    decoration: const InputDecoration(
-                      hintText: 'Read Markdown. Write freely.',
-                      filled: false,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
+          return KeyedSubtree(
+            key: ValueKey(_editorHistoryRevision),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    left: gutterWidth,
+                    child: TextField(
+                      key: const Key('markdown-editor'),
+                      controller: _textController,
+                      undoController: _undoController,
+                      scrollController: _editorScrollController,
+                      expands: true,
+                      minLines: null,
+                      maxLines: null,
+                      textAlignVertical: TextAlignVertical.top,
+                      keyboardType: TextInputType.multiline,
+                      style: _editorTextStyle,
+                      decoration: const InputDecoration(
+                        hintText: 'Read Markdown. Write freely.',
+                        filled: false,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
+                      ),
+                      onChanged: _workspace.updateContent,
                     ),
-                    onChanged: _workspace.updateContent,
                   ),
-                ),
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: gutterWidth,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(16),
-                    ),
-                    child: Semantics(
-                      label: lineCount == 1
-                          ? 'เลขบรรทัด 1'
-                          : 'เลขบรรทัด 1 ถึง $lineCount',
-                      child: CustomPaint(
-                        key: const Key('line-number-gutter'),
-                        painter: _LineNumberPainter(
-                          textController: _textController,
-                          editorStyle: _editorTextStyle,
-                          numberStyle: _editorTextStyle.copyWith(
-                            fontSize: 12,
-                            color: colorScheme.onSurfaceVariant,
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: gutterWidth,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(16),
+                      ),
+                      child: Semantics(
+                        label: lineCount == 1
+                            ? 'เลขบรรทัด 1'
+                            : 'เลขบรรทัด 1 ถึง $lineCount',
+                        child: CustomPaint(
+                          key: const Key('line-number-gutter'),
+                          painter: _LineNumberPainter(
+                            textController: _textController,
+                            editorStyle: _editorTextStyle,
+                            numberStyle: _editorTextStyle.copyWith(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            activeNumberColor: colorScheme.primary,
+                            backgroundColor: colorScheme.surfaceContainer,
+                            dividerColor: colorScheme.outlineVariant,
+                            textWidth: textWidth,
+                            textScaler: textScaler,
+                            scrollController: _editorScrollController,
                           ),
-                          activeNumberColor: colorScheme.primary,
-                          backgroundColor: colorScheme.surfaceContainer,
-                          dividerColor: colorScheme.outlineVariant,
-                          textWidth: textWidth,
-                          textScaler: textScaler,
-                          scrollController: _editorScrollController,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

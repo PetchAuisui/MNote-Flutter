@@ -22,7 +22,69 @@ void main() {
     );
     expect(find.byKey(const Key('toolbar-indent-list')), findsOneWidget);
     expect(find.byKey(const Key('toolbar-outdent-list')), findsOneWidget);
+    final undo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-undo')),
+    );
+    final redo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-redo')),
+    );
+    expect(undo.onPressed, isNull);
+    expect(redo.onPressed, isNull);
     expect(_lineNumberLabel('เลขบรรทัด 1'), findsOneWidget);
+  });
+
+  testWidgets('undoes and redoes editor changes', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    final editorFinder = find.byKey(const Key('markdown-editor'));
+    await tester.tap(editorFinder);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.enterText(editorFinder, 'Draft');
+    await tester.pump(const Duration(milliseconds: 600));
+
+    var undo = tester.widget<IconButton>(find.byKey(const Key('toolbar-undo')));
+    expect(undo.onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('toolbar-undo')));
+    await tester.pump();
+
+    var editor = tester.widget<TextField>(editorFinder);
+    expect(editor.controller?.text, isEmpty);
+
+    final redo = tester.widget<IconButton>(
+      find.byKey(const Key('toolbar-redo')),
+    );
+    expect(redo.onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('toolbar-redo')));
+    await tester.pump();
+
+    editor = tester.widget<TextField>(editorFinder);
+    expect(editor.controller?.text, 'Draft');
+  });
+
+  testWidgets('undoes a formatting toolbar action', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    final editorFinder = find.byKey(const Key('markdown-editor'));
+    await tester.tap(editorFinder);
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.enterText(editorFinder, 'word');
+    await tester.pump(const Duration(milliseconds: 600));
+    final editor = tester.widget<TextField>(editorFinder);
+    editor.controller?.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 4,
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-bold')));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(editor.controller?.text, '**word**');
+
+    await tester.tap(find.byKey(const Key('toolbar-undo')));
+    await tester.pump();
+
+    expect(editor.controller?.text, 'word');
   });
 
   testWidgets('applies a heading level to the current line', (tester) async {

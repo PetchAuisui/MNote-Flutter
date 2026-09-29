@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 class MarkdownFormattingToolbar extends StatelessWidget {
   const MarkdownFormattingToolbar({
     super.key,
+    required this.onUndo,
+    required this.onRedo,
     required this.onHeading,
     required this.onBold,
     required this.onItalic,
@@ -19,6 +21,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onImage,
   });
 
+  final VoidCallback? onUndo;
+  final VoidCallback? onRedo;
   final ValueChanged<int> onHeading;
   final VoidCallback onBold;
   final VoidCallback onItalic;
@@ -57,6 +61,21 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                 children: [
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-undo'),
+                    icon: Icons.undo_rounded,
+                    label: 'เลิกทำ',
+                    showLabel: false,
+                    onPressed: onUndo,
+                  ),
+                  _ToolbarActionButton(
+                    buttonKey: const Key('toolbar-redo'),
+                    icon: Icons.redo_rounded,
+                    label: 'ทำซ้ำ',
+                    showLabel: false,
+                    onPressed: onRedo,
+                  ),
+                  const _ToolbarDivider(),
                   _ToolbarMenuButton<int>(
                     buttonKey: const Key('toolbar-heading'),
                     icon: Icons.title_rounded,
@@ -228,7 +247,7 @@ class _ToolbarActionButton extends StatelessWidget {
   final String label;
   final String? tooltip;
   final bool showLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

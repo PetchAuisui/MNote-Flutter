@@ -451,6 +451,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final document = _workspace.document;
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 72,
         titleSpacing: 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,7 +509,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             tooltip: 'เปิดไฟล์',
             icon: const Icon(Icons.folder_open_rounded),
           ),
-          IconButton(
+          IconButton.filledTonal(
             onPressed: _workspace.isBusy ? null : _saveDocument,
             tooltip: 'บันทึก',
             icon: const Icon(Icons.save_rounded),
@@ -550,7 +551,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: SegmentedButton<WorkspaceMode>(
                 showSelectedIcon: false,
                 segments: const [
@@ -577,6 +578,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
                 child: Card(
+                  margin: EdgeInsets.zero,
+                  elevation: 0,
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   clipBehavior: Clip.antiAlias,
                   child: _workspace.mode == WorkspaceMode.edit
                       ? _buildEditor()
@@ -634,7 +641,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Widget _buildEditor() {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final colorScheme = Theme.of(context).colorScheme;
@@ -700,7 +707,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               color: colorScheme.onSurfaceVariant,
                             ),
                             activeNumberColor: colorScheme.primary,
-                            backgroundColor: colorScheme.surfaceContainer,
+                            backgroundColor: colorScheme.surfaceContainerLowest,
                             dividerColor: colorScheme.outlineVariant,
                             textWidth: textWidth,
                             textScaler: textScaler,

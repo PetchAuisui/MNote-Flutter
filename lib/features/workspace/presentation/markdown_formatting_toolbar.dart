@@ -36,7 +36,8 @@ class MarkdownFormattingToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
@@ -273,7 +274,8 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: PopupMenuButton<T>(
@@ -283,7 +285,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
         itemBuilder: (_) => items,
         borderRadius: BorderRadius.circular(20),
         color: colorScheme.secondaryContainer,
-        child: Ink(
+        child: Container(
           height: 44,
           padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
           decoration: ShapeDecoration(
@@ -298,7 +300,9 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: TextStyle(color: colorScheme.onSecondaryContainer),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                  ),
                 ),
               ],
               const SizedBox(width: 2),

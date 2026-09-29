@@ -5,6 +5,36 @@ import 'package:mnote/app/mnote_app.dart';
 import 'helpers/fakes.dart';
 
 void main() {
+  testWidgets('gutter baseline matches the rendered editor baseline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(find.byKey(const Key('markdown-editor')), 'Hello');
+    await tester.pump();
+    final editable = tester
+        .state<EditableTextState>(find.byType(EditableText))
+        .renderEditable;
+    final gutterFinder = find.byKey(const Key('line-number-gutter'));
+    final dynamic gutter = tester.widget<CustomPaint>(gutterFinder).painter;
+    final painter = TextPainter(
+      text: TextSpan(text: 'Hello', style: gutter.editorStyle as TextStyle),
+      textDirection: TextDirection.ltr,
+      textScaler: gutter.textScaler as TextScaler,
+      strutStyle: StrutStyle.fromTextStyle(gutter.editorStyle as TextStyle),
+    )..layout(maxWidth: gutter.textWidth as double);
+    final expected =
+        tester.getTopLeft(gutterFinder).dy +
+        16 +
+        painter.computeLineMetrics().first.baseline;
+    final actual =
+        editable.localToGlobal(Offset.zero).dy +
+        editable.getDistanceToBaseline(TextBaseline.alphabetic)!;
+    expect(actual, closeTo(expected, 0.1));
+    painter.dispose();
+  });
+
   testWidgets('shows the empty Markdown workspace', (tester) async {
     await tester.pumpWidget(
       MnoteApp(documentRepository: FakeDocumentRepository()),

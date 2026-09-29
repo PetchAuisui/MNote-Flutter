@@ -669,7 +669,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    left: gutterWidth,
+                    left: gutterWidth + 12,
+                    top: 16,
+                    right: 16,
+                    bottom: 16,
                     child: TextField(
                       key: const Key('markdown-editor'),
                       controller: _textController,
@@ -682,16 +685,24 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       keyboardType: TextInputType.multiline,
                       style: editorStyle,
                       strutStyle: StrutStyle.fromTextStyle(editorStyle),
-                      decoration: const InputDecoration(
-                        hintText: 'Read Markdown. Write freely.',
-                        filled: false,
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
-                      ),
+                      decoration: null,
                       onChanged: _workspace.updateContent,
                     ),
                   ),
+                  if (_textController.text.isEmpty)
+                    Positioned(
+                      left: gutterWidth + 12,
+                      top: 16,
+                      right: 16,
+                      child: IgnorePointer(
+                        child: Text(
+                          'Read Markdown. Write freely.',
+                          style: editorStyle.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     left: 0,
                     top: 0,

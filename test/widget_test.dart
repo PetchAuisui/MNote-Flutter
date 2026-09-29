@@ -98,6 +98,11 @@ void main() {
 
     await tester.tap(find.byKey(const Key('toolbar-line-break')));
     await tester.pump();
+    await tester.drag(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-horizontal-rule')));
     await tester.pump();
 
@@ -187,6 +192,7 @@ void main() {
     expect(find.text('ตัวหนา'), findsOneWidget);
     expect(find.text('ตัวเอียง'), findsOneWidget);
     expect(find.text('รายการ'), findsOneWidget);
+    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
 
     await tester.drag(
       find.byKey(const Key('markdown-formatting-toolbar')),
@@ -194,6 +200,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('เส้นคั่น'), findsOneWidget);
     expect(find.text('รูปภาพ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -56,6 +56,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
                       PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
                       PopupMenuItem(value: 3, child: Text('หัวข้อ 3')),
+                      PopupMenuItem(value: 4, child: Text('หัวข้อ 4')),
                     ],
                   ),
                   _ToolbarActionButton(

@@ -43,6 +43,26 @@ void main() {
     expect(editor.controller?.text, '## Project title');
   });
 
+  testWidgets('supports four Markdown heading levels', (tester) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(
+      find.byKey(const Key('markdown-editor')),
+      'Small heading',
+    );
+
+    await tester.tap(find.byKey(const Key('toolbar-heading')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('หัวข้อ 4'));
+    await tester.pumpAndSettle();
+
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, '#### Small heading');
+  });
+
   testWidgets('formats multiple selected lines as a list', (tester) async {
     await tester.pumpWidget(
       MnoteApp(documentRepository: FakeDocumentRepository()),

@@ -2,7 +2,7 @@
 
 Mnote คือ Mobile App สำหรับอ่านและแก้ไขเอกสาร Markdown พร้อมแนวทางต่อยอดเป็นพื้นที่จดบันทึกแบบหลายชั้น (layer) ผู้ใช้จะสามารถเขียน ไฮไลต์ และแทรกรูปโดยไม่ทำลายไฟล์ Markdown ต้นฉบับ
 
-> สถานะปัจจุบัน: Markdown workspace ใช้งานได้บน feature branch `codex/markdown-editor`; annotation layer, cloud และ AI อยู่ใน roadmap ระยะถัดไป
+> สถานะปัจจุบัน: Markdown workspace ใช้งานได้บน feature branch `feature/markdown-editor`; annotation layer, cloud และ AI อยู่ใน roadmap ระยะถัดไป
 
 ## ความสามารถที่ใช้งานได้แล้ว
 
@@ -39,7 +39,7 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 
 ### Milestone 1 — Project foundation
 
-- Flutter project สำหรับ Android และ iOS
+- Flutter project สำหรับ Android, iOS, macOS และ Web
 - Material 3 theme และโครง feature-first
 - เอกสาร architecture, roadmap และ Git workflow
 
@@ -85,13 +85,21 @@ lib/
 
 ## เริ่มต้นใช้งาน
 
-ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion` และ iOS 15 ขึ้นไป
+ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion`, iOS 15 ขึ้นไป และ macOS 12 ขึ้นไป
 
 สำหรับ Xcode 27 โปรเจกต์กำหนด Debug simulator เป็น `arm64` เพื่อหลีกเลี่ยงข้อจำกัด `lipo -verify_arch` ของ Flutter 3.44; การ build สำหรับอุปกรณ์จริงและ Release ไม่ได้รับผลกระทบ
 
 ```bash
 flutter pub get
 flutter run
+```
+
+เลือก platform โดยตรงได้ด้วย:
+
+```bash
+flutter run -d chrome
+flutter run -d macos
+flutter run -d 99DA51DC-293F-438F-819B-B5015B07905D # iPad Simulator
 ```
 
 ตรวจคุณภาพก่อน commit:
@@ -104,7 +112,7 @@ flutter test
 
 ## Git workflow
 
-`main` เก็บเฉพาะ baseline ที่ผ่านการตรวจสอบแล้ว งานแต่ละชุดพัฒนาใน branch แยก โดยใช้ชื่อที่สื่อความหมาย เช่น `codex/markdown-editor`
+`main` เก็บเฉพาะ baseline ที่ผ่านการตรวจสอบแล้ว งานแต่ละชุดพัฒนาใน branch แยก โดยใช้ชื่อที่สื่อความหมาย เช่น `feature/markdown-editor`
 
 แบ่ง commit ตามผลลัพธ์ที่ตรวจสอบได้:
 

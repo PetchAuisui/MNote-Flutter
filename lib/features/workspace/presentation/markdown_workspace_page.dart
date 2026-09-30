@@ -578,24 +578,28 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     const Spacer(),
                   ],
                   Flexible(
-                    child: SegmentedButton<WorkspaceMode>(
-                      showSelectedIcon: false,
-                      segments: const [
-                        ButtonSegment(
-                          value: WorkspaceMode.edit,
-                          icon: Icon(Icons.edit_outlined),
-                          label: Text('แก้ไข'),
-                        ),
-                        ButtonSegment(
-                          value: WorkspaceMode.preview,
-                          icon: Icon(Icons.visibility_outlined),
-                          label: Text('แสดงผล'),
-                        ),
-                      ],
-                      selected: {_workspace.mode},
-                      onSelectionChanged: (selection) {
-                        _workspace.setMode(selection.first);
-                      },
+                    fit: FlexFit.tight,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: SegmentedButton<WorkspaceMode>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(
+                            value: WorkspaceMode.edit,
+                            icon: Icon(Icons.edit_outlined),
+                            label: Text('แก้ไข'),
+                          ),
+                          ButtonSegment(
+                            value: WorkspaceMode.preview,
+                            icon: Icon(Icons.visibility_outlined),
+                            label: Text('แสดงผล'),
+                          ),
+                        ],
+                        selected: {_workspace.mode},
+                        onSelectionChanged: (selection) {
+                          _workspace.setMode(selection.first);
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -630,12 +634,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const Spacer(),
-                  Flexible(
-                    flex: 3,
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Text(
                       '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
                       maxLines: 1,
+                      textAlign: TextAlign.end,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -345,6 +345,15 @@ void main() {
     );
 
     expect(find.text('ตัวหนา'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('พื้นที่เอกสาร')).dx, lessThan(60));
+    expect(
+      tester
+          .getTopRight(
+            find.byWidgetPredicate((widget) => widget is SegmentedButton),
+          )
+          .dx,
+      closeTo(1004, 1),
+    );
     expect(find.text('ตัวเอียง'), findsOneWidget);
     expect(find.text('รายการ'), findsOneWidget);
 

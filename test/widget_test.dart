@@ -319,6 +319,20 @@ void main() {
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+    final toolbar = tester.getRect(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+    );
+    expect(toolbar.height, lessThanOrEqualTo(48));
+    final more = find.byKey(const Key('toolbar-more'));
+    expect(more.hitTestable(), findsOneWidget);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ตัวหนา'));
+    await tester.pumpAndSettle();
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller!.text, '**ข้อความตัวหนา**');
     expect(tester.takeException(), isNull);
   });
 
@@ -334,7 +348,7 @@ void main() {
       MnoteApp(documentRepository: FakeDocumentRepository()),
     );
 
-    expect(find.text('ตัวหนา'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-bold')), findsOneWidget);
     expect(
       tester
           .getCenter(
@@ -343,13 +357,13 @@ void main() {
           .dx,
       closeTo(512, 1),
     );
-    expect(find.text('ตัวเอียง'), findsOneWidget);
-    expect(find.text('รายการ'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-italic')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-list')), findsOneWidget);
 
-    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
-    expect(find.text('เส้นคั่น'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-line-break')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-horizontal-rule')), findsOneWidget);
 
-    expect(find.text('รูปภาพ'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-image')), findsOneWidget);
     final toolbarRect = tester.getRect(
       find.byKey(const Key('markdown-formatting-toolbar')),
     );

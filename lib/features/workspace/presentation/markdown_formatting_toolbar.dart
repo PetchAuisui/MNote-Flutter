@@ -51,17 +51,15 @@ class MarkdownFormattingToolbar extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final showLabels = constraints.maxWidth >= 900;
+            final showLabels = constraints.maxWidth >= 1400;
             return Padding(
               padding: const EdgeInsets.all(8),
               child: SizedBox(
                 width: double.infinity,
-                child: Wrap(
+                child: Row(
                   key: const Key('markdown-formatting-toolbar'),
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  runSpacing: 4,
-                  children: [
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _fitTools(context, constraints.maxWidth - 16, [
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-undo'),
                       icon: Icons.undo_rounded,
@@ -223,7 +221,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       showLabel: showLabels,
                       onPressed: onImage,
                     ),
-                  ],
+                  ]),
                 ),
               ),
             );
@@ -231,6 +229,78 @@ class MarkdownFormattingToolbar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _fitTools(
+    BuildContext context,
+    double width,
+    List<Widget> tools,
+  ) {
+    double toolWidth(Widget tool) {
+      if (tool is _ToolbarDivider) return 13;
+      final showLabel = tool is _ToolbarActionButton
+          ? tool.showLabel
+          : (tool as _ToolbarMenuButton).showLabel;
+      final label = tool is _ToolbarActionButton
+          ? tool.label
+          : (tool as _ToolbarMenuButton).label;
+      if (!showLabel) {
+        return tool is _ToolbarActionButton ? 52 : 67;
+      }
+      final text = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final result = text.width + 72;
+      text.dispose();
+      return result;
+    }
+
+    final widths = tools.map(toolWidth).toList();
+    if (widths.fold<double>(0, (sum, value) => sum + value) <= width) {
+      return tools;
+    }
+    var used = 0.0;
+    var count = 0;
+    while (count < tools.length && used + widths[count] <= width - 48) {
+      used += widths[count++];
+    }
+    while (count > 0 && tools[count - 1] is _ToolbarDivider) {
+      count--;
+    }
+    final entries = <PopupMenuEntry<VoidCallback>>[];
+    for (final tool in tools.skip(count)) {
+      if (tool is _ToolbarActionButton) {
+        entries.add(
+          PopupMenuItem<VoidCallback>(
+            key: tool.buttonKey,
+            value: tool.onPressed,
+            enabled: tool.onPressed != null,
+            child: ListTile(
+              leading: Icon(tool.icon),
+              title: Text(tool.label),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        );
+      } else if (tool is _ToolbarMenuButton) {
+        entries.addAll(tool.overflowItems());
+      }
+    }
+    return [
+      ...tools.take(count),
+      PopupMenuButton<VoidCallback>(
+        key: const Key('toolbar-more'),
+        tooltip: 'เครื่องมือเพิ่มเติม',
+        icon: const Icon(Icons.more_horiz_rounded),
+        onSelected: (action) => action(),
+        itemBuilder: (_) => entries,
+      ),
+    ];
   }
 }
 
@@ -294,6 +364,15 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
   final bool showLabel;
   final ValueChanged<T> onSelected;
   final List<PopupMenuEntry<T>> items;
+
+  List<PopupMenuEntry<VoidCallback>> overflowItems() => [
+    for (final item in items)
+      if (item is PopupMenuItem<T>)
+        PopupMenuItem<VoidCallback>(
+          value: () => onSelected(item.value as T),
+          child: item.child,
+        ),
+  ];
 
   @override
   Widget build(BuildContext context) {

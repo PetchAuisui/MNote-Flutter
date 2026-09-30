@@ -246,18 +246,8 @@ void main() {
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
 
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-500, 0),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-line-break')));
     await tester.pump();
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-500, 0),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-horizontal-rule')));
     await tester.pump();
 
@@ -356,22 +346,23 @@ void main() {
     expect(find.text('ตัวเอียง'), findsOneWidget);
     expect(find.text('รายการ'), findsOneWidget);
 
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-700, 0),
-    );
-    await tester.pumpAndSettle();
-
     expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
     expect(find.text('เส้นคั่น'), findsOneWidget);
 
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-700, 0),
-    );
-    await tester.pumpAndSettle();
-
     expect(find.text('รูปภาพ'), findsOneWidget);
+    final toolbarRect = tester.getRect(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+    );
+    final imageRect = tester.getRect(find.byKey(const Key('toolbar-image')));
+    expect(toolbarRect.contains(imageRect.topLeft), isTrue);
+    expect(
+      toolbarRect.contains(imageRect.bottomRight - const Offset(0.1, 0.1)),
+      isTrue,
+    );
+    expect(
+      find.byKey(const Key('toolbar-image')).hitTestable(),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

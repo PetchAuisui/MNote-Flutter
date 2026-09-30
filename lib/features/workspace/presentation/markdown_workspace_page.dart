@@ -567,7 +567,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   Flexible(
                     fit: FlexFit.tight,
                     child: Align(
-                      alignment: Alignment.centerRight,
+                      alignment: Alignment.center,
                       child: SegmentedButton<WorkspaceMode>(
                         showSelectedIcon: false,
                         segments: const [

@@ -347,11 +347,11 @@ void main() {
     expect(find.text('ตัวหนา'), findsOneWidget);
     expect(
       tester
-          .getTopRight(
+          .getCenter(
             find.byWidgetPredicate((widget) => widget is SegmentedButton),
           )
           .dx,
-      closeTo(1004, 1),
+      closeTo(512, 1),
     );
     expect(find.text('ตัวเอียง'), findsOneWidget);
     expect(find.text('รายการ'), findsOneWidget);

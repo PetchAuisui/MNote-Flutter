@@ -4,6 +4,7 @@ import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/screens/note_list_screen.dart';
 
 class MnoteApp extends StatelessWidget {
   const MnoteApp({super.key, this.documentRepository});
@@ -19,9 +20,7 @@ class MnoteApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       home: MarkdownWorkspacePage(
-        repository:
-            documentRepository ??
-            const LocalDocumentRepository(DeviceDocumentStorage()),
+        repository: effectiveRepository,
       ),
     );
   }

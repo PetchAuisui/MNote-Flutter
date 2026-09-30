@@ -18,4 +18,6 @@ abstract interface class DocumentStorage {
   Future<void> write(Uri uri, Uint8List bytes);
 
   Future<Uri?> saveAs({required String name, required Uint8List bytes});
+
+  Future<List<SelectedDocumentFile>> listDocuments();
 }

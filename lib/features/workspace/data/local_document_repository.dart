@@ -53,6 +53,34 @@ class LocalDocumentRepository implements DocumentRepository {
     return document.markSaved(name: _nameFrom(uri, document.name), uri: uri);
   }
 
+@override
+  Future<List<MarkdownDocument>> listDocuments() async {
+    try {
+      final files = await _storage.listDocuments();
+      final documents = <MarkdownDocument>[];
+
+      for (final file in files) {
+        try {
+          final content = utf8.decode(_withoutByteOrderMark(file.bytes));
+          documents.add(
+            MarkdownDocument.opened(
+              name: _nameFrom(file.uri, file.name),
+              content: content,
+              uri: file.uri,
+            ),
+          );
+        } on FormatException {
+          // หากมีไฟล์ใด decode utf-8 ไม่ผ่าน ให้ข้ามไฟล์นั้นไป ไม่ให้แอปแครช
+          continue;
+        }
+      }
+
+      return documents;
+    } catch (e) {
+      throw DocumentReadException('ไม่สามารถดึงรายการเอกสารได้: $e');
+    }
+  }
+
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));
 
   List<int> _withoutByteOrderMark(Uint8List bytes) {

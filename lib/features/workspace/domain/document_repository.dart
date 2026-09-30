@@ -6,6 +6,8 @@ abstract interface class DocumentRepository {
   Future<MarkdownDocument?> save(MarkdownDocument document);
 
   Future<MarkdownDocument?> saveAs(MarkdownDocument document);
+
+  Future<List<MarkdownDocument>> listDocuments();
 }
 
 class DocumentReadException implements Exception {

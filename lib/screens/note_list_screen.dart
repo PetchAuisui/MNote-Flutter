@@ -49,8 +49,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
+    debugPrint('🚀 NOTELIST: กำลังเข้าหน้า NoteListScreen!');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mnote'),

@@ -564,19 +564,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (MediaQuery.sizeOf(context).width >= 600) ...[
-                    Icon(
-                      Icons.description_outlined,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'พื้นที่เอกสาร',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const Spacer(),
-                  ],
                   Flexible(
                     fit: FlexFit.tight,
                     child: Align(
@@ -628,13 +615,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Row(
                 children: [
-                  Text(
-                    'Markdown',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',

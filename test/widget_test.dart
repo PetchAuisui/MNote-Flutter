@@ -345,7 +345,6 @@ void main() {
     );
 
     expect(find.text('ตัวหนา'), findsOneWidget);
-    expect(tester.getTopLeft(find.text('พื้นที่เอกสาร')).dx, lessThan(60));
     expect(
       tester
           .getTopRight(

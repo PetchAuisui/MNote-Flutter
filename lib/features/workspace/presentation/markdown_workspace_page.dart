@@ -451,6 +451,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final document = _workspace.document;
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 72,
         titleSpacing: 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,7 +503,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   ),
                 ),
               ),
-            Text(_statusLabel, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(height: 4),
+            Text(
+              _statusLabel,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -508,7 +518,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             tooltip: 'เปิดไฟล์',
             icon: const Icon(Icons.folder_open_rounded),
           ),
-          IconButton(
+          IconButton.filledTonal(
             onPressed: _workspace.isBusy ? null : _saveDocument,
             tooltip: 'บันทึก',
             icon: const Icon(Icons.save_rounded),
@@ -550,38 +560,73 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: SegmentedButton<WorkspaceMode>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: WorkspaceMode.edit,
-                    icon: Icon(Icons.edit_outlined),
-                    label: Text('แก้ไข'),
-                  ),
-                  ButtonSegment(
-                    value: WorkspaceMode.preview,
-                    icon: Icon(Icons.visibility_outlined),
-                    label: Text('แสดงผล'),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: SegmentedButton<WorkspaceMode>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(
+                            value: WorkspaceMode.edit,
+                            icon: Icon(Icons.edit_outlined),
+                            label: Text('แก้ไข'),
+                          ),
+                          ButtonSegment(
+                            value: WorkspaceMode.preview,
+                            icon: Icon(Icons.visibility_outlined),
+                            label: Text('แสดงผล'),
+                          ),
+                        ],
+                        selected: {_workspace.mode},
+                        onSelectionChanged: (selection) {
+                          _workspace.setMode(selection.first);
+                        },
+                      ),
+                    ),
                   ),
                 ],
-                selected: {_workspace.mode},
-                onSelectionChanged: (selection) {
-                  _workspace.setMode(selection.first);
-                },
               ),
             ),
             if (_workspace.mode == WorkspaceMode.edit)
               _buildFormattingToolbar(),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Card(
+                  margin: EdgeInsets.zero,
+                  elevation: 0,
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   clipBehavior: Clip.antiAlias,
                   child: _workspace.mode == WorkspaceMode.edit
                       ? _buildEditor()
                       : _buildPreview(),
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                      maxLines: 1,
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -634,11 +679,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Widget _buildEditor() {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final colorScheme = Theme.of(context).colorScheme;
           final textScaler = MediaQuery.textScalerOf(context);
+          final editorStyle = Theme.of(
+            context,
+          ).textTheme.bodyLarge!.merge(_editorTextStyle);
           final lineCount = '\n'.allMatches(_textController.text).length + 1;
           final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
           const horizontalTextPadding = 28.0;
@@ -650,13 +698,16 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             key: ValueKey(_editorHistoryRevision),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLowest,
+                color: colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
                 children: [
                   Positioned.fill(
-                    left: gutterWidth,
+                    left: gutterWidth + 12,
+                    top: 16,
+                    right: 16,
+                    bottom: 16,
                     child: TextField(
                       key: const Key('markdown-editor'),
                       controller: _textController,
@@ -667,16 +718,26 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       maxLines: null,
                       textAlignVertical: TextAlignVertical.top,
                       keyboardType: TextInputType.multiline,
-                      style: _editorTextStyle,
-                      decoration: const InputDecoration(
-                        hintText: 'Read Markdown. Write freely.',
-                        filled: false,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.fromLTRB(12, 16, 16, 16),
-                      ),
+                      style: editorStyle,
+                      strutStyle: StrutStyle.fromTextStyle(editorStyle),
+                      decoration: null,
                       onChanged: _workspace.updateContent,
                     ),
                   ),
+                  if (_textController.text.isEmpty)
+                    Positioned(
+                      left: gutterWidth + 12,
+                      top: 16,
+                      right: 16,
+                      child: IgnorePointer(
+                        child: Text(
+                          'Read Markdown. Write freely.',
+                          style: editorStyle.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     left: 0,
                     top: 0,
@@ -694,8 +755,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           key: const Key('line-number-gutter'),
                           painter: _LineNumberPainter(
                             textController: _textController,
-                            editorStyle: _editorTextStyle,
-                            numberStyle: _editorTextStyle.copyWith(
+                            editorStyle: editorStyle,
+                            numberStyle: editorStyle.copyWith(
                               fontSize: 12,
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -835,6 +896,7 @@ class _LineNumberPainter extends CustomPainter {
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
       textScaler: textScaler,
+      strutStyle: StrutStyle.fromTextStyle(style),
     );
   }
 

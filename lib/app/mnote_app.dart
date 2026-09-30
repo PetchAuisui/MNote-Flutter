@@ -13,13 +13,16 @@ class MnoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveRepository = documentRepository ??
+        const LocalDocumentRepository(DeviceDocumentStorage());
+
     return MaterialApp(
       title: 'Mnote',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: MarkdownWorkspacePage(
+      home: NoteListScreen(
         repository: effectiveRepository,
       ),
     );

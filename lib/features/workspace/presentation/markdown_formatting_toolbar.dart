@@ -44,7 +44,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Material(
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),

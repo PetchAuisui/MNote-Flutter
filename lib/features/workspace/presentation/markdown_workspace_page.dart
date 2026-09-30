@@ -503,7 +503,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   ),
                 ),
               ),
-            Text(_statusLabel, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(height: 4),
+            Text(
+              _statusLabel,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -554,32 +560,52 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: SegmentedButton<WorkspaceMode>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: WorkspaceMode.edit,
-                    icon: Icon(Icons.edit_outlined),
-                    label: Text('แก้ไข'),
-                  ),
-                  ButtonSegment(
-                    value: WorkspaceMode.preview,
-                    icon: Icon(Icons.visibility_outlined),
-                    label: Text('แสดงผล'),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (MediaQuery.sizeOf(context).width >= 600) ...[
+                    Icon(
+                      Icons.description_outlined,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'พื้นที่เอกสาร',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const Spacer(),
+                  ],
+                  Flexible(
+                    child: SegmentedButton<WorkspaceMode>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                          value: WorkspaceMode.edit,
+                          icon: Icon(Icons.edit_outlined),
+                          label: Text('แก้ไข'),
+                        ),
+                        ButtonSegment(
+                          value: WorkspaceMode.preview,
+                          icon: Icon(Icons.visibility_outlined),
+                          label: Text('แสดงผล'),
+                        ),
+                      ],
+                      selected: {_workspace.mode},
+                      onSelectionChanged: (selection) {
+                        _workspace.setMode(selection.first);
+                      },
+                    ),
                   ),
                 ],
-                selected: {_workspace.mode},
-                onSelectionChanged: (selection) {
-                  _workspace.setMode(selection.first);
-                },
               ),
             ),
             if (_workspace.mode == WorkspaceMode.edit)
               _buildFormattingToolbar(),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Card(
                   margin: EdgeInsets.zero,
                   elevation: 0,
@@ -592,6 +618,31 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       ? _buildEditor()
                       : _buildPreview(),
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: Row(
+                children: [
+                  Text(
+                    'Markdown',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    flex: 3,
+                    child: Text(
+                      '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

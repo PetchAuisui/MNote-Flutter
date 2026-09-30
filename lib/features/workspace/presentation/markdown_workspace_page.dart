@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,10 +12,12 @@ class MarkdownWorkspacePage extends StatefulWidget {
     super.key,
     required this.repository,
     this.imagePicker = const DeviceImagePicker(),
+    this.initialDocument,
   });
 
   final DocumentRepository repository;
   final DeviceImagePicker imagePicker;
+  final MarkdownDocument? initialDocument;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -39,8 +42,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   @override
   void initState() {
     super.initState();
-    _workspace = WorkspaceController(widget.repository)
-      ..addListener(_onWorkspaceChanged);
+    _workspace = WorkspaceController(
+      widget.repository,
+      initialDocument: widget.initialDocument,
+    )..addListener(_onWorkspaceChanged);
     _textController = TextEditingController(text: _workspace.document.content);
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
@@ -449,9 +454,31 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   @override
   Widget build(BuildContext context) {
     final document = _workspace.document;
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 20,
+    return PopScope(
+      canPop: !_workspace.document.isDirty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldDiscard = await _confirmDiscardChanges();
+        if (shouldDiscard && context.mounted) {
+          Navigator.of(context).pop(_workspace.document);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  tooltip: 'ย้อนกลับ',
+                  onPressed: () async {
+                    if (_workspace.document.isDirty) {
+                      final discard = await _confirmDiscardChanges();
+                      if (!discard || !context.mounted) return;
+                    }
+                    Navigator.of(context).pop(_workspace.document);
+                  },
+                )
+              : null,
+          titleSpacing: 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -587,8 +614,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String get _statusLabel {
     if (_workspace.isBusy) return 'กำลังดำเนินการ…';

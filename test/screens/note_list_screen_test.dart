@@ -6,73 +6,105 @@ import 'package:mnote/screens/note_list_screen.dart';
 import '../helpers/fakes.dart';
 
 void main() {
-  testWidgets('renders NoteListScreen with app bar, search bar, and filter chips', (tester) async {
+  testWidgets('renders Document and Folder Library with folders and files (.md, .txt)', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),
       ),
     );
-
-    // Header checks
-    expect(find.text('Mnote'), findsOneWidget);
-    expect(find.byType(SearchBar), findsOneWidget);
-
-    // Filter Chips
-    expect(find.text('ทั้งหมด'), findsOneWidget);
-    expect(find.text('⭐ ปักหมุด'), findsOneWidget);
-    expect(find.text('📝 Markdown'), findsOneWidget);
-    expect(find.text('🎨 Drawing'), findsOneWidget);
-
-    // Initial Notes
-    expect(find.text('Sprint Planning & Notes'), findsOneWidget);
-    expect(find.text('System Architecture'), findsOneWidget);
-
-    // FAB
-    expect(find.text('โน้ตใหม่'), findsOneWidget);
-  });
-
-  testWidgets('filters notes based on search query', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(repository: FakeDocumentRepository()),
-      ),
-    );
-
-    // Search for Architecture
-    await tester.enterText(find.byType(SearchBar), 'Architecture');
     await tester.pumpAndSettle();
 
-    expect(find.text('System Architecture'), findsOneWidget);
-    expect(find.text('สูตรอาหาร & วัตถุดิบ'), findsNothing);
+    // Title checks
+    expect(find.text('เอกสาร'), findsOneWidget);
+
+    // Initial Folders
+    expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
+    expect(find.text('ปี 1'), findsOneWidget);
+
+    // Initial Documents (.md and .txt)
+    expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report03.txt'), findsOneWidget);
+
+    // Filter and "+ ใหม่" Button
+    expect(find.text('ทั้งหมด'), findsOneWidget);
+    expect(find.text('ใหม่'), findsOneWidget);
   });
 
-  testWidgets('toggles between list view and grid view', (tester) async {
+  testWidgets('enters folder and navigates back to root', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),
       ),
     );
+    await tester.pumpAndSettle();
 
-    expect(find.byType(ListView), findsOneWidget);
-    expect(find.byType(GridView), findsNothing);
+    // Click on folder "ปี 1"
+    await tester.tap(find.text('ปี 1'));
+    await tester.pumpAndSettle();
 
-    // Tap toggle view button
-    await tester.tap(find.byIcon(Icons.grid_view_rounded));
+    // Now inside "ปี 1" folder
+    expect(find.text('แบบร่างความคิด.md'), findsOneWidget);
+
+    // Tap back button
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.pumpAndSettle();
+
+    // Returned to root "เอกสาร"
+    expect(find.text('เอกสาร'), findsOneWidget);
+    expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
+  });
+
+  testWidgets('tapping document opens MarkdownWorkspacePage', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(repository: FakeDocumentRepository()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap on document card
+    await tester.tap(find.text('2569-01-CT05-report02.md'));
+    await tester.pumpAndSettle();
+
+    // Workspace opened
+    expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+  });
+
+  testWidgets('toggles between grid view and list view', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(repository: FakeDocumentRepository()),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(GridView), findsOneWidget);
-  });
+    expect(find.byType(ListView), findsNothing);
 
-  testWidgets('tapping FAB opens MarkdownWorkspacePage', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(repository: FakeDocumentRepository()),
-      ),
-    );
-
-    await tester.tap(find.text('โน้ตใหม่'));
+    // Tap view toggle button
+    await tester.tap(find.byIcon(Icons.view_agenda_outlined));
     await tester.pumpAndSettle();
 
-    expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+    expect(find.byType(ListView), findsOneWidget);
   });
 }

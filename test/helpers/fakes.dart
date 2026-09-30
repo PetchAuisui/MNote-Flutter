@@ -28,14 +28,19 @@ class FakeDocumentStorage implements DocumentStorage {
     writtenUri = uri;
     writtenBytes = bytes;
   }
+
+  @override
+  Future<List<SelectedDocumentFile>> listDocuments() async => [];
 }
 
 class FakeDocumentRepository implements DocumentRepository {
   MarkdownDocument? openResult;
   MarkdownDocument? saveResult;
+  List<MarkdownDocument> listResult = [];
   Object? error;
   int openCalls = 0;
   int saveCalls = 0;
+  int listCalls = 0;
 
   @override
   Future<MarkdownDocument?> open() async {
@@ -57,4 +62,11 @@ class FakeDocumentRepository implements DocumentRepository {
 
   @override
   Future<MarkdownDocument?> saveAs(MarkdownDocument document) => save(document);
+
+  @override
+  Future<List<MarkdownDocument>> listDocuments() async {
+    listCalls += 1;
+    if (error case final error?) throw error;
+    return listResult;
+  }
 }

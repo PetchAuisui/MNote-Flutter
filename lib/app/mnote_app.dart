@@ -12,8 +12,6 @@ class MnoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔥 MNAPP: กำลังเข้า MnoteApp build!');
-
     final effectiveRepository = documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 

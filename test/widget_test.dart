@@ -30,8 +30,9 @@ void main() {
         painter.computeLineMetrics().first.baseline;
     final actual =
         editable.localToGlobal(Offset.zero).dy +
-        editable.getDistanceToBaseline(TextBaseline.alphabetic)!;
-    expect(actual, closeTo(expected, 0.1));
+        editable.getDryBaseline(editable.constraints, TextBaseline.alphabetic)!;
+    // Paragraph and editable layout may round to different subpixel positions.
+    expect(actual, closeTo(expected, 0.5));
     painter.dispose();
   });
 

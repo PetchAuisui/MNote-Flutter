@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:scribble/scribble.dart';
 import 'helpers/fakes.dart';
 
@@ -17,6 +18,42 @@ const sketch = Sketch(
 );
 
 void main() {
+  testWidgets('preview and ink share the same white document page', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('แสดงผล'));
+    await tester.pumpAndSettle();
+    final preview = tester.widget<MarkdownDocumentSurface>(
+      find.byType(MarkdownDocumentSurface),
+    );
+    final previewPage = tester.widget<ColoredBox>(
+      find.byKey(const Key('markdown-document-page')),
+    );
+    expect(previewPage.color, Colors.white);
+
+    await tester.tap(find.text('จด'));
+    await tester.pumpAndSettle();
+    final ink = tester.widget<MarkdownDocumentSurface>(
+      find.byType(MarkdownDocumentSurface),
+    );
+    final inkPage = tester.widget<ColoredBox>(
+      find.byKey(const Key('markdown-document-page')),
+    );
+    expect(inkPage.color, Colors.white);
+    expect(ink.markdown, preview.markdown);
+    expect(ink.height, preview.height);
+    expect(DocumentPageMetrics.width, 1000);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('stylus draws on the transformed page and undo removes ink', (
     tester,
   ) async {

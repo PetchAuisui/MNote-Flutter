@@ -116,6 +116,87 @@ void main() {
     expect(pen.currentSketch.lines, isEmpty);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('ink toolbar switches drawing tools and pen settings', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.tap(find.text('จด'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('ink-toolbar')), findsOneWidget);
+    expect(
+      tester.widget<IconButton>(find.byKey(const Key('ink-pen'))).isSelected,
+      isTrue,
+    );
+    expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 56);
+
+    await tester.tap(find.byKey(const Key('ink-eraser')));
+    await tester.pump();
+    var pen =
+        tester.widget<Scribble>(find.byType(Scribble)).notifier
+            as ScribbleNotifier;
+    expect(pen.value, isA<Erasing>());
+    expect(
+      tester.widget<IconButton>(find.byKey(const Key('ink-eraser'))).isSelected,
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const Key('ink-highlighter')));
+    await tester.pump();
+    expect(pen.value, isA<Drawing>());
+    expect(pen.value.selectedWidth, 18);
+    expect((pen.value as Drawing).selectedColor, 0x66FFD54F);
+
+    await tester.tap(find.byKey(const Key('ink-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('แดง'));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
+
+    await tester.tap(find.byKey(const Key('ink-width')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('เส้นหนา'));
+    await tester.pumpAndSettle();
+    expect(pen.value.selectedWidth, 12);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('clearing ink asks for confirmation and can be undone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.tap(find.text('จด'));
+    await tester.pumpAndSettle();
+    final pen =
+        tester.widget<Scribble>(find.byType(Scribble)).notifier
+            as ScribbleNotifier;
+    pen.setSketch(sketch: sketch);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('ink-clear')));
+    await tester.pumpAndSettle();
+    expect(find.text('ล้างหมึกทั้งหมด?'), findsOneWidget);
+    await tester.tap(find.text('ล้างทั้งหมด'));
+    await tester.pumpAndSettle();
+    expect(pen.currentSketch.lines, isEmpty);
+
+    await tester.tap(find.byKey(const Key('ink-undo')));
+    await tester.pumpAndSettle();
+    expect(pen.currentSketch, sketch);
+    expect(tester.takeException(), isNull);
+  });
+
   test('ink round trip retains coordinates and nonshrinking page', () {
     final session = InkSession();
     final restored = InkSession();

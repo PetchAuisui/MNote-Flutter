@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:scribble/scribble.dart';
@@ -51,6 +52,25 @@ void main() {
     expect(
       tester.widget<MarkdownBody>(find.byType(MarkdownBody)).fitContent,
       isFalse,
+    );
+    final previewStyle = tester
+        .widget<MarkdownBody>(find.byType(MarkdownBody))
+        .styleSheet!;
+    final colors = AppTheme.light.colorScheme;
+    expect(
+      (previewStyle.blockquoteDecoration as BoxDecoration).color,
+      colors.primaryContainer,
+    );
+    expect(
+      (previewStyle.codeblockDecoration as BoxDecoration).color,
+      colors.surfaceContainerLow,
+    );
+    expect(
+      ((previewStyle.horizontalRuleDecoration as BoxDecoration).border
+              as Border)
+          .top
+          .color,
+      colors.outlineVariant,
     );
 
     await tester.tap(find.text('จด'));

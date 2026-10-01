@@ -335,8 +335,8 @@ class _InkToolbar extends StatelessWidget {
                   _toolButton(
                     key: const Key('ink-highlighter'),
                     tooltip: 'ปากกาไฮไลต์',
-                    icon: const Icon(Icons.highlight),
-                    selectedIcon: const Icon(Icons.highlight),
+                    icon: const _HighlighterIcon(),
+                    selectedIcon: const _HighlighterIcon(),
                     selected: selectedTool == _InkTool.highlighter,
                     onPressed: () => onToolSelected(_InkTool.highlighter),
                   ),
@@ -472,6 +472,57 @@ class _InkToolbar extends StatelessWidget {
     0xFF237A3B => 'เขียว',
     _ => 'ม่วง',
   };
+}
+
+class _HighlighterIcon extends StatelessWidget {
+  const _HighlighterIcon();
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    size: const Size.square(24),
+    painter: _HighlighterIconPainter(
+      color:
+          IconTheme.of(context).color ??
+          Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
+}
+
+class _HighlighterIconPainter extends CustomPainter {
+  const _HighlighterIconPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeJoin = StrokeJoin.round;
+    final fill = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final marker = Path()
+      ..moveTo(6, 2)
+      ..lineTo(18, 2)
+      ..lineTo(18, 13)
+      ..lineTo(15, 17)
+      ..lineTo(15, 21)
+      ..lineTo(9, 21)
+      ..lineTo(9, 17)
+      ..lineTo(6, 13)
+      ..close();
+    canvas.drawPath(marker, stroke);
+    canvas.drawRect(const Rect.fromLTRB(6, 2, 18, 13), fill);
+    canvas.drawRect(const Rect.fromLTRB(9, 18, 15, 21), fill);
+    canvas.drawLine(const Offset(8, 23), const Offset(16, 23), stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HighlighterIconPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _EraserIcon extends StatelessWidget {

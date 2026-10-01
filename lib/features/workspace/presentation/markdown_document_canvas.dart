@@ -38,6 +38,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
               child: MarkdownBody(
                 key: selectable ? const Key('markdown-preview') : null,
                 data: markdown,
+                fitContent: false,
                 imageDirectory: imageDirectory,
                 selectable: selectable,
                 onTapLink: onTapLink,

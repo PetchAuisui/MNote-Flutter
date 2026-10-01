@@ -493,7 +493,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   key: const Key('document-surface'),
                   margin: EdgeInsets.zero,
                   elevation: 0,
-                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -525,11 +525,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               textAlign: TextAlign.end,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
+                                  ?.copyWith(color: const Color(0xFF5F6368)),
                             ),
                           ),
                         ),
@@ -803,11 +799,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       padding: const EdgeInsets.all(0),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final colorScheme = Theme.of(context).colorScheme;
+          final pageTheme = ThemeData.light(useMaterial3: true);
+          final colorScheme = pageTheme.colorScheme;
           final textScaler = MediaQuery.textScalerOf(context);
-          final editorStyle = Theme.of(
-            context,
-          ).textTheme.bodyLarge!.merge(_editorTextStyle);
+          final editorStyle = Theme.of(context).textTheme.bodyLarge!
+              .merge(_editorTextStyle)
+              .copyWith(color: const Color(0xFF202124));
           final lineCount = '\n'.allMatches(_textController.text).length + 1;
           final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
           const horizontalTextPadding = 28.0;
@@ -818,8 +815,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           return KeyedSubtree(
             key: ValueKey(_editorHistoryRevision),
             child: DecoratedBox(
+              key: const Key('markdown-editor-page'),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainer,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
@@ -882,7 +880,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               color: colorScheme.onSurfaceVariant,
                             ),
                             activeNumberColor: colorScheme.primary,
-                            backgroundColor: colorScheme.surfaceContainer,
+                            backgroundColor: Colors.white,
                             dividerColor: colorScheme.outlineVariant,
                             textWidth: textWidth,
                             textScaler: textScaler,

@@ -7,11 +7,6 @@ import '../helpers/fakes.dart';
 
 void main() {
   testWidgets('renders Document and Folder Library with folders and files (.md, .txt)', (tester) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),
@@ -36,11 +31,6 @@ void main() {
   });
 
   testWidgets('enters folder and navigates back to root', (tester) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),
@@ -65,11 +55,6 @@ void main() {
   });
 
   testWidgets('tapping document opens MarkdownWorkspacePage', (tester) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),
@@ -86,11 +71,6 @@ void main() {
   });
 
   testWidgets('toggles between grid view and list view', (tester) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(repository: FakeDocumentRepository()),

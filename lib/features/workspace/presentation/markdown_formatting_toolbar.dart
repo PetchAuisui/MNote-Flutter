@@ -44,191 +44,263 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Material(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final showLabels = constraints.maxWidth >= 900;
-            return SizedBox(
-              height: 58,
-              child: ListView(
-                key: const Key('markdown-formatting-toolbar'),
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                children: [
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-undo'),
-                    icon: Icons.undo_rounded,
-                    label: 'เลิกทำ',
-                    showLabel: false,
-                    onPressed: onUndo,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-redo'),
-                    icon: Icons.redo_rounded,
-                    label: 'ทำซ้ำ',
-                    showLabel: false,
-                    onPressed: onRedo,
-                  ),
-                  const _ToolbarDivider(),
-                  _ToolbarMenuButton<int>(
-                    buttonKey: const Key('toolbar-heading'),
-                    icon: Icons.title_rounded,
-                    label: 'หัวข้อ',
-                    showLabel: showLabels,
-                    onSelected: onHeading,
-                    items: const [
-                      PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
-                      PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
-                      PopupMenuItem(value: 3, child: Text('หัวข้อ 3')),
-                      PopupMenuItem(value: 4, child: Text('หัวข้อ 4')),
-                    ],
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-bold'),
-                    icon: Icons.format_bold_rounded,
-                    label: 'ตัวหนา',
-                    showLabel: showLabels,
-                    onPressed: onBold,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-italic'),
-                    icon: Icons.format_italic_rounded,
-                    label: 'ตัวเอียง',
-                    showLabel: showLabels,
-                    onPressed: onItalic,
-                  ),
-                  const _ToolbarDivider(),
-                  _ToolbarMenuButton<_ListStyle>(
-                    buttonKey: const Key('toolbar-list'),
-                    icon: Icons.format_list_bulleted_rounded,
-                    label: 'รายการ',
-                    showLabel: showLabels,
-                    onSelected: (style) {
-                      switch (style) {
-                        case _ListStyle.bulleted:
-                          onList();
-                        case _ListStyle.ordered:
-                          onOrderedList();
-                      }
-                    },
-                    items: const [
-                      PopupMenuItem(
-                        value: _ListStyle.bulleted,
-                        child: ListTile(
-                          leading: Icon(Icons.format_list_bulleted_rounded),
-                          title: Text('รายการหัวข้อ'),
-                          contentPadding: EdgeInsets.zero,
+            final showLabels = constraints.maxWidth >= 1400;
+            return Padding(
+              padding: const EdgeInsets.all(8),
+              child: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  key: const Key('markdown-formatting-toolbar'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _fitTools(context, constraints.maxWidth - 16, [
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-undo'),
+                      icon: Icons.undo_rounded,
+                      label: 'เลิกทำ',
+                      showLabel: false,
+                      onPressed: onUndo,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-redo'),
+                      icon: Icons.redo_rounded,
+                      label: 'ทำซ้ำ',
+                      showLabel: false,
+                      onPressed: onRedo,
+                    ),
+                    const _ToolbarDivider(),
+                    _ToolbarMenuButton<int>(
+                      buttonKey: const Key('toolbar-heading'),
+                      icon: Icons.title_rounded,
+                      label: 'หัวข้อ',
+                      showLabel: showLabels,
+                      onSelected: onHeading,
+                      items: const [
+                        PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
+                        PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
+                        PopupMenuItem(value: 3, child: Text('หัวข้อ 3')),
+                        PopupMenuItem(value: 4, child: Text('หัวข้อ 4')),
+                      ],
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-bold'),
+                      icon: Icons.format_bold_rounded,
+                      label: 'ตัวหนา',
+                      showLabel: showLabels,
+                      onPressed: onBold,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-italic'),
+                      icon: Icons.format_italic_rounded,
+                      label: 'ตัวเอียง',
+                      showLabel: showLabels,
+                      onPressed: onItalic,
+                    ),
+                    const _ToolbarDivider(),
+                    _ToolbarMenuButton<_ListStyle>(
+                      buttonKey: const Key('toolbar-list'),
+                      icon: Icons.format_list_bulleted_rounded,
+                      label: 'รายการ',
+                      showLabel: showLabels,
+                      onSelected: (style) {
+                        switch (style) {
+                          case _ListStyle.bulleted:
+                            onList();
+                          case _ListStyle.ordered:
+                            onOrderedList();
+                        }
+                      },
+                      items: const [
+                        PopupMenuItem(
+                          value: _ListStyle.bulleted,
+                          child: ListTile(
+                            leading: Icon(Icons.format_list_bulleted_rounded),
+                            title: Text('รายการหัวข้อ'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      PopupMenuItem(
-                        value: _ListStyle.ordered,
-                        child: ListTile(
-                          leading: Icon(Icons.format_list_numbered_rounded),
-                          title: Text('รายการตัวเลข'),
-                          contentPadding: EdgeInsets.zero,
+                        PopupMenuItem(
+                          value: _ListStyle.ordered,
+                          child: ListTile(
+                            leading: Icon(Icons.format_list_numbered_rounded),
+                            title: Text('รายการตัวเลข'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-indent-list'),
-                    icon: Icons.format_indent_increase_rounded,
-                    label: 'ทำเป็นรายการย่อย',
-                    tooltip: 'ทำเป็นรายการย่อย',
-                    showLabel: false,
-                    onPressed: onIndentList,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-outdent-list'),
-                    icon: Icons.format_indent_decrease_rounded,
-                    label: 'กลับสู่รายการหลัก',
-                    tooltip: 'กลับสู่รายการหลัก',
-                    showLabel: false,
-                    onPressed: onOutdentList,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-quote'),
-                    icon: Icons.format_quote_rounded,
-                    label: 'อ้างอิง',
-                    showLabel: showLabels,
-                    onPressed: onQuote,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-line-break'),
-                    icon: Icons.keyboard_return_rounded,
-                    label: 'ขึ้นบรรทัด',
-                    tooltip: 'ขึ้นบรรทัดใหม่ด้วย <br>',
-                    showLabel: showLabels,
-                    onPressed: onLineBreak,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-horizontal-rule'),
-                    icon: Icons.horizontal_rule_rounded,
-                    label: 'เส้นคั่น',
-                    tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
-                    showLabel: showLabels,
-                    onPressed: onHorizontalRule,
-                  ),
-                  _ToolbarMenuButton<_CodeStyle>(
-                    buttonKey: const Key('toolbar-code'),
-                    icon: Icons.code_rounded,
-                    label: 'โค้ด',
-                    showLabel: showLabels,
-                    onSelected: (style) {
-                      switch (style) {
-                        case _CodeStyle.inline:
-                          onInlineCode();
-                        case _CodeStyle.block:
-                          onCodeBlock();
-                      }
-                    },
-                    items: const [
-                      PopupMenuItem(
-                        value: _CodeStyle.inline,
-                        child: ListTile(
-                          leading: Icon(Icons.code_rounded),
-                          title: Text('โค้ดในบรรทัด'),
-                          contentPadding: EdgeInsets.zero,
+                      ],
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-indent-list'),
+                      icon: Icons.format_indent_increase_rounded,
+                      label: 'ทำเป็นรายการย่อย',
+                      tooltip: 'ทำเป็นรายการย่อย',
+                      showLabel: false,
+                      onPressed: onIndentList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-outdent-list'),
+                      icon: Icons.format_indent_decrease_rounded,
+                      label: 'กลับสู่รายการหลัก',
+                      tooltip: 'กลับสู่รายการหลัก',
+                      showLabel: false,
+                      onPressed: onOutdentList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-quote'),
+                      icon: Icons.format_quote_rounded,
+                      label: 'อ้างอิง',
+                      showLabel: showLabels,
+                      onPressed: onQuote,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-line-break'),
+                      icon: Icons.keyboard_return_rounded,
+                      label: 'ขึ้นบรรทัด',
+                      tooltip: 'ขึ้นบรรทัดใหม่ด้วย <br>',
+                      showLabel: showLabels,
+                      onPressed: onLineBreak,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-horizontal-rule'),
+                      icon: Icons.horizontal_rule_rounded,
+                      label: 'เส้นคั่น',
+                      tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
+                      showLabel: showLabels,
+                      onPressed: onHorizontalRule,
+                    ),
+                    _ToolbarMenuButton<_CodeStyle>(
+                      buttonKey: const Key('toolbar-code'),
+                      icon: Icons.code_rounded,
+                      label: 'โค้ด',
+                      showLabel: showLabels,
+                      onSelected: (style) {
+                        switch (style) {
+                          case _CodeStyle.inline:
+                            onInlineCode();
+                          case _CodeStyle.block:
+                            onCodeBlock();
+                        }
+                      },
+                      items: const [
+                        PopupMenuItem(
+                          value: _CodeStyle.inline,
+                          child: ListTile(
+                            leading: Icon(Icons.code_rounded),
+                            title: Text('โค้ดในบรรทัด'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      PopupMenuItem(
-                        value: _CodeStyle.block,
-                        child: ListTile(
-                          leading: Icon(Icons.data_object_rounded),
-                          title: Text('บล็อกโค้ด'),
-                          contentPadding: EdgeInsets.zero,
+                        PopupMenuItem(
+                          value: _CodeStyle.block,
+                          child: ListTile(
+                            leading: Icon(Icons.data_object_rounded),
+                            title: Text('บล็อกโค้ด'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const _ToolbarDivider(),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-link'),
-                    icon: Icons.link_rounded,
-                    label: 'ลิงก์',
-                    showLabel: showLabels,
-                    onPressed: onLink,
-                  ),
-                  _ToolbarActionButton(
-                    buttonKey: const Key('toolbar-image'),
-                    icon: Icons.image_outlined,
-                    label: 'รูปภาพ',
-                    showLabel: showLabels,
-                    onPressed: onImage,
-                  ),
-                ],
+                      ],
+                    ),
+                    const _ToolbarDivider(),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-link'),
+                      icon: Icons.link_rounded,
+                      label: 'ลิงก์',
+                      showLabel: showLabels,
+                      onPressed: onLink,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-image'),
+                      icon: Icons.image_outlined,
+                      label: 'รูปภาพ',
+                      showLabel: showLabels,
+                      onPressed: onImage,
+                    ),
+                  ]),
+                ),
               ),
             );
           },
         ),
       ),
     );
+  }
+
+  List<Widget> _fitTools(
+    BuildContext context,
+    double width,
+    List<Widget> tools,
+  ) {
+    double toolWidth(Widget tool) {
+      if (tool is _ToolbarDivider) return 13;
+      final showLabel = tool is _ToolbarActionButton
+          ? tool.showLabel
+          : (tool as _ToolbarMenuButton).showLabel;
+      final label = tool is _ToolbarActionButton
+          ? tool.label
+          : (tool as _ToolbarMenuButton).label;
+      if (!showLabel) {
+        return tool is _ToolbarActionButton ? 52 : 67;
+      }
+      final text = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final result = text.width + 72;
+      text.dispose();
+      return result;
+    }
+
+    final widths = tools.map(toolWidth).toList();
+    if (widths.fold<double>(0, (sum, value) => sum + value) <= width) {
+      return tools;
+    }
+    var used = 0.0;
+    var count = 0;
+    while (count < tools.length && used + widths[count] <= width - 48) {
+      used += widths[count++];
+    }
+    while (count > 0 && tools[count - 1] is _ToolbarDivider) {
+      count--;
+    }
+    final entries = <PopupMenuEntry<VoidCallback>>[];
+    for (final tool in tools.skip(count)) {
+      if (tool is _ToolbarActionButton) {
+        entries.add(
+          PopupMenuItem<VoidCallback>(
+            key: tool.buttonKey,
+            value: tool.onPressed,
+            enabled: tool.onPressed != null,
+            child: ListTile(
+              leading: Icon(tool.icon),
+              title: Text(tool.label),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        );
+      } else if (tool is _ToolbarMenuButton) {
+        entries.addAll(tool.overflowItems());
+      }
+    }
+    return [
+      ...tools.take(count),
+      PopupMenuButton<VoidCallback>(
+        key: const Key('toolbar-more'),
+        tooltip: 'เครื่องมือเพิ่มเติม',
+        icon: const Icon(Icons.more_horiz_rounded),
+        onSelected: (action) => action(),
+        itemBuilder: (_) => entries,
+      ),
+    ];
   }
 }
 
@@ -254,20 +326,22 @@ class _ToolbarActionButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: showLabel
-          ? FilledButton.tonalIcon(
+          ? TextButton.icon(
               key: buttonKey,
               onPressed: onPressed,
               icon: Icon(icon, size: 19),
               label: Text(label),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(48, 44),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             )
-          : IconButton.filledTonal(
+          : IconButton(
               key: buttonKey,
               onPressed: onPressed,
               tooltip: tooltip ?? label,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: Icon(icon, size: 21),
             ),
     );
@@ -291,6 +365,15 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
   final List<PopupMenuEntry<T>> items;
 
+  List<PopupMenuEntry<VoidCallback>> overflowItems() => [
+    for (final item in items)
+      if (item is PopupMenuItem<T>)
+        PopupMenuItem<VoidCallback>(
+          value: () => onSelected(item.value as T),
+          child: item.child,
+        ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -303,24 +386,24 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
         onSelected: onSelected,
         itemBuilder: (_) => items,
         borderRadius: BorderRadius.circular(20),
-        color: colorScheme.secondaryContainer,
+        color: colorScheme.surfaceContainer,
         child: Container(
-          height: 44,
+          height: 48,
           padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
           decoration: ShapeDecoration(
-            color: colorScheme.secondaryContainer,
+            color: Colors.transparent,
             shape: const StadiumBorder(),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 21, color: colorScheme.onSecondaryContainer),
+              Icon(icon, size: 21, color: colorScheme.onSurfaceVariant),
               if (showLabel) ...[
                 const SizedBox(width: 8),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -328,7 +411,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
               Icon(
                 Icons.arrow_drop_down_rounded,
                 size: 16,
-                color: colorScheme.onSecondaryContainer,
+                color: colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -345,10 +428,13 @@ class _ToolbarDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-      child: VerticalDivider(
-        width: 1,
-        thickness: 1,
-        color: Theme.of(context).colorScheme.outlineVariant,
+      child: SizedBox(
+        height: 32,
+        child: VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
     );
   }

@@ -5,6 +5,37 @@ import 'package:mnote/app/mnote_app.dart';
 import 'helpers/fakes.dart';
 
 void main() {
+  testWidgets('gutter baseline matches the rendered editor baseline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.enterText(find.byKey(const Key('markdown-editor')), 'Hello');
+    await tester.pump();
+    final editable = tester
+        .state<EditableTextState>(find.byType(EditableText))
+        .renderEditable;
+    final gutterFinder = find.byKey(const Key('line-number-gutter'));
+    final dynamic gutter = tester.widget<CustomPaint>(gutterFinder).painter;
+    final painter = TextPainter(
+      text: TextSpan(text: 'Hello', style: gutter.editorStyle as TextStyle),
+      textDirection: TextDirection.ltr,
+      textScaler: gutter.textScaler as TextScaler,
+      strutStyle: StrutStyle.fromTextStyle(gutter.editorStyle as TextStyle),
+    )..layout(maxWidth: gutter.textWidth as double);
+    final expected =
+        tester.getTopLeft(gutterFinder).dy +
+        16 +
+        painter.computeLineMetrics().first.baseline;
+    final actual =
+        editable.localToGlobal(Offset.zero).dy +
+        editable.getDryBaseline(editable.constraints, TextBaseline.alphabetic)!;
+    // Paragraph and editable layout may round to different subpixel positions.
+    expect(actual, closeTo(expected, 0.5));
+    painter.dispose();
+  });
+
   testWidgets('shows the empty Markdown workspace', (tester) async {
     await tester.pumpWidget(
       MnoteApp(documentRepository: FakeDocumentRepository()),
@@ -215,18 +246,8 @@ void main() {
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
 
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-500, 0),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-line-break')));
     await tester.pump();
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-500, 0),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('toolbar-horizontal-rule')));
     await tester.pump();
 
@@ -298,6 +319,20 @@ void main() {
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+    final toolbar = tester.getRect(
+      find.byKey(const Key('markdown-formatting-toolbar')),
+    );
+    expect(toolbar.height, lessThanOrEqualTo(48));
+    final more = find.byKey(const Key('toolbar-more'));
+    expect(more.hitTestable(), findsOneWidget);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ตัวหนา'));
+    await tester.pumpAndSettle();
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller!.text, '**ข้อความตัวหนา**');
     expect(tester.takeException(), isNull);
   });
 
@@ -313,26 +348,35 @@ void main() {
       MnoteApp(documentRepository: FakeDocumentRepository()),
     );
 
-    expect(find.text('ตัวหนา'), findsOneWidget);
-    expect(find.text('ตัวเอียง'), findsOneWidget);
-    expect(find.text('รายการ'), findsOneWidget);
-
-    await tester.drag(
-      find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-700, 0),
+    expect(find.byKey(const Key('toolbar-bold')), findsOneWidget);
+    expect(
+      tester
+          .getCenter(
+            find.byWidgetPredicate((widget) => widget is SegmentedButton),
+          )
+          .dx,
+      closeTo(512, 1),
     );
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('toolbar-italic')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-list')), findsOneWidget);
 
-    expect(find.text('ขึ้นบรรทัด'), findsOneWidget);
-    expect(find.text('เส้นคั่น'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-line-break')), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-horizontal-rule')), findsOneWidget);
 
-    await tester.drag(
+    expect(find.byKey(const Key('toolbar-image')), findsOneWidget);
+    final toolbarRect = tester.getRect(
       find.byKey(const Key('markdown-formatting-toolbar')),
-      const Offset(-700, 0),
     );
-    await tester.pumpAndSettle();
-
-    expect(find.text('รูปภาพ'), findsOneWidget);
+    final imageRect = tester.getRect(find.byKey(const Key('toolbar-image')));
+    expect(toolbarRect.contains(imageRect.topLeft), isTrue);
+    expect(
+      toolbarRect.contains(imageRect.bottomRight - const Offset(0.1, 0.1)),
+      isTrue,
+    );
+    expect(
+      find.byKey(const Key('toolbar-image')).hitTestable(),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

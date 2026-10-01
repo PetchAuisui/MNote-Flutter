@@ -47,13 +47,13 @@ void main() {
     addTearDown(session.dispose);
     addTearDown(restored.dispose);
     session.pen.setSketch(sketch: sketch);
-    session.grow(2100);
+    session.grow(3100);
     session.grow(1400);
     expect(session.isDirty, isTrue);
     final snapshot = session.encode();
     restored.load(snapshot);
     expect(restored.pen.currentSketch, sketch);
-    expect(restored.height, 2100);
+    expect(restored.height, 3100);
     expect(restored.isDirty, isFalse);
     session.markSaved(snapshot);
     session.pen.clear();

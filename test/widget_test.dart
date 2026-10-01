@@ -5,6 +5,28 @@ import 'package:mnote/app/mnote_app.dart';
 import 'helpers/fakes.dart';
 
 void main() {
+  testWidgets('loads the bundled example and centers modes on iPad', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome.md'), findsOneWidget);
+    expect(find.textContaining('ยินดีต้อนรับสู่ Mnote'), findsOneWidget);
+    final switcher = find.byKey(const Key('workspace-mode-switcher'));
+    expect(tester.getCenter(switcher).dx, closeTo(512, 0.5));
+    expect(
+      tester.getSize(find.byKey(const Key('workspace-header'))).height,
+      68,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('document returns to full height after keyboard closes', (
     tester,
   ) async {

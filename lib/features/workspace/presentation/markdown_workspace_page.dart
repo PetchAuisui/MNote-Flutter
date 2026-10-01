@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -49,6 +51,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
+    _loadBundledExample();
+  }
+
+  Future<void> _loadBundledExample() async {
+    try {
+      final content = await rootBundle.loadString('assets/examples/welcome.md');
+      if (!mounted) return;
+      _workspace.loadExample(content);
+    } catch (_) {
+      // The editor remains usable as an empty document if the asset is missing.
+    }
   }
 
   @override
@@ -466,153 +479,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Widget build(BuildContext context) {
     final document = _workspace.document;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        toolbarHeight: 72,
-        titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_isEditingTitle)
-              TextField(
-                key: const Key('document-title-field'),
-                controller: _titleController,
-                focusNode: _titleFocusNode,
-                maxLines: 1,
-                textInputAction: TextInputAction.done,
-                style: Theme.of(context).textTheme.titleLarge,
-                decoration: const InputDecoration(
-                  filled: false,
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onSubmitted: (_) => _finishEditingTitle(),
-                onTapOutside: (_) => _finishEditingTitle(),
-              )
-            else
-              Tooltip(
-                message: 'แก้ไขชื่อเอกสาร',
-                child: InkWell(
-                  key: const Key('document-title'),
-                  borderRadius: BorderRadius.circular(6),
-                  onTap: _startEditingTitle,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          document.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.edit_outlined,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 4),
-            Text(
-              _statusLabel,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: _workspace.isBusy ? null : _openDocument,
-            tooltip: 'เปิดไฟล์',
-            icon: const Icon(Icons.folder_open_rounded),
-          ),
-          IconButton.filledTonal(
-            onPressed: _workspace.isBusy ? null : _saveDocument,
-            tooltip: 'บันทึก',
-            icon: const Icon(Icons.save_rounded),
-          ),
-          PopupMenuButton<_DocumentAction>(
-            tooltip: 'คำสั่งเพิ่มเติม',
-            onSelected: (action) {
-              switch (action) {
-                case _DocumentAction.newDocument:
-                  _newDocument();
-                case _DocumentAction.saveAs:
-                  _saveDocument(saveAs: true);
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: _DocumentAction.newDocument,
-                child: ListTile(
-                  leading: Icon(Icons.note_add_outlined),
-                  title: Text('เอกสารใหม่'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              PopupMenuItem(
-                value: _DocumentAction.saveAs,
-                child: ListTile(
-                  leading: Icon(Icons.save_as_outlined),
-                  title: Text('บันทึกเป็น'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Flexible(
-                    fit: FlexFit.tight,
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: SegmentedButton<WorkspaceMode>(
-                        showSelectedIcon: false,
-                        segments: const [
-                          ButtonSegment(
-                            value: WorkspaceMode.edit,
-                            icon: Icon(Icons.edit_outlined),
-                            label: Text('แก้ไข'),
-                          ),
-                          ButtonSegment(
-                            value: WorkspaceMode.preview,
-                            icon: Icon(Icons.visibility_outlined),
-                            label: Text('แสดงผล'),
-                          ),
-                          ButtonSegment(
-                            value: WorkspaceMode.ink,
-                            icon: Icon(Icons.draw_outlined),
-                            label: Text('จด'),
-                          ),
-                        ],
-                        selected: {_workspace.mode},
-                        onSelectionChanged: (selection) {
-                          _workspace.setMode(selection.first);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildWorkspaceHeader(document),
             if (_workspace.mode == WorkspaceMode.edit)
               _buildFormattingToolbar(),
             Expanded(
@@ -642,25 +513,26 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               )
                             : _buildPreview(),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                            key: const Key('document-statistics'),
-                            maxLines: 1,
-                            textAlign: TextAlign.end,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                      if (_workspace.mode != WorkspaceMode.ink)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                              key: const Key('document-statistics'),
+                              maxLines: 1,
+                              textAlign: TextAlign.end,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -672,9 +544,221 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  Widget _buildWorkspaceHeader(MarkdownDocument document) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('workspace-header'),
+      color: colorScheme.surfaceContainerLowest,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 720;
+          final title = _buildDocumentTitle(document);
+          final modes = _buildModeSwitcher(compact: !wide);
+          final actions = _buildDocumentActions();
+          if (!wide) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 48,
+                    child: Row(
+                      children: [
+                        Expanded(child: title),
+                        actions,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  modes,
+                ],
+              ),
+            );
+          }
+          return SizedBox(
+            height: 68,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: title,
+                        ),
+                      ),
+                      const SizedBox(width: 340),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: actions,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                modes,
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDocumentTitle(MarkdownDocument document) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_isEditingTitle)
+            TextField(
+              key: const Key('document-title-field'),
+              controller: _titleController,
+              focusNode: _titleFocusNode,
+              maxLines: 1,
+              textInputAction: TextInputAction.done,
+              style: Theme.of(context).textTheme.titleMedium,
+              decoration: const InputDecoration(
+                filled: false,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onSubmitted: (_) => _finishEditingTitle(),
+              onTapOutside: (_) => _finishEditingTitle(),
+            )
+          else
+            Tooltip(
+              message: 'แก้ไขชื่อเอกสาร',
+              child: InkWell(
+                key: const Key('document-title'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: _startEditingTitle,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.description_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        document.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Text(
+            _statusLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeSwitcher({required bool compact}) {
+    return SegmentedButton<WorkspaceMode>(
+      key: const Key('workspace-mode-switcher'),
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(
+          value: WorkspaceMode.edit,
+          icon: const Icon(Icons.edit_outlined),
+          label: compact ? null : const Text('แก้ไข'),
+          tooltip: 'แก้ไข Markdown',
+        ),
+        ButtonSegment(
+          value: WorkspaceMode.preview,
+          icon: const Icon(Icons.visibility_outlined),
+          label: compact ? null : const Text('แสดงผล'),
+          tooltip: 'แสดงผล Markdown',
+        ),
+        ButtonSegment(
+          value: WorkspaceMode.ink,
+          icon: const Icon(Icons.draw_outlined),
+          label: compact ? null : const Text('จด'),
+          tooltip: 'จดด้วยปากกา',
+        ),
+      ],
+      selected: {_workspace.mode},
+      onSelectionChanged: (selection) => _workspace.setMode(selection.first),
+    );
+  }
+
+  Widget _buildDocumentActions() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: _workspace.isBusy ? null : _openDocument,
+          tooltip: 'เปิดไฟล์',
+          icon: const Icon(Icons.folder_open_rounded),
+        ),
+        IconButton.filledTonal(
+          onPressed: _workspace.isBusy ? null : _saveDocument,
+          tooltip: 'บันทึก',
+          icon: const Icon(Icons.save_rounded),
+        ),
+        PopupMenuButton<_DocumentAction>(
+          tooltip: 'คำสั่งเพิ่มเติม',
+          onSelected: (action) {
+            switch (action) {
+              case _DocumentAction.newDocument:
+                _newDocument();
+              case _DocumentAction.saveAs:
+                _saveDocument(saveAs: true);
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(
+              value: _DocumentAction.newDocument,
+              child: ListTile(
+                leading: Icon(Icons.note_add_outlined),
+                title: Text('เอกสารใหม่'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _DocumentAction.saveAs,
+              child: ListTile(
+                leading: Icon(Icons.save_as_outlined),
+                title: Text('บันทึกเป็น'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   String get _statusLabel {
     if (_workspace.isBusy) return 'กำลังดำเนินการ…';
     if (_workspace.document.isDirty) return 'ยังไม่ได้บันทึก';
+    if (_workspace.document.name == 'Welcome.md' &&
+        _workspace.document.uri == null) {
+      return 'เอกสารตัวอย่าง · พร้อมแก้ไข';
+    }
     if (_workspace.document.uri == null) return 'เอกสารใหม่';
     return 'บันทึกแล้ว';
   }

@@ -6,7 +6,7 @@ import 'package:scribble/scribble.dart';
 /// Coordinates belong to the page, never to Markdown blocks or the viewport.
 class InkSession extends ChangeNotifier {
   static const pageWidth = 1000.0;
-  double height = 1400;
+  double height = 2400;
   late final ScribbleNotifier pen = ScribbleNotifier(
     allowedPointersMode: ScribblePointerMode.penOnly,
     widths: const [3, 6, 12],

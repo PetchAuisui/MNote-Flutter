@@ -44,6 +44,18 @@ class WorkspaceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool loadExample(String content) {
+    if (_document.name != 'Untitled.md' ||
+        _document.content.isNotEmpty ||
+        _document.uri != null) {
+      return false;
+    }
+    _document = MarkdownDocument.example(content);
+    _errorMessage = null;
+    notifyListeners();
+    return true;
+  }
+
   Future<bool> openDocument() {
     return _run(() async {
       final document = await _repository.open();

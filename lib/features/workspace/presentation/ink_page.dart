@@ -46,7 +46,7 @@ class _InkPageState extends State<InkPage> {
   }
 
   void _fit() {
-    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
+    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 4.0);
     _transform.value = Matrix4.diagonal3Values(scale, scale, 1);
   }
 
@@ -116,76 +116,89 @@ class _InkPageState extends State<InkPage> {
       final pen = widget.session.pen;
       return Column(
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                IconButton(
-                  tooltip: 'ปากกา',
-                  onPressed: () => pen.setColor(Colors.black),
-                  icon: const Icon(Icons.edit),
-                ),
-                IconButton(
-                  tooltip: 'ปากกาสีแดง',
-                  onPressed: () => pen.setColor(Colors.red.shade800),
-                  icon: const Icon(Icons.circle, color: Colors.red),
-                ),
-                IconButton(
-                  tooltip: 'ยางลบทั้งเส้น',
-                  onPressed: pen.setEraser,
-                  icon: const Icon(Icons.auto_fix_normal),
-                ),
-                IconButton(
-                  tooltip: 'ย้อนกลับหมึก',
-                  onPressed: pen.canUndo ? pen.undo : null,
-                  icon: const Icon(Icons.undo),
-                ),
-                IconButton(
-                  tooltip: 'ทำซ้ำหมึก',
-                  onPressed: pen.canRedo ? pen.redo : null,
-                  icon: const Icon(Icons.redo),
-                ),
-                IconButton(
-                  tooltip: _touch
-                      ? 'ใช้นิ้วหรือเมาส์เขียนอยู่'
-                      : 'ใช้ปากกาเท่านั้น · นิ้วเลื่อนหน้า',
-                  isSelected: _touch,
-                  onPressed: () {
-                    setState(() => _touch = !_touch);
-                    pen.setAllowedPointersMode(
-                      _touch
-                          ? ScribblePointerMode.all
-                          : ScribblePointerMode.penOnly,
-                    );
-                  },
-                  icon: const Icon(Icons.touch_app),
-                ),
-                IconButton(
-                  tooltip: 'พอดีความกว้าง',
-                  onPressed: _fit,
-                  icon: const Icon(Icons.fit_screen),
-                ),
-                IconButton(
-                  tooltip: 'เพิ่มพื้นที่ด้านล่าง',
-                  onPressed: () =>
-                      widget.session.grow(widget.session.height + 700),
-                  icon: const Icon(Icons.add),
-                ),
-                IconButton(
-                  tooltip: 'เปิดไฟล์หมึก',
-                  onPressed: _busy ? null : () => _fileAction(false),
-                  icon: const Icon(Icons.folder_open),
-                ),
-                IconButton(
-                  tooltip: 'บันทึกไฟล์หมึกแยกจาก Markdown',
-                  onPressed: _busy ? null : () => _fileAction(true),
-                  icon: Icon(
-                    widget.session.isDirty
-                        ? Icons.save_as
-                        : Icons.save_outlined,
+          Material(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            child: SizedBox(
+              height: 52,
+              width: double.infinity,
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: 'ปากกา',
+                          onPressed: () => pen.setColor(Colors.black),
+                          icon: const Icon(Icons.edit),
+                        ),
+                        IconButton(
+                          tooltip: 'ปากกาสีแดง',
+                          onPressed: () => pen.setColor(Colors.red.shade800),
+                          icon: const Icon(Icons.circle, color: Colors.red),
+                        ),
+                        IconButton(
+                          tooltip: 'ยางลบทั้งเส้น',
+                          onPressed: pen.setEraser,
+                          icon: const Icon(Icons.auto_fix_normal),
+                        ),
+                        IconButton(
+                          tooltip: 'ย้อนกลับหมึก',
+                          onPressed: pen.canUndo ? pen.undo : null,
+                          icon: const Icon(Icons.undo),
+                        ),
+                        IconButton(
+                          tooltip: 'ทำซ้ำหมึก',
+                          onPressed: pen.canRedo ? pen.redo : null,
+                          icon: const Icon(Icons.redo),
+                        ),
+                        IconButton(
+                          tooltip: _touch
+                              ? 'ใช้นิ้วหรือเมาส์เขียนอยู่'
+                              : 'ใช้ปากกาเท่านั้น · นิ้วเลื่อนหน้า',
+                          isSelected: _touch,
+                          onPressed: () {
+                            setState(() => _touch = !_touch);
+                            pen.setAllowedPointersMode(
+                              _touch
+                                  ? ScribblePointerMode.all
+                                  : ScribblePointerMode.penOnly,
+                            );
+                          },
+                          icon: const Icon(Icons.touch_app),
+                        ),
+                        IconButton(
+                          tooltip: 'พอดีความกว้าง',
+                          onPressed: _fit,
+                          icon: const Icon(Icons.fit_screen),
+                        ),
+                        IconButton(
+                          tooltip: 'เพิ่มพื้นที่ด้านล่าง',
+                          onPressed: () =>
+                              widget.session.grow(widget.session.height + 1000),
+                          icon: const Icon(Icons.add),
+                        ),
+                        IconButton(
+                          tooltip: 'เปิดไฟล์หมึก',
+                          onPressed: _busy ? null : () => _fileAction(false),
+                          icon: const Icon(Icons.folder_open),
+                        ),
+                        IconButton(
+                          tooltip: 'บันทึกไฟล์หมึกแยกจาก Markdown',
+                          onPressed: _busy ? null : () => _fileAction(true),
+                          icon: Icon(
+                            widget.session.isDirty
+                                ? Icons.save_as
+                                : Icons.save_outlined,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
           if (_busy) const LinearProgressIndicator(),

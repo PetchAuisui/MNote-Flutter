@@ -98,7 +98,7 @@ class _InkPageState extends State<InkPage> {
     final clear = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.delete_sweep_outlined),
+        icon: const Icon(Icons.delete_outline),
         title: const Text('ล้างหมึกทั้งหมด?'),
         content: const Text('สามารถกดย้อนกลับได้หลังจากล้าง'),
         actions: [
@@ -327,24 +327,24 @@ class _InkToolbar extends StatelessWidget {
                   _toolButton(
                     key: const Key('ink-pen'),
                     tooltip: 'ปากกา',
-                    icon: Icons.draw_outlined,
-                    selectedIcon: Icons.draw,
+                    icon: const Icon(Icons.edit_outlined),
+                    selectedIcon: const Icon(Icons.edit),
                     selected: selectedTool == _InkTool.pen,
                     onPressed: () => onToolSelected(_InkTool.pen),
                   ),
                   _toolButton(
                     key: const Key('ink-highlighter'),
                     tooltip: 'ปากกาไฮไลต์',
-                    icon: Icons.border_color_outlined,
-                    selectedIcon: Icons.border_color,
+                    icon: const Icon(Icons.border_color_outlined),
+                    selectedIcon: const Icon(Icons.border_color),
                     selected: selectedTool == _InkTool.highlighter,
                     onPressed: () => onToolSelected(_InkTool.highlighter),
                   ),
                   _toolButton(
                     key: const Key('ink-eraser'),
                     tooltip: 'ยางลบทั้งเส้น',
-                    icon: Icons.auto_fix_normal,
-                    selectedIcon: Icons.auto_fix_normal,
+                    icon: const _EraserIcon(),
+                    selectedIcon: const _EraserIcon(filled: true),
                     selected: selectedTool == _InkTool.eraser,
                     onPressed: () => onToolSelected(_InkTool.eraser),
                   ),
@@ -402,7 +402,7 @@ class _InkToolbar extends StatelessWidget {
                     key: const Key('ink-clear'),
                     tooltip: 'ล้างหมึกทั้งหมด',
                     onPressed: onClear,
-                    icon: const Icon(Icons.delete_sweep_outlined),
+                    icon: const Icon(Icons.delete_outline),
                   ),
                   const _InkToolbarDivider(),
                   _toolButton(
@@ -410,8 +410,8 @@ class _InkToolbar extends StatelessWidget {
                     tooltip: touchEnabled
                         ? 'ใช้นิ้วเขียนอยู่'
                         : 'Apple Pencil เขียน · นิ้วเลื่อนหน้า',
-                    icon: Icons.touch_app_outlined,
-                    selectedIcon: Icons.touch_app,
+                    icon: const Icon(Icons.touch_app_outlined),
+                    selectedIcon: const Icon(Icons.touch_app),
                     selected: touchEnabled,
                     onPressed: onTouchChanged,
                   ),
@@ -425,7 +425,7 @@ class _InkToolbar extends StatelessWidget {
                     key: const Key('ink-grow'),
                     tooltip: 'เพิ่มพื้นที่ด้านล่าง',
                     onPressed: onGrow,
-                    icon: const Icon(Icons.add_box_outlined),
+                    icon: const Icon(Icons.vertical_align_bottom),
                   ),
                   const _InkToolbarDivider(),
                   IconButton(
@@ -452,8 +452,8 @@ class _InkToolbar extends StatelessWidget {
   Widget _toolButton({
     required Key key,
     required String tooltip,
-    required IconData icon,
-    required IconData selectedIcon,
+    required Widget icon,
+    required Widget selectedIcon,
     required bool selected,
     required VoidCallback onPressed,
   }) => IconButton(
@@ -461,8 +461,8 @@ class _InkToolbar extends StatelessWidget {
     tooltip: tooltip,
     isSelected: selected,
     onPressed: onPressed,
-    icon: Icon(icon),
-    selectedIcon: Icon(selectedIcon),
+    icon: icon,
+    selectedIcon: selectedIcon,
   );
 
   static String _colorName(Color color) => switch (color.toARGB32()) {
@@ -472,6 +472,73 @@ class _InkToolbar extends StatelessWidget {
     0xFF237A3B => 'เขียว',
     _ => 'ม่วง',
   };
+}
+
+class _EraserIcon extends StatelessWidget {
+  const _EraserIcon({this.filled = false});
+
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    size: const Size.square(24),
+    painter: _EraserIconPainter(
+      color:
+          IconTheme.of(context).color ??
+          Theme.of(context).colorScheme.onSurfaceVariant,
+      filled: filled,
+    ),
+  );
+}
+
+class _EraserIconPainter extends CustomPainter {
+  const _EraserIconPainter({required this.color, required this.filled});
+
+  final Color color;
+  final bool filled;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final eraser = Path()
+      ..moveTo(7, 3)
+      ..lineTo(21, 17)
+      ..lineTo(15, 23)
+      ..lineTo(1, 9)
+      ..close();
+    if (filled) {
+      canvas.drawPath(
+        eraser,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
+      final selectedDetail = Paint()
+        ..color = ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+            ? Colors.white
+            : Colors.black
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      canvas.drawLine(
+        const Offset(11, 13),
+        const Offset(16, 8),
+        selectedDetail,
+      );
+    } else {
+      canvas.drawPath(eraser, outline);
+      canvas.drawLine(const Offset(9, 15), const Offset(15, 9), outline);
+    }
+    canvas.drawLine(const Offset(11, 23), const Offset(22, 23), outline);
+  }
+
+  @override
+  bool shouldRepaint(covariant _EraserIconPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.filled != filled;
 }
 
 class _InkToolbarDivider extends StatelessWidget {

@@ -414,4 +414,53 @@ void main() {
     final aIndex = textWidgets.indexOf('a_unstarred.md');
     expect(zIndex != -1 && aIndex != -1 && zIndex < aIndex, isTrue);
   });
+
+  testWidgets('starred document moves ahead of unstarred folders to the very front', (tester) async {
+    final sampleFolders = [
+      FolderItem(
+        id: 'f1',
+        name: 'โฟลเดอร์_ปกติ',
+        updatedAt: DateTime(2026, 9, 20),
+        isStarred: false,
+      ),
+    ];
+    final sampleDocuments = [
+      DocumentItem(
+        id: 'd1',
+        name: 'บันทึก_โปรด.txt',
+        content: 'content',
+        updatedAt: DateTime(2026, 9, 21),
+        isStarred: true,
+      ),
+      DocumentItem(
+        id: 'd2',
+        name: 'เอกสาร_ปกติ.md',
+        content: 'content',
+        updatedAt: DateTime(2026, 9, 22),
+        isStarred: false,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          initialFolders: sampleFolders,
+          initialDocuments: sampleDocuments,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
+    final txtIndex = textWidgets.indexOf('บันทึก_โปรด.txt');
+    final folderIndex = textWidgets.indexOf('โฟลเดอร์_ปกติ');
+    final mdIndex = textWidgets.indexOf('เอกสาร_ปกติ.md');
+
+    // Starred txt must come before unstarred folder and md!
+    expect(txtIndex != -1 && folderIndex != -1 && mdIndex != -1, isTrue);
+    expect(txtIndex < folderIndex, isTrue);
+    expect(folderIndex < mdIndex, isTrue);
+  });
 }
+

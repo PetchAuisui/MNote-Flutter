@@ -756,10 +756,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     void sortFolders(List<FolderItem> list) {
       list.sort((a, b) {
-        // รายการโปรด (ติดดาว ⭐) ขึ้นก่อนเสมอ
-        if (a.isStarred != b.isStarred) {
-          return a.isStarred ? -1 : 1;
-        }
         switch (_sortMode) {
           case SortMode.newest:
             return b.updatedAt.compareTo(a.updatedAt);
@@ -775,10 +771,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     void sortDocs(List<DocumentItem> list) {
       list.sort((a, b) {
-        // รายการโปรด (ติดดาว ⭐) ขึ้นก่อนเสมอ
-        if (a.isStarred != b.isStarred) {
-          return a.isStarred ? -1 : 1;
-        }
         switch (_sortMode) {
           case SortMode.newest:
             return b.updatedAt.compareTo(a.updatedAt);
@@ -792,8 +784,23 @@ class _NoteListScreenState extends State<NoteListScreen> {
       });
     }
 
-    sortFolders(visibleFolders);
-    sortDocs(visibleDocuments);
+    final starredFolders = visibleFolders.where((f) => f.isStarred).toList();
+    final starredDocs = visibleDocuments.where((d) => d.isStarred).toList();
+    final unstarredFolders = visibleFolders.where((f) => !f.isStarred).toList();
+    final unstarredDocs = visibleDocuments.where((d) => !d.isStarred).toList();
+
+    sortFolders(starredFolders);
+    sortDocs(starredDocs);
+    sortFolders(unstarredFolders);
+    sortDocs(unstarredDocs);
+
+    // รวมรายการทั้งหมด: รายการโปรด (ทั้งโฟลเดอร์และไฟล์ที่ติดดาว ⭐) ขึ้นก่อนเสมอ!
+    final allItems = <dynamic>[
+      ...starredFolders,
+      ...starredDocs,
+      ...unstarredFolders,
+      ...unstarredDocs,
+    ];
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -909,7 +916,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _loadDeviceDocuments,
-                  child: visibleFolders.isEmpty && visibleDocuments.isEmpty
+                  child: allItems.isEmpty
                       ? LayoutBuilder(
                           builder: (context, constraints) => SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
@@ -920,8 +927,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           ),
                         )
                       : (_isGridView
-                          ? _buildGridView(visibleFolders, visibleDocuments, columns)
-                          : _buildListView(visibleFolders, visibleDocuments)),
+                          ? _buildGridView(allItems, columns)
+                          : _buildListView(allItems)),
                 ),
               ),
             ],
@@ -1221,12 +1228,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // Grid View ที่ปรับคอลัมน์อัตโนมัติ (Responsive)
   Widget _buildGridView(
-    List<FolderItem> folders,
-    List<DocumentItem> documents,
+    List<dynamic> items,
     int columns,
   ) {
-    final totalItems = folders.length + documents.length;
-
     return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -1236,14 +1240,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
         crossAxisSpacing: 18,
         childAspectRatio: 0.74,
       ),
-      itemCount: totalItems,
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        if (index < folders.length) {
-          final folder = folders[index];
-          return _buildFolderGridCard(folder);
+        final item = items[index];
+        if (item is FolderItem) {
+          return _buildFolderGridCard(item);
         } else {
-          final doc = documents[index - folders.length];
-          return _buildDocumentGridCard(doc);
+          return _buildDocumentGridCard(item as DocumentItem);
         }
       },
     );
@@ -1633,7 +1636,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   // List View ทางเลือก
-  Widget _buildListView(List<FolderItem> folders, List<DocumentItem> documents) {
+  Widget _buildListView(List<dynamic> items) {
     final theme = Theme.of(context);
     final isTrashView = _filter == ViewFilter.trash;
 
@@ -1641,13 +1644,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
-        if (folders.isNotEmpty) ...[
-          for (final folder in folders)
+        for (final item in items)
+          if (item is FolderItem)
             ListTile(
               leading: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 36),
-              title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(
-                '${_documents.where((d) => d.folderId == folder.id && !d.isTrash).length} ไฟล์ • ${_formatDate(folder.updatedAt)}',
+                '${_documents.where((d) => d.folderId == item.id && !d.isTrash).length} ไฟล์ • ${_formatDate(item.updatedAt)}',
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1655,20 +1658,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(
-                        folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: folder.isStarred ? Colors.amber : Colors.grey,
+                        item.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: item.isStarred ? Colors.amber : Colors.grey,
                       ),
-                      onPressed: () => _toggleFolderStar(folder),
+                      onPressed: () => _toggleFolderStar(item),
                     ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
                     onSelected: (val) {
-                      if (val == 'open') _handleFolderTap(folder);
-                      if (val == 'trash') _moveToTrashFolder(folder);
-                      if (val == 'restore') _restoreFolder(folder);
-                      if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
+                      if (val == 'open') _handleFolderTap(item);
+                      if (val == 'trash') _moveToTrashFolder(item);
+                      if (val == 'restore') _restoreFolder(item);
+                      if (val == 'delete_perm') _permanentlyDeleteFolder(item);
                     },
-                    itemBuilder: (ctx) => folder.isTrash
+                    itemBuilder: (ctx) => item.isTrash
                         ? const [
                             PopupMenuItem(
                               value: 'restore',
@@ -1716,20 +1719,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                 ],
               ),
-              onTap: () => _handleFolderTap(folder),
-            ),
-        ],
-        if (documents.isNotEmpty) ...[
-          for (final doc in documents)
+              onTap: () => _handleFolderTap(item),
+            )
+          else
             ListTile(
               leading: Icon(
-                doc.isTxt ? Icons.text_snippet_rounded : Icons.description_rounded,
-                color: doc.isTxt ? Colors.teal : Colors.blue,
+                (item as DocumentItem).isTxt ? Icons.text_snippet_rounded : Icons.description_rounded,
+                color: item.isTxt ? Colors.teal : Colors.blue,
                 size: 32,
               ),
-              title: Text(doc.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(
-                '${doc.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(doc.updatedAt)}',
+                '${item.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(item.updatedAt)}',
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1737,20 +1738,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(
-                        doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: doc.isStarred ? Colors.amber : Colors.grey,
+                        item.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: item.isStarred ? Colors.amber : Colors.grey,
                       ),
-                      onPressed: () => _toggleDocumentStar(doc),
+                      onPressed: () => _toggleDocumentStar(item),
                     ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
                     onSelected: (val) {
-                      if (val == 'open') _openDocument(doc);
-                      if (val == 'trash') _moveToTrashDocument(doc);
-                      if (val == 'restore') _restoreDocument(doc);
-                      if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
+                      if (val == 'open') _openDocument(item);
+                      if (val == 'trash') _moveToTrashDocument(item);
+                      if (val == 'restore') _restoreDocument(item);
+                      if (val == 'delete_perm') _permanentlyDeleteDocument(item);
                     },
-                    itemBuilder: (ctx) => doc.isTrash
+                    itemBuilder: (ctx) => item.isTrash
                         ? const [
                             PopupMenuItem(
                               value: 'restore',
@@ -1798,9 +1799,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                 ],
               ),
-              onTap: () => _openDocument(doc),
+              onTap: () => _openDocument(item),
             ),
-        ],
       ],
     );
   }

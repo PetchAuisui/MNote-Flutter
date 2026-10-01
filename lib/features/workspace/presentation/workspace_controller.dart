@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 
-enum WorkspaceMode { edit, preview }
+enum WorkspaceMode { edit, preview, ink }
 
 class WorkspaceController extends ChangeNotifier {
   WorkspaceController(this._repository, {MarkdownDocument? initialDocument})

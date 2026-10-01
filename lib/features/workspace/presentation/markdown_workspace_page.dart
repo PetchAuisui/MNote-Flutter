@@ -5,6 +5,8 @@ import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'ink_page.dart';
+import 'ink_session.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
   const MarkdownWorkspacePage({
@@ -35,6 +37,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late UndoHistoryController _undoController;
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
+  InkSession _ink = InkSession();
 
   @override
   void initState() {
@@ -50,6 +53,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   @override
   void dispose() {
+    _ink.dispose();
     _workspace
       ..removeListener(_onWorkspaceChanged)
       ..dispose();
@@ -120,7 +124,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<bool> _confirmDiscardChanges() async {
-    if (!_workspace.document.isDirty) return true;
+    if (!_workspace.document.isDirty && !_ink.isDirty) return true;
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -148,20 +152,32 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
     );
-    if (opened) _resetUndoHistory();
+    if (opened) {
+      _resetInk();
+      _resetUndoHistory();
+    }
   }
 
   Future<void> _newDocument() async {
     if (!await _confirmDiscardChanges()) return;
     _workspace.newDocument();
+    _resetInk();
     _resetUndoHistory();
   }
 
   Future<void> _saveDocument({bool saveAs = false}) async {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: 'บันทึกเอกสารแล้ว',
+      successMessage: _ink.isDirty
+          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดจด'
+          : 'บันทึกเอกสารแล้ว',
     );
+  }
+
+  void _resetInk() {
+    final previous = _ink;
+    setState(() => _ink = InkSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
 
   Future<bool> _runFileAction(
@@ -581,6 +597,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                             icon: Icon(Icons.visibility_outlined),
                             label: Text('แสดงผล'),
                           ),
+                          ButtonSegment(
+                            value: WorkspaceMode.ink,
+                            icon: Icon(Icons.draw_outlined),
+                            label: Text('จด'),
+                          ),
                         ],
                         selected: {_workspace.mode},
                         onSelectionChanged: (selection) {
@@ -611,6 +632,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       Expanded(
                         child: _workspace.mode == WorkspaceMode.edit
                             ? _buildEditor()
+                            : _workspace.mode == WorkspaceMode.ink
+                            ? InkPage(
+                                key: ObjectKey(_ink),
+                                session: _ink,
+                                markdown: document.content,
+                                name: document.name,
+                                imageDirectory: _imageDirectory,
+                              )
                             : _buildPreview(),
                       ),
                       Padding(

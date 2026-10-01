@@ -49,6 +49,24 @@ class InkSession extends ChangeNotifier {
       throw const FormatException('Invalid page height');
     }
     final sketch = Sketch.fromJson(data['sketch'] as Map<String, dynamic>);
+    for (final line in sketch.lines) {
+      if (!line.width.isFinite || line.width <= 0 || line.width > 1000) {
+        throw const FormatException('Invalid stroke width');
+      }
+      for (final point in line.points) {
+        if (!point.x.isFinite ||
+            !point.y.isFinite ||
+            !point.pressure.isFinite ||
+            point.pressure < 0 ||
+            point.pressure > 1 ||
+            point.x < 0 ||
+            point.x > pageWidth ||
+            point.y < 0 ||
+            point.y > extent) {
+          throw const FormatException('Invalid ink coordinates');
+        }
+      }
+    }
     height = extent;
     pen.setSketch(sketch: sketch);
     _savedSketch = jsonEncode(sketch.toJson());

@@ -5,6 +5,45 @@ import 'package:mnote/app/mnote_app.dart';
 import 'helpers/fakes.dart';
 
 void main() {
+  testWidgets('document returns to full height after keyboard closes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1194, 834);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewPadding = const FakeViewPadding(bottom: 20);
+    tester.view.padding = const FakeViewPadding(bottom: 20);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: FakeDocumentRepository()),
+    );
+    final editor = find.byKey(const Key('markdown-editor'));
+    final initialBottom = tester.getBottomLeft(editor).dy;
+    expect(834 - initialBottom, lessThan(80));
+    final surface = find.byKey(const Key('document-surface'));
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    expect(
+      tester
+          .getRect(surface)
+          .contains(
+            tester.getCenter(find.byKey(const Key('document-statistics'))),
+          ),
+      isTrue,
+    );
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    tester.view.padding = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(editor).dy, lessThanOrEqualTo(834 - 320));
+    tester.view.viewInsets = FakeViewPadding.zero;
+    tester.view.padding = const FakeViewPadding(bottom: 20);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(editor).dy, closeTo(initialBottom, 0.1));
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    await tester.tap(find.text('แสดงผล'));
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('gutter baseline matches the rendered editor baseline', (
     tester,
   ) async {

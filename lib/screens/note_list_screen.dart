@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
@@ -27,7 +28,7 @@ class NoteListScreen extends StatefulWidget {
 class _NoteListScreenState extends State<NoteListScreen> {
   bool _isGridView = true;
   ViewFilter _filter = ViewFilter.all;
-  SortMode _sortMode = SortMode.newest;
+  final SortMode _sortMode = SortMode.newest;
   String? _currentFolderId; // null = root directory
   String _searchQuery = '';
   bool _isSearching = false;
@@ -400,6 +401,78 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           currentMode == ThemeMode.system
                               ? 'ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง'
                               : (currentMode == ThemeMode.dark ? 'เปิดใช้งานโหมดมืด' : 'เปิดใช้งานโหมดสว่าง'),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'ฟอนต์ตัวอักษร (Typography)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ValueListenableBuilder<AppFontFamily>(
+                        valueListenable: MnoteApp.fontNotifier,
+                        builder: (context, currentFont, _) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<AppFontFamily>(
+                                isExpanded: true,
+                                value: currentFont,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                                items: AppFontFamily.values.map((f) {
+                                  return DropdownMenuItem<AppFontFamily>(
+                                    value: f,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.font_download_rounded,
+                                          size: 18,
+                                          color: f == currentFont
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          f.label,
+                                          style: TextStyle(
+                                            fontFamily: f.familyName,
+                                            fontWeight: f == currentFont ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (newFont) {
+                                  if (newFont != null) {
+                                    MnoteApp.fontNotifier.value = newFont;
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          'เลือกฟอนต์โมเดิร์นที่เหมาะสมกับการอ่านและเขียนโน้ตภาษาไทย',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
@@ -883,8 +956,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           children: [
                             _buildFilterMenu(theme),
                             const SizedBox(width: 8),
-                            _buildSortMenu(),
-                            const SizedBox(width: 4),
                             if (isTrashView)
                               _buildEmptyTrashButton(context)
                             else
@@ -898,8 +969,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         children: [
                           _buildFilterMenu(theme),
                           const Spacer(),
-                          _buildSortMenu(),
-                          const SizedBox(width: 4),
                           if (isTrashView)
                             _buildEmptyTrashButton(context)
                           else
@@ -1065,59 +1134,165 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
-  // ปุ่มจัดเรียง (Sort)
-  Widget _buildSortMenu() {
-    return PopupMenuButton<SortMode>(
-      initialValue: _sortMode,
-      tooltip: 'จัดเรียงตาม',
-      icon: const Icon(Icons.sort_rounded, size: 20),
-      onSelected: (mode) {
-        setState(() {
-          _sortMode = mode;
-        });
+  // แสดงตัวเลือกของโฟลเดอร์ (เปิด, ติดดาว, ย้ายไปถังขยะ, กู้คืน, ลบถาวร)
+  void _showFolderOptions(FolderItem folder) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.folder_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                  title: Text(
+                    folder.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(_formatDate(folder.updatedAt)),
+                ),
+                const Divider(),
+                if (folder.isTrash) ...[
+                  ListTile(
+                    leading: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+                    title: const Text('กู้คืน'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _restoreFolder(folder);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                    title: const Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _permanentlyDeleteFolder(folder);
+                    },
+                  ),
+                ] else ...[
+                  ListTile(
+                    leading: const Icon(Icons.folder_open_rounded),
+                    title: const Text('เปิดโฟลเดอร์'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _handleFolderTap(folder);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: folder.isStarred ? Colors.amber : null,
+                    ),
+                    title: Text(folder.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _toggleFolderStar(folder);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                    title: const Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _moveToTrashFolder(folder);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
       },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
-          value: SortMode.newest,
-          child: Row(
-            children: [
-              Icon(Icons.access_time_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('ล่าสุด (วันที่แก้ไข)'),
-            ],
+    );
+  }
+
+  // แสดงตัวเลือกของเอกสาร (เปิด, ติดดาว, ย้ายไปถังขยะ, กู้คืน, ลบถาวร)
+  void _showDocumentOptions(DocumentItem doc) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    doc.isTxt ? Icons.text_snippet_rounded : Icons.description_rounded,
+                    color: doc.isTxt ? Colors.teal : Colors.blue,
+                    size: 28,
+                  ),
+                  title: Text(
+                    doc.displayName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(_formatDate(doc.updatedAt)),
+                ),
+                const Divider(),
+                if (doc.isTrash) ...[
+                  ListTile(
+                    leading: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+                    title: const Text('กู้คืน'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _restoreDocument(doc);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+                    title: const Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _permanentlyDeleteDocument(doc);
+                    },
+                  ),
+                ] else ...[
+                  ListTile(
+                    leading: const Icon(Icons.edit_note_rounded),
+                    title: const Text('เปิดเอกสาร'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _openDocument(doc);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: doc.isStarred ? Colors.amber : null,
+                    ),
+                    title: Text(doc.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _toggleDocumentStar(doc);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                    title: const Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _moveToTrashDocument(doc);
+                    },
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: SortMode.oldest,
-          child: Row(
-            children: [
-              Icon(Icons.history_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('เก่าสุด (วันที่แก้ไข)'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: SortMode.nameAsc,
-          child: Row(
-            children: [
-              Icon(Icons.arrow_downward_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('ชื่อ (ก - ฮ / A - Z)'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: SortMode.nameDesc,
-          child: Row(
-            children: [
-              Icon(Icons.arrow_upward_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('ชื่อ (ฮ - ก / Z - A)'),
-            ],
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -1269,6 +1444,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => _handleFolderTap(folder),
+                onLongPress: () => _showFolderOptions(folder),
+                onSecondaryTap: () => _showFolderOptions(folder),
                 child: SizedBox(
                   width: 160,
                   height: 140,
@@ -1296,8 +1473,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           child: Text(
                             '$count ไฟล์',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
                               color: isDark ? Colors.white : primary,
                             ),
                           ),
@@ -1330,109 +1508,45 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(width: 28),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _handleFolderTap(folder),
-                      child: Text(
-                        folder.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _handleFolderTap(folder),
+            onLongPress: () => _showFolderOptions(folder),
+            onSecondaryTap: () => _showFolderOptions(folder),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    folder.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      letterSpacing: -0.1,
+                      height: 1.35,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatDate(folder.updatedAt),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 28,
-                height: 36,
-                child: PopupMenuButton<String>(
-                  iconSize: 18,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    size: 18,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                  tooltip: 'ตัวเลือกโฟลเดอร์',
-                  onSelected: (val) {
-                    if (val == 'open') _handleFolderTap(folder);
-                    if (val == 'trash') _moveToTrashFolder(folder);
-                    if (val == 'restore') _restoreFolder(folder);
-                    if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
-                  },
-                  itemBuilder: (ctx) => folder.isTrash
-                      ? const [
-                          PopupMenuItem(
-                            value: 'restore',
-                            child: Row(
-                              children: [
-                                Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text('กู้คืน'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete_perm',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('ลบถาวร', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ]
-                      : const [
-                          PopupMenuItem(
-                            value: 'open',
-                            child: Row(
-                              children: [
-                                Icon(Icons.folder_open_rounded, size: 18),
-                                SizedBox(width: 8),
-                                Text('เปิดโฟลเดอร์'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'trash',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(folder.updatedAt),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      letterSpacing: 0.1,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -1455,6 +1569,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => _openDocument(doc),
+                onLongPress: () => _showDocumentOptions(doc),
+                onSecondaryTap: () => _showDocumentOptions(doc),
                 child: Container(
                   width: 148,
                   height: 175,
@@ -1488,8 +1604,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             child: Text(
                               isTxt ? 'TXT' : 'MD',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
                                 color: isTxt ? Colors.teal : Colors.blue,
                               ),
                             ),
@@ -1499,8 +1616,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             child: Text(
                               doc.content,
                               style: TextStyle(
-                                fontSize: 11,
-                                height: 1.35,
+                                fontSize: 11.5,
+                                height: 1.48,
+                                letterSpacing: 0.1,
                                 color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                               ),
                               overflow: TextOverflow.fade,
@@ -1532,109 +1650,45 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(width: 28),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _openDocument(doc),
-                      child: Text(
-                        doc.displayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _openDocument(doc),
+            onLongPress: () => _showDocumentOptions(doc),
+            onSecondaryTap: () => _showDocumentOptions(doc),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    doc.displayName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      letterSpacing: -0.1,
+                      height: 1.35,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatDate(doc.updatedAt),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 28,
-                height: 36,
-                child: PopupMenuButton<String>(
-                  iconSize: 18,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    size: 18,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                  tooltip: 'ตัวเลือกเอกสาร',
-                  onSelected: (val) {
-                    if (val == 'open') _openDocument(doc);
-                    if (val == 'trash') _moveToTrashDocument(doc);
-                    if (val == 'restore') _restoreDocument(doc);
-                    if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
-                  },
-                  itemBuilder: (ctx) => doc.isTrash
-                      ? const [
-                          PopupMenuItem(
-                            value: 'restore',
-                            child: Row(
-                              children: [
-                                Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text('กู้คืน'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete_perm',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('ลบถาวร', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ]
-                      : const [
-                          PopupMenuItem(
-                            value: 'open',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_note_rounded, size: 18),
-                                SizedBox(width: 8),
-                                Text('เปิดเอกสาร'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'trash',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatDate(doc.updatedAt),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      letterSpacing: 0.1,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -1654,9 +1708,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
           if (item is FolderItem)
             ListTile(
               leading: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 36),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.2)),
               subtitle: Text(
                 '${_documents.where((d) => d.folderId == item.id && !d.isTrash).length} ไฟล์ • ${_formatDate(item.updatedAt)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1734,9 +1792,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 color: item.isTxt ? Colors.teal : Colors.blue,
                 size: 32,
               ),
-              title: Text(item.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(item.displayName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.2)),
               subtitle: Text(
                 '${item.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(item.updatedAt)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,

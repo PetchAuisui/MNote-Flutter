@@ -190,6 +190,8 @@ void main() {
     expect(find.text('การตั้งค่า'), findsOneWidget);
     expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
     expect(find.text('ตามเครื่อง'), findsOneWidget);
+    expect(find.text('ฟอนต์ตัวอักษร (Typography)'), findsOneWidget);
+    expect(find.text('Prompt (โมเดิร์น)'), findsOneWidget);
   });
 
   testWidgets('MarkdownWorkspacePage does not show settings icon', (tester) async {
@@ -225,16 +227,8 @@ void main() {
     // Verify document is present
     expect(find.text('2569-01-CT05-report02'), findsOneWidget);
 
-    // Open popup menu for that document by locating its container
-    final docFinder = find.ancestor(
-      of: find.text('2569-01-CT05-report02'),
-      matching: find.byType(Column),
-    );
-    final moreButton = find.descendant(
-      of: docFinder.at(1),
-      matching: find.byIcon(Icons.more_vert_rounded),
-    );
-    await tester.tap(moreButton);
+    // Open options for that document by long-pressing
+    await tester.longPress(find.text('2569-01-CT05-report02'));
     await tester.pumpAndSettle();
 
     // Tap "ย้ายไปถังขยะ"
@@ -256,8 +250,8 @@ void main() {
     // Document is visible in trash
     expect(find.text('2569-01-CT05-report02'), findsOneWidget);
 
-    // Tap menu chevron on the document in trash
-    await tester.tap(find.byIcon(Icons.more_vert_rounded).first);
+    // Long press on the document in trash to open options
+    await tester.longPress(find.text('2569-01-CT05-report02'));
     await tester.pumpAndSettle();
 
     // Restore it
@@ -351,16 +345,8 @@ void main() {
     expect(find.text('1 ไฟล์'), findsOneWidget);
     expect(find.text('0 ไฟล์'), findsOneWidget);
 
-    // Open popup menu for 'ใบประกอบวิชาชีพครู' folder
-    final folderFinder = find.ancestor(
-      of: find.text('ใบประกอบวิชาชีพครู'),
-      matching: find.byType(Column),
-    );
-    final moreButton = find.descendant(
-      of: folderFinder.at(1),
-      matching: find.byIcon(Icons.more_vert_rounded),
-    );
-    await tester.tap(moreButton);
+    // Open options menu for 'ใบประกอบวิชาชีพครู' folder by long-pressing
+    await tester.longPress(find.text('ใบประกอบวิชาชีพครู'));
     await tester.pumpAndSettle();
 
     expect(find.text('ย้ายไปถังขยะ'), findsOneWidget);

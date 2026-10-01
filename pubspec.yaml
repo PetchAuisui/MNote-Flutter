@@ -38,6 +38,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_markdown_plus: ^1.0.12
   path_provider: ^2.1.6
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   flutter_test:

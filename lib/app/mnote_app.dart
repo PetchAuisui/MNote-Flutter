@@ -14,6 +14,10 @@ class MnoteApp extends StatelessWidget {
   static final ValueNotifier<ThemeMode> themeModeNotifier =
       ValueNotifier<ThemeMode>(ThemeMode.system);
 
+  /// Global notifier to switch app font family
+  static final ValueNotifier<AppFontFamily> fontNotifier =
+      ValueNotifier<AppFontFamily>(AppFontFamily.prompt);
+
   @override
   Widget build(BuildContext context) {
     final effectiveRepository = documentRepository ??
@@ -22,15 +26,20 @@ class MnoteApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeNotifier,
       builder: (context, currentThemeMode, _) {
-        return MaterialApp(
-          title: 'Mnote',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: currentThemeMode,
-          home: NoteListScreen(
-            repository: effectiveRepository,
-          ),
+        return ValueListenableBuilder<AppFontFamily>(
+          valueListenable: fontNotifier,
+          builder: (context, currentFont, _) {
+            return MaterialApp(
+              title: 'Mnote',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.theme(Brightness.light, font: currentFont),
+              darkTheme: AppTheme.theme(Brightness.dark, font: currentFont),
+              themeMode: currentThemeMode,
+              home: NoteListScreen(
+                repository: effectiveRepository,
+              ),
+            );
+          },
         );
       },
     );

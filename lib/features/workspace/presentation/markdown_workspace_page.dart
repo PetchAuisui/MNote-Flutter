@@ -596,8 +596,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               _buildFormattingToolbar(),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Card(
+                  key: const Key('document-surface'),
                   margin: EdgeInsets.zero,
                   elevation: 0,
                   color: Theme.of(context).colorScheme.surfaceContainer,
@@ -605,28 +606,35 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: _workspace.mode == WorkspaceMode.edit
-                      ? _buildEditor()
-                      : _buildPreview(),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                      maxLines: 1,
-                      textAlign: TextAlign.end,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _workspace.mode == WorkspaceMode.edit
+                            ? _buildEditor()
+                            : _buildPreview(),
                       ),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                            key: const Key('document-statistics'),
+                            maxLines: 1,
+                            textAlign: TextAlign.end,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ],

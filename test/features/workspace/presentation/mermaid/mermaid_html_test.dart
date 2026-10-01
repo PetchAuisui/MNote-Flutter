@@ -6,6 +6,94 @@ import 'package:mnote/features/workspace/presentation/mermaid/mermaid_html.dart'
 
 void main() {
   const fakeScript = '/* fake mermaid */';
+  group('parseMermaidBridgeMessage', () {
+    test('rendered พร้อม height ตัวเลขเต็ม', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":120}',
+      );
+      expect(
+        result,
+        isA<MermaidRendered>().having((m) => m.height, 'height', 120.0),
+      );
+    });
+
+    test('rendered พร้อม height ทศนิยม', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":120.5}',
+      );
+      expect(
+        result,
+        isA<MermaidRendered>().having((m) => m.height, 'height', 120.5),
+      );
+    });
+
+    test('height ติดลบ ต้องได้ null', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":-10}',
+      );
+      expect(result, isNull);
+    });
+
+    test('height เป็นสตริง ต้องได้ null', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":"120"}',
+      );
+      expect(result, isNull);
+    });
+
+    test('error พร้อม message', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"error","message":"Parse error"}',
+      );
+      expect(
+        result,
+        isA<MermaidRenderFailed>().having(
+          (m) => m.message,
+          'message',
+          'Parse error',
+        ),
+      );
+    });
+
+    test('error ไม่มี message ต้องได้ข้อความสำรอง', () {
+      final result = parseMermaidBridgeMessage('{"type":"error"}');
+      expect(
+        result,
+        isA<MermaidRenderFailed>().having(
+          (m) => m.message,
+          'message',
+          'Unknown render error',
+        ),
+      );
+    });
+
+    test('ไม่ใช่ JSON คืน null โดยไม่ throw', () {
+      expect(parseMermaidBridgeMessage('not json'), isNull);
+    });
+
+    test('JSON เป็น List คืน null', () {
+      expect(parseMermaidBridgeMessage('[1, 2, 3]'), isNull);
+    });
+
+    test('type ที่ไม่รู้จัก คืน null', () {
+      expect(parseMermaidBridgeMessage('{"type":"unknown"}'), isNull);
+    });
+
+    test('สตริงขยะหลายรูปแบบ ต้องไม่ throw (Security test)', () {
+      const junkInputs = [
+        '',
+        '{',
+        'null',
+        '{"type":null}',
+        '{"type":123}',
+        '{"height":100}',
+      ];
+      for (final junk in junkInputs) {
+        expect(() => parseMermaidBridgeMessage(junk), returnsNormally);
+        expect(parseMermaidBridgeMessage(junk), isNull);
+      }
+    });
+  });
 
   group('buildMermaidHtml', () {
     test('มี securityLevel: strict', () {

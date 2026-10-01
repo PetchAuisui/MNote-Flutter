@@ -83,3 +83,53 @@ String buildMermaidRenderCall(String source) {
 
   return 'window.renderDiagram($encoded);';
 }
+
+/// คลาสแม่ของข้อความที่ได้รับจาก JavaScript ผ่าน MermaidBridge
+sealed class MermaidBridgeMessage {
+  const MermaidBridgeMessage();
+}
+
+/// ข้อความแจ้งว่าเรนเดอร์สำเร็จ พร้อมความสูงของไดอะแกรม
+final class MermaidRendered extends MermaidBridgeMessage {
+  final double height;
+  const MermaidRendered(this.height);
+}
+
+/// ข้อความแจ้งว่าการเรนเดอร์ล้มเหลว พร้อมรายละเอียดข้อผิดพลาด
+final class MermaidRenderFailed extends MermaidBridgeMessage {
+  final String message;
+  const MermaidRenderFailed(this.message);
+}
+
+/// แปลงข้อความ JSON ดิบจาก JavaScript Bridge ให้เป็น [MermaidBridgeMessage]
+///
+/// คืนค่า `null` หากรูปแบบข้อความไม่ถูกต้อง หรือไม่มีข้อมูลที่ต้องการประมวลผล
+MermaidBridgeMessage? parseMermaidBridgeMessage(String raw) {
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final type = decoded['type'];
+    if (type == 'rendered') {
+      final height = decoded['height'];
+      if (height is num && height >= 0) {
+        return MermaidRendered(height.toDouble());
+      }
+      return null;
+    }
+
+    if (type == 'error') {
+      final message = decoded['message'];
+      if (message is String && message.isNotEmpty) {
+        return MermaidRenderFailed(message);
+      }
+      return const MermaidRenderFailed('Unknown render error');
+    }
+
+    return null;
+  } catch (_) {
+    return null;
+  }
+}

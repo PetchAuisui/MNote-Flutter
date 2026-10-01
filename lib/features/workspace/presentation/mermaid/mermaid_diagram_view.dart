@@ -3,19 +3,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'mermaid_height_cache.dart';
 import 'mermaid_html.dart';
 import 'mermaid_html_cache.dart';
+import 'mermaid_status_views.dart';
 
 /// วิดเจ็ตสำหรับแสดงผลไดอะแกรม Mermaid ด้วย WebView พร้อมรองรับสถานะการโหลด ข้อผิดพลาด และ fallback
 class MermaidDiagramView extends StatefulWidget {
   final String source;
   final MermaidHtmlCache? htmlCache;
+  final MermaidHeightCache? heightCache;
   final bool? webViewSupported;
 
   const MermaidDiagramView({
     super.key,
     required this.source,
     this.htmlCache,
+    this.heightCache,
     this.webViewSupported,
   });
 
@@ -24,9 +28,6 @@ class MermaidDiagramView extends StatefulWidget {
 }
 
 class _MermaidDiagramViewState extends State<MermaidDiagramView> {
-  static final Map<String, double> _heightCache = {};
-  static const int _heightCacheLimit = 100;
-
   WebViewController? _controller;
   bool _isPageFinished = false;
   bool _isLoading = true;
@@ -40,9 +41,8 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
       widget.webViewSupported ?? (WebViewPlatform.instance != null);
 
   MermaidHtmlCache get _cache => widget.htmlCache ?? defaultMermaidHtmlCache;
-
-  String _heightKey(bool isDark) =>
-      '${isDark ? 'dark' : 'light'}:${widget.source}';
+  MermaidHeightCache get _heightCache =>
+      widget.heightCache ?? defaultMermaidHeightCache;
 
   @override
   void didChangeDependencies() {
@@ -70,7 +70,10 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
     if (previousSource != null &&
         previousSource != widget.source &&
         _isPageFinished) {
-      final cachedHeight = _heightCache[_heightKey(isDark)];
+      final cachedHeight = _heightCache.lookup(
+        isDark: isDark,
+        source: widget.source,
+      );
       if (cachedHeight != null) {
         _diagramHeight = cachedHeight;
       }
@@ -97,7 +100,8 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
 
   Future<void> _initAndLoadHtml(bool isDark) async {
     final gen = ++_generation;
-    _diagramHeight = _heightCache[_heightKey(isDark)] ?? 120.0;
+    _diagramHeight =
+        _heightCache.lookup(isDark: isDark, source: widget.source) ?? 120.0;
     _startTimeoutTimer();
     setState(() {
       _isLoading = true;
@@ -123,16 +127,14 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
             _isLoading = false;
             switch (parsed) {
               case MermaidRendered(:final height):
-                final clampedHeight = height.clamp(48.0, 2000.0);
+                final clampedHeight = clampMermaidHeight(height);
                 _diagramHeight = clampedHeight;
                 _errorMessage = null;
-
-                final currentKey = _heightKey(_lastIsDark ?? false);
-                if (!_heightCache.containsKey(currentKey) &&
-                    _heightCache.length >= _heightCacheLimit) {
-                  _heightCache.remove(_heightCache.keys.first);
-                }
-                _heightCache[currentKey] = clampedHeight;
+                _heightCache.store(
+                  isDark: _lastIsDark ?? false,
+                  source: widget.source,
+                  height: clampedHeight,
+                );
 
               case MermaidRenderFailed(:final message):
                 _errorMessage = message;
@@ -196,15 +198,18 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
   @override
   Widget build(BuildContext context) {
     if (widget.source.trim().isEmpty) {
-      return _buildEmptyState(context);
+      return const MermaidDiagramEmptyView();
     }
 
     if (!_isSupported) {
-      return _buildFallbackState(context);
+      return MermaidDiagramFallbackView(source: widget.source);
     }
 
     if (_errorMessage != null) {
-      return _buildErrorState(context);
+      return MermaidDiagramErrorView(
+        message: _errorMessage!,
+        source: widget.source,
+      );
     }
 
     return SizedBox(
@@ -224,105 +229,6 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
               alignment: Alignment.center,
               child: const CircularProgressIndicator(),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      key: const Key('mermaid-diagram-empty'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        'ไดอะแกรมว่าง',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Theme.of(context).colorScheme.outline,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFallbackState(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      key: const Key('mermaid-diagram-fallback'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SelectableText(
-            widget.source,
-            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      key: const Key('mermaid-diagram-error'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.error),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: theme.colorScheme.error,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'แสดงไดอะแกรมไม่ได้',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              _errorMessage!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
-              ),
-            ),
-          ],
-          const Divider(height: 16),
-          SelectableText(
-            widget.source,
-            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-          ),
         ],
       ),
     );

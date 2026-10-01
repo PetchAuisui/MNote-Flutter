@@ -373,6 +373,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           showSelectedIcon: false,
                           segments: const [
                             ButtonSegment(
+                              value: ThemeMode.system,
+                              icon: Icon(Icons.brightness_auto_rounded, color: Colors.teal, size: 18),
+                              label: Text('ตามเครื่อง'),
+                            ),
+                            ButtonSegment(
                               value: ThemeMode.light,
                               icon: Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 18),
                               label: Text('สว่าง'),
@@ -382,16 +387,24 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               icon: Icon(Icons.dark_mode_rounded, color: Colors.indigoAccent, size: 18),
                               label: Text('มืด'),
                             ),
-                            ButtonSegment(
-                              value: ThemeMode.system,
-                              icon: Icon(Icons.brightness_auto_rounded, color: Colors.teal, size: 18),
-                              label: Text('ตามระบบ'),
-                            ),
                           ],
                           selected: {currentMode},
                           onSelectionChanged: (newSelection) {
                             MnoteApp.themeModeNotifier.value = newSelection.first;
                           },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          currentMode == ThemeMode.system
+                              ? 'ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง'
+                              : (currentMode == ThemeMode.dark ? 'เปิดใช้งานโหมดมืด' : 'เปิดใช้งานโหมดสว่าง'),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -686,11 +699,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // คำนวณจำนวนคอลัมน์แบบ Responsive (Desktop, Tablet, Phone) ให้ระยะห่างกระชับสมส่วน
   int _calculateColumnCount(double width) {
-    if (width < 480) return 2; // Phone
-    if (width < 740) return 3; // Small Tablet
-    if (width < 1020) return 4; // Tablet / Small Desktop
-    if (width < 1300) return 5; // Desktop
-    return 6; // Large Desktop
+    if (width < 380) return 2; // Phone
+    if (width < 600) return 3; // Large Phone / Small Tablet
+    if (width < 880) return 4; // Tablet (iPad)
+    if (width < 1180) return 5; // Laptop / Desktop
+    if (width < 1480) return 6; // Large Desktop
+    return 7;
   }
 
   @override
@@ -741,29 +755,41 @@ class _NoteListScreenState extends State<NoteListScreen> {
     }).toList();
 
     void sortFolders(List<FolderItem> list) {
-      switch (_sortMode) {
-        case SortMode.newest:
-          list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        case SortMode.oldest:
-          list.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-        case SortMode.nameAsc:
-          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-        case SortMode.nameDesc:
-          list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
-      }
+      list.sort((a, b) {
+        // รายการโปรด (ติดดาว ⭐) ขึ้นก่อนเสมอ
+        if (a.isStarred != b.isStarred) {
+          return a.isStarred ? -1 : 1;
+        }
+        switch (_sortMode) {
+          case SortMode.newest:
+            return b.updatedAt.compareTo(a.updatedAt);
+          case SortMode.oldest:
+            return a.updatedAt.compareTo(b.updatedAt);
+          case SortMode.nameAsc:
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          case SortMode.nameDesc:
+            return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+        }
+      });
     }
 
     void sortDocs(List<DocumentItem> list) {
-      switch (_sortMode) {
-        case SortMode.newest:
-          list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-        case SortMode.oldest:
-          list.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-        case SortMode.nameAsc:
-          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-        case SortMode.nameDesc:
-          list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
-      }
+      list.sort((a, b) {
+        // รายการโปรด (ติดดาว ⭐) ขึ้นก่อนเสมอ
+        if (a.isStarred != b.isStarred) {
+          return a.isStarred ? -1 : 1;
+        }
+        switch (_sortMode) {
+          case SortMode.newest:
+            return b.updatedAt.compareTo(a.updatedAt);
+          case SortMode.oldest:
+            return a.updatedAt.compareTo(b.updatedAt);
+          case SortMode.nameAsc:
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          case SortMode.nameDesc:
+            return b.name.toLowerCase().compareTo(a.name.toLowerCase());
+        }
+      });
     }
 
     sortFolders(visibleFolders);
@@ -1203,12 +1229,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 0.86,
+        mainAxisSpacing: 24,
+        crossAxisSpacing: 18,
+        childAspectRatio: 0.74,
       ),
       itemCount: totalItems,
       itemBuilder: (context, index) {
@@ -1223,7 +1249,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
-  // การ์ดโฟลเดอร์ใน Grid View (ขนาดเท่ากับเอกสาร MD/TXT สมมาตร มีกรอบ สัดส่วน และเงาสวยงาม)
+  // การ์ดโฟลเดอร์ใน Grid View (จัดกึ่งกลาง สมมาตรตาม Reference ใน Image 1)
   Widget _buildFolderGridCard(FolderItem folder) {
     final theme = Theme.of(context);
     final count = _documents.where((d) => d.folderId == folder.id && !d.isTrash).length;
@@ -1231,65 +1257,55 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final primary = theme.colorScheme.primary;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _handleFolderTap(folder),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _handleFolderTap(folder),
+                child: SizedBox(
+                  width: 160,
+                  height: 140,
                   child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      // ป้ายระบุประเภทและจำนวนไฟล์ในโฟลเดอร์
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          '$count ไฟล์',
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: primary,
+                      Icon(
+                        Icons.folder_rounded,
+                        size: 128,
+                        color: primary,
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.55)
+                                : Colors.white.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            '$count ไฟล์',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : primary,
+                            ),
                           ),
                         ),
                       ),
-                      // ไอคอนโฟลเดอร์ตรงกลาง ขนาดสมดุลพอดีกับตัวการ์ด
-                      Center(
-                        child: Icon(
-                          Icons.folder_rounded,
-                          size: 52,
-                          color: primary,
-                        ),
-                      ),
-                      // ปุ่มติดดาว (⭐ รายการโปรด)
                       if (!folder.isTrash)
                         Positioned(
-                          top: -4,
-                          right: -4,
+                          top: 12,
+                          right: 12,
                           child: IconButton(
-                            iconSize: 20,
+                            iconSize: 22,
                             padding: const EdgeInsets.all(4),
                             constraints: const BoxConstraints(),
                             visualDensity: VisualDensity.compact,
@@ -1297,7 +1313,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
                               color: folder.isStarred
                                   ? Colors.amberAccent
-                                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  : (isDark ? Colors.white70 : Colors.black45),
                             ),
                             onPressed: () => _toggleFolderStar(folder),
                           ),
@@ -1313,33 +1329,38 @@ class _NoteListScreenState extends State<NoteListScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
+                  Flexible(
                     child: GestureDetector(
                       onTap: () => _handleFolderTap(folder),
                       child: Text(
                         folder.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 13.5,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
+                  const SizedBox(width: 2),
                   PopupMenuButton<String>(
                     iconSize: 18,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     icon: Icon(
-                      Icons.more_vert_rounded,
+                      Icons.keyboard_arrow_down_rounded,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                     ),
+                    tooltip: 'ตัวเลือกโฟลเดอร์',
                     onSelected: (val) {
                       if (val == 'open') _handleFolderTap(folder);
                       if (val == 'trash') _moveToTrashFolder(folder);
@@ -1396,11 +1417,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
               ),
               const SizedBox(height: 2),
               Text(
-                'โฟลเดอร์ • ${_formatDate(folder.updatedAt)}',
+                _formatDate(folder.updatedAt),
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 11,
                   color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                 ),
+                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1411,36 +1433,37 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
-  // การ์ดเอกสารใน Grid View (รูปทรงกระดาษ/สมุดโน้ต Preview มีสัดส่วนสมดุลกับโฟลเดอร์)
+  // การ์ดเอกสารใน Grid View (รูปทรงกระดาษ/สมุดโน้ต Preview จัดกึ่งกลาง สมมาตรตาม Reference ใน Image 1)
   Widget _buildDocumentGridCard(DocumentItem doc) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isTxt = doc.isTxt;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _openDocument(doc),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _openDocument(doc),
                 child: Container(
+                  width: 148,
+                  height: 175,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? theme.colorScheme.surfaceContainerLow : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -1451,15 +1474,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
                               color: (isTxt ? Colors.teal : Colors.blue).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
                               isTxt ? 'TXT' : 'MD',
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: isTxt ? Colors.teal : Colors.blue,
                               ),
@@ -1483,7 +1506,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         top: -4,
                         right: -4,
                         child: IconButton(
-                          iconSize: 20,
+                          iconSize: 22,
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(),
                           visualDensity: VisualDensity.compact,
@@ -1505,33 +1528,38 @@ class _NoteListScreenState extends State<NoteListScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
+                  Flexible(
                     child: GestureDetector(
                       onTap: () => _openDocument(doc),
                       child: Text(
                         doc.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 13.5,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
+                  const SizedBox(width: 2),
                   PopupMenuButton<String>(
                     iconSize: 18,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     icon: Icon(
-                      Icons.more_vert_rounded,
+                      Icons.keyboard_arrow_down_rounded,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                     ),
+                    tooltip: 'ตัวเลือกเอกสาร',
                     onSelected: (val) {
                       if (val == 'open') _openDocument(doc);
                       if (val == 'trash') _moveToTrashDocument(doc);
@@ -1588,11 +1616,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(doc.updatedAt)}',
+                _formatDate(doc.updatedAt),
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 11,
                   color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                 ),
+                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

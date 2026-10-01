@@ -174,7 +174,7 @@ void main() {
     expect(find.byType(ListView), findsOneWidget);
   });
 
-  testWidgets('tapping settings icon opens settings dialog', (tester) async {
+  testWidgets('tapping settings icon opens settings dialog with system theme default', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: NoteListScreen(
@@ -189,9 +189,10 @@ void main() {
 
     expect(find.text('การตั้งค่า'), findsOneWidget);
     expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
+    expect(find.text('ตามเครื่อง'), findsOneWidget);
   });
 
-  testWidgets('tapping settings icon in MarkdownWorkspacePage opens settings dialog', (tester) async {
+  testWidgets('MarkdownWorkspacePage does not show settings icon', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: MarkdownWorkspacePage(
@@ -201,11 +202,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-
-    expect(find.text('การตั้งค่า'), findsOneWidget);
-    expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsNothing);
   });
 
   testWidgets('moves document to trash and restores it', (tester) async {
@@ -235,7 +232,7 @@ void main() {
     );
     final moreButton = find.descendant(
       of: docFinder.first,
-      matching: find.byIcon(Icons.more_vert_rounded),
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
     );
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
@@ -259,8 +256,8 @@ void main() {
     // Document is visible in trash
     expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
 
-    // Tap more_vert on the document in trash
-    await tester.tap(find.byIcon(Icons.more_vert_rounded).first);
+    // Tap menu chevron on the document in trash
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded).first);
     await tester.pumpAndSettle();
 
     // Restore it
@@ -361,7 +358,7 @@ void main() {
     );
     final moreButton = find.descendant(
       of: folderFinder.first,
-      matching: find.byIcon(Icons.more_vert_rounded),
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
     );
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
@@ -381,5 +378,40 @@ void main() {
 
     // Folder is present in Trash
     expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
+  });
+
+  testWidgets('always places starred items first', (tester) async {
+    final testDocs = [
+      DocumentItem(
+        id: 'doc1',
+        name: 'a_unstarred.md',
+        content: 'content',
+        updatedAt: DateTime(2026, 9, 20),
+        isStarred: false,
+      ),
+      DocumentItem(
+        id: 'doc2',
+        name: 'z_starred.md',
+        content: 'content',
+        updatedAt: DateTime(2026, 9, 10),
+        isStarred: true,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          initialFolders: [],
+          initialDocuments: testDocs,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
+    final zIndex = textWidgets.indexOf('z_starred.md');
+    final aIndex = textWidgets.indexOf('a_unstarred.md');
+    expect(zIndex != -1 && aIndex != -1 && zIndex < aIndex, isTrue);
   });
 }

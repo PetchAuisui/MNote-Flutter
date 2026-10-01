@@ -1330,16 +1330,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: GestureDetector(
+              const SizedBox(width: 28),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
                       onTap: () => _handleFolderTap(folder),
                       child: Text(
                         folder.name,
@@ -1352,82 +1352,85 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 2),
-                  PopupMenuButton<String>(
-                    iconSize: 18,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(folder.updatedAt),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    tooltip: 'ตัวเลือกโฟลเดอร์',
-                    onSelected: (val) {
-                      if (val == 'open') _handleFolderTap(folder);
-                      if (val == 'trash') _moveToTrashFolder(folder);
-                      if (val == 'restore') _restoreFolder(folder);
-                      if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
-                    },
-                    itemBuilder: (ctx) => folder.isTrash
-                        ? const [
-                            PopupMenuItem(
-                              value: 'restore',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
-                                  SizedBox(width: 8),
-                                  Text('กู้คืน'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete_perm',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ]
-                        : const [
-                            PopupMenuItem(
-                              value: 'open',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.folder_open_rounded, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('เปิดโฟลเดอร์'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'trash',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _formatDate(folder.updatedAt),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ],
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(
+                width: 28,
+                height: 36,
+                child: PopupMenuButton<String>(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ),
+                  tooltip: 'ตัวเลือกโฟลเดอร์',
+                  onSelected: (val) {
+                    if (val == 'open') _handleFolderTap(folder);
+                    if (val == 'trash') _moveToTrashFolder(folder);
+                    if (val == 'restore') _restoreFolder(folder);
+                    if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
+                  },
+                  itemBuilder: (ctx) => folder.isTrash
+                      ? const [
+                          PopupMenuItem(
+                            value: 'restore',
+                            child: Row(
+                              children: [
+                                Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text('กู้คืน'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete_perm',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ]
+                      : const [
+                          PopupMenuItem(
+                            value: 'open',
+                            child: Row(
+                              children: [
+                                Icon(Icons.folder_open_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('เปิดโฟลเดอร์'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'trash',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                ),
               ),
             ],
           ),
@@ -1529,19 +1532,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
         const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: GestureDetector(
+              const SizedBox(width: 28),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
                       onTap: () => _openDocument(doc),
                       child: Text(
-                        doc.name,
+                        doc.displayName,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13.5,
@@ -1551,82 +1554,85 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 2),
-                  PopupMenuButton<String>(
-                    iconSize: 18,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(doc.updatedAt),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    tooltip: 'ตัวเลือกเอกสาร',
-                    onSelected: (val) {
-                      if (val == 'open') _openDocument(doc);
-                      if (val == 'trash') _moveToTrashDocument(doc);
-                      if (val == 'restore') _restoreDocument(doc);
-                      if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
-                    },
-                    itemBuilder: (ctx) => doc.isTrash
-                        ? const [
-                            PopupMenuItem(
-                              value: 'restore',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
-                                  SizedBox(width: 8),
-                                  Text('กู้คืน'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete_perm',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ]
-                        : const [
-                            PopupMenuItem(
-                              value: 'open',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit_note_rounded, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('เปิดเอกสาร'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'trash',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _formatDate(doc.updatedAt),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ],
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(
+                width: 28,
+                height: 36,
+                child: PopupMenuButton<String>(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ),
+                  tooltip: 'ตัวเลือกเอกสาร',
+                  onSelected: (val) {
+                    if (val == 'open') _openDocument(doc);
+                    if (val == 'trash') _moveToTrashDocument(doc);
+                    if (val == 'restore') _restoreDocument(doc);
+                    if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
+                  },
+                  itemBuilder: (ctx) => doc.isTrash
+                      ? const [
+                          PopupMenuItem(
+                            value: 'restore',
+                            child: Row(
+                              children: [
+                                Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text('กู้คืน'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete_perm',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ]
+                      : const [
+                          PopupMenuItem(
+                            value: 'open',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_note_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('เปิดเอกสาร'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'trash',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                ),
               ),
             ],
           ),
@@ -1728,7 +1734,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 color: item.isTxt ? Colors.teal : Colors.blue,
                 size: 32,
               ),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(item.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(
                 '${item.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(item.updatedAt)}',
               ),

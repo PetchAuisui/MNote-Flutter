@@ -81,8 +81,8 @@ void main() {
     expect(find.text('ปี 1'), findsOneWidget);
 
     // Initial Documents (.md and .txt)
-    expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
-    expect(find.text('2569-01-CT05-report03.txt'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report02'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report03'), findsOneWidget);
 
     // Filter and "+ ใหม่" Button
     expect(find.text('ทั้งหมด'), findsOneWidget);
@@ -111,7 +111,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Now inside "ปี 1" folder
-    expect(find.text('แบบร่างความคิด.md'), findsOneWidget);
+    expect(find.text('แบบร่างความคิด'), findsOneWidget);
 
     // Tap back button
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
@@ -140,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Tap on document card
-    await tester.tap(find.text('2569-01-CT05-report02.md'));
+    await tester.tap(find.text('2569-01-CT05-report02'));
     await tester.pumpAndSettle();
 
     // Workspace opened
@@ -223,16 +223,16 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify document is present
-    expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report02'), findsOneWidget);
 
     // Open popup menu for that document by locating its container
     final docFinder = find.ancestor(
-      of: find.text('2569-01-CT05-report02.md'),
+      of: find.text('2569-01-CT05-report02'),
       matching: find.byType(Column),
     );
     final moreButton = find.descendant(
-      of: docFinder.first,
-      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+      of: docFinder.at(1),
+      matching: find.byIcon(Icons.more_vert_rounded),
     );
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
@@ -243,7 +243,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Document is moved to trash and no longer in main view
-    expect(find.text('2569-01-CT05-report02.md'), findsNothing);
+    expect(find.text('2569-01-CT05-report02'), findsNothing);
 
     // Open filter menu to navigate to trash
     await tester.tap(find.text('ทั้งหมด'));
@@ -254,10 +254,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // Document is visible in trash
-    expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report02'), findsOneWidget);
 
     // Tap menu chevron on the document in trash
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded).first);
+    await tester.tap(find.byIcon(Icons.more_vert_rounded).first);
     await tester.pumpAndSettle();
 
     // Restore it
@@ -273,7 +273,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Document is back in main view
-    expect(find.text('2569-01-CT05-report02.md'), findsOneWidget);
+    expect(find.text('2569-01-CT05-report02'), findsOneWidget);
   });
 
   testWidgets('emptying trash clears all trashed items permanently', (tester) async {
@@ -308,7 +308,7 @@ void main() {
     await tester.tap(find.text('ถังขยะ'));
     await tester.pumpAndSettle();
 
-    expect(find.text('ขยะ.md'), findsOneWidget);
+    expect(find.text('ขยะ'), findsOneWidget);
     expect(find.text('ล้างถังขยะ'), findsOneWidget);
 
     // Tap Empty Trash
@@ -327,7 +327,7 @@ void main() {
 
     // Trash should be empty
     expect(find.text('ถังขยะว่างเปล่า'), findsOneWidget);
-    expect(find.text('ขยะ.md'), findsNothing);
+    expect(find.text('ขยะ'), findsNothing);
   });
 
   testWidgets('renders symmetrical folder cards and moves folder to trash', (tester) async {
@@ -357,8 +357,8 @@ void main() {
       matching: find.byType(Column),
     );
     final moreButton = find.descendant(
-      of: folderFinder.first,
-      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+      of: folderFinder.at(1),
+      matching: find.byIcon(Icons.more_vert_rounded),
     );
     await tester.tap(moreButton);
     await tester.pumpAndSettle();
@@ -410,8 +410,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
-    final zIndex = textWidgets.indexOf('z_starred.md');
-    final aIndex = textWidgets.indexOf('a_unstarred.md');
+    final zIndex = textWidgets.indexOf('z_starred');
+    final aIndex = textWidgets.indexOf('a_unstarred');
     expect(zIndex != -1 && aIndex != -1 && zIndex < aIndex, isTrue);
   });
 
@@ -453,9 +453,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
-    final txtIndex = textWidgets.indexOf('บันทึก_โปรด.txt');
+    final txtIndex = textWidgets.indexOf('บันทึก_โปรด');
     final folderIndex = textWidgets.indexOf('โฟลเดอร์_ปกติ');
-    final mdIndex = textWidgets.indexOf('เอกสาร_ปกติ.md');
+    final mdIndex = textWidgets.indexOf('เอกสาร_ปกติ');
 
     // Starred txt must come before unstarred folder and md!
     expect(txtIndex != -1 && folderIndex != -1 && mdIndex != -1, isTrue);

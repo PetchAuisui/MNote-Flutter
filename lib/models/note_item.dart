@@ -59,6 +59,14 @@ class DocumentItem {
   bool get isTxt => extension == 'txt';
   bool get isMarkdown => extension == 'md' || extension == 'markdown';
 
+  String get displayName {
+    final lastDot = name.lastIndexOf('.');
+    if (lastDot > 0) {
+      return name.substring(0, lastDot);
+    }
+    return name;
+  }
+
   DocumentItem copyWith({
     String? id,
     String? name,

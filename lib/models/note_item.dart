@@ -3,12 +3,14 @@ class FolderItem {
   final String name;
   final DateTime updatedAt;
   final bool isStarred;
+  final bool isTrash;
 
   FolderItem({
     required this.id,
     required this.name,
     required this.updatedAt,
     this.isStarred = false,
+    this.isTrash = false,
   });
 
   FolderItem copyWith({
@@ -16,12 +18,14 @@ class FolderItem {
     String? name,
     DateTime? updatedAt,
     bool? isStarred,
+    bool? isTrash,
   }) {
     return FolderItem(
       id: id ?? this.id,
       name: name ?? this.name,
       updatedAt: updatedAt ?? this.updatedAt,
       isStarred: isStarred ?? this.isStarred,
+      isTrash: isTrash ?? this.isTrash,
     );
   }
 }
@@ -34,6 +38,7 @@ class DocumentItem {
   final String? folderId;
   final bool isStarred;
   final Uri? uri;
+  final bool isTrash;
 
   DocumentItem({
     required this.id,
@@ -43,6 +48,7 @@ class DocumentItem {
     this.folderId,
     this.isStarred = false,
     this.uri,
+    this.isTrash = false,
   });
 
   String get extension {
@@ -61,6 +67,7 @@ class DocumentItem {
     String? folderId,
     bool? isStarred,
     Uri? uri,
+    bool? isTrash,
   }) {
     return DocumentItem(
       id: id ?? this.id,
@@ -70,6 +77,7 @@ class DocumentItem {
       folderId: folderId ?? this.folderId,
       isStarred: isStarred ?? this.isStarred,
       uri: uri ?? this.uri,
+      isTrash: isTrash ?? this.isTrash,
     );
   }
 }

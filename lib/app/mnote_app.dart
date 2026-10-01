@@ -10,20 +10,29 @@ class MnoteApp extends StatelessWidget {
 
   final DocumentRepository? documentRepository;
 
+  /// Global notifier to switch theme mode (Light / Dark / System)
+  static final ValueNotifier<ThemeMode> themeModeNotifier =
+      ValueNotifier<ThemeMode>(ThemeMode.system);
+
   @override
   Widget build(BuildContext context) {
     final effectiveRepository = documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
-    return MaterialApp(
-      title: 'Mnote',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      home: NoteListScreen(
-        repository: effectiveRepository,
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, currentThemeMode, _) {
+        return MaterialApp(
+          title: 'Mnote',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: currentThemeMode,
+          home: NoteListScreen(
+            repository: effectiveRepository,
+          ),
+        );
+      },
     );
   }
 }

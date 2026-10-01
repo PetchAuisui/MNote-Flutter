@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import '../models/note_item.dart';
 
-enum ViewFilter { all, starred, foldersOnly, filesOnly, markdownOnly, txtOnly }
+enum ViewFilter { all, starred, foldersOnly, filesOnly, markdownOnly, txtOnly, trash }
+enum SortMode { newest, oldest, nameAsc, nameDesc }
 
 class NoteListScreen extends StatefulWidget {
-  const NoteListScreen({super.key, required this.repository});
+  const NoteListScreen({
+    super.key,
+    required this.repository,
+    this.initialFolders = const [],
+    this.initialDocuments = const [],
+  });
 
   final DocumentRepository repository;
+  final List<FolderItem> initialFolders;
+  final List<DocumentItem> initialDocuments;
 
   @override
   State<NoteListScreen> createState() => _NoteListScreenState();
@@ -18,100 +27,21 @@ class NoteListScreen extends StatefulWidget {
 class _NoteListScreenState extends State<NoteListScreen> {
   bool _isGridView = true;
   ViewFilter _filter = ViewFilter.all;
+  SortMode _sortMode = SortMode.newest;
   String? _currentFolderId; // null = root directory
   String _searchQuery = '';
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
-  // Folders State
-  final List<FolderItem> _folders = [
-    FolderItem(
-      id: 'f1',
-      name: 'ใบประกอบวิชาชีพครู',
-      updatedAt: DateTime(2026, 9, 20, 13, 34),
-      isStarred: false,
-    ),
-    FolderItem(
-      id: 'f2',
-      name: 'ปี 1',
-      updatedAt: DateTime(2026, 7, 1, 8, 27),
-      isStarred: true,
-    ),
-    FolderItem(
-      id: 'f3',
-      name: 'ปี 2',
-      updatedAt: DateTime(2026, 7, 3, 14, 2),
-      isStarred: false,
-    ),
-    FolderItem(
-      id: 'f4',
-      name: 'ปี 3',
-      updatedAt: DateTime(2026, 6, 29, 8, 39),
-      isStarred: true,
-    ),
-    FolderItem(
-      id: 'f5',
-      name: 'ฝึกงาน',
-      updatedAt: DateTime(2026, 6, 6, 20, 17),
-      isStarred: false,
-    ),
-    FolderItem(
-      id: 'f6',
-      name: 'มัธยม',
-      updatedAt: DateTime(2026, 7, 1, 9, 5),
-      isStarred: false,
-    ),
-    FolderItem(
-      id: 'f7',
-      name: 'สสวท',
-      updatedAt: DateTime(2026, 5, 22, 18, 25),
-      isStarred: true,
-    ),
-    FolderItem(
-      id: 'f8',
-      name: 'Final Project',
-      updatedAt: DateTime(2026, 3, 18, 15, 11),
-      isStarred: false,
-    ),
-  ];
-
-  // Documents State (supports .md and .txt)
-  final List<DocumentItem> _documents = [
-    DocumentItem(
-      id: 'd1',
-      name: '2569-01-CT05-report02.md',
-      content: '# รายงานผลการดำเนินงาน\n\n- ตรวจสอบระบบเอกสาร\n- ออกแบบหน้าจอรวมไฟล์\n- ทดสอบการทำงานร่วมกับปากกา\n\nสถานะ: ดำเนินการเสร็จสมบูรณ์',
-      updatedAt: DateTime(2026, 8, 14, 11, 43),
-      isStarred: false,
-    ),
-    DocumentItem(
-      id: 'd2',
-      name: '2569-01-CT05-report03.txt',
-      content: 'ตารางบันทึกประจำวัน:\n- 09:00 ประชุมวางแผนงาน\n- 11:30 ตรวจสอบโค้ดระบบดึงไฟล์และโฟลเดอร์\n- 14:00 ปรับแต่งการแสดงผล Responsive สำหรับ Desktop/Tablet/Phone\n- 16:30 สรุปผลการทดสอบ',
-      updatedAt: DateTime(2026, 9, 23, 14, 41),
-      isStarred: true,
-    ),
-    DocumentItem(
-      id: 'd3',
-      name: 'แบบร่างความคิด.md',
-      content: '## ไอเดียการทำงาน\n\nใช้ Flutter Workspace Engine ร่วมกับการวาดเขียนด้วยปากกา\n1. รองรับลายมือและการวาดรูป\n2. เขียน Markdown ควบคู่กันได้\n3. จัดหมวดหมู่ไฟล์เป็นระเบียบ',
-      updatedAt: DateTime(2026, 9, 28, 10, 15),
-      folderId: 'f2',
-      isStarred: false,
-    ),
-    DocumentItem(
-      id: 'd4',
-      name: 'บันทึกสั้น_To_Do.txt',
-      content: '- ส่งแบบคำขอใบประกอบวิชาชีพ\n- แนบเอกสารหลักสูตร\n- ติดต่อฝ่ายทะเบียน',
-      updatedAt: DateTime(2026, 9, 15, 16, 20),
-      folderId: 'f1',
-      isStarred: true,
-    ),
-  ];
+  // Folders and Documents State (เริ่มเป็นลิสต์ว่าง โหลดไฟล์จริงจากเครื่องหรือจากการสร้างใหม่)
+  late final List<FolderItem> _folders;
+  late final List<DocumentItem> _documents;
 
   @override
   void initState() {
     super.initState();
+    _folders = List.from(widget.initialFolders);
+    _documents = List.from(widget.initialDocuments);
     _loadDeviceDocuments();
   }
 
@@ -201,7 +131,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   Future<void> _createNewFile({required bool isMarkdown}) async {
     final ext = isMarkdown ? 'md' : 'txt';
     final count = _documents.where((d) => d.extension == ext).length + 1;
-    final defaultName = isMarkdown ? 'เอกสาร_$count.md' : 'ข้อความ_$count.txt';
+    final defaultName = isMarkdown ? 'เอกสาร_$count' : 'ข้อความ_$count';
 
     final textController = TextEditingController(text: defaultName);
 
@@ -225,10 +155,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ),
           FilledButton(
             onPressed: () {
-              final raw = textController.text.trim();
+              var raw = textController.text.trim();
               if (raw.isEmpty) return;
-              final fileName = raw.endsWith('.$ext') ? raw : '$raw.$ext';
-              Navigator.of(ctx).pop(fileName);
+              while (raw.toLowerCase().endsWith('.$ext')) {
+                raw = raw.substring(0, raw.length - (ext.length + 1)).trim();
+              }
+              if (raw.isEmpty) return;
+              Navigator.of(ctx).pop('$raw.$ext');
             },
             child: const Text('สร้างไฟล์'),
           ),
@@ -313,6 +246,35 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // เปิดเอกสารใน Workspace Page
   Future<void> _openDocument(DocumentItem item) async {
+    if (item.isTrash) {
+      final shouldRestore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+          title: const Text('เอกสารอยู่ในถังขยะ'),
+          content: Text('คุณต้องการกู้คืน "${item.name}" เพื่อเปิดดูหรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('กู้คืนและเปิด'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldRestore == true) {
+        _restoreDocument(item);
+      } else {
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
     final doc = MarkdownDocument(
       name: item.name,
       content: item.content,
@@ -366,21 +328,328 @@ class _NoteListScreenState extends State<NoteListScreen> {
     });
   }
 
-  void _deleteFolder(FolderItem folder) {
+  void _openSettings() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: MnoteApp.themeModeNotifier,
+          builder: (context, currentMode, _) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.settings_rounded, color: theme.colorScheme.primary, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('การตั้งค่า', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'โหมดการแสดงผล (Theme)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: SegmentedButton<ThemeMode>(
+                          showSelectedIcon: false,
+                          segments: const [
+                            ButtonSegment(
+                              value: ThemeMode.light,
+                              icon: Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 18),
+                              label: Text('สว่าง'),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.dark,
+                              icon: Icon(Icons.dark_mode_rounded, color: Colors.indigoAccent, size: 18),
+                              label: Text('มืด'),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.system,
+                              icon: Icon(Icons.brightness_auto_rounded, color: Colors.teal, size: 18),
+                              label: Text('ตามระบบ'),
+                            ),
+                          ],
+                          selected: {currentMode},
+                          onSelectionChanged: (newSelection) {
+                            MnoteApp.themeModeNotifier.value = newSelection.first;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'MNote v1.0.0 • Local-First Markdown Workspace',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('เสร็จสิ้น'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _moveToTrashFolder(FolderItem folder) {
     setState(() {
-      _folders.removeWhere((f) => f.id == folder.id);
-      // ย้ายเอกสารในโฟลเดอร์ออกมาหน้าหลัก
+      final idx = _folders.indexWhere((f) => f.id == folder.id);
+      if (idx != -1) {
+        _folders[idx] = folder.copyWith(isTrash: true);
+      }
       for (int i = 0; i < _documents.length; i++) {
         if (_documents[i].folderId == folder.id) {
-          _documents[i] = _documents[i].copyWith(folderId: null);
+          _documents[i] = _documents[i].copyWith(isTrash: true);
         }
       }
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'เลิกทำ',
+          onPressed: () => _restoreFolder(folder),
+        ),
+      ),
+    );
   }
 
-  void _deleteDocument(DocumentItem doc) {
+  void _restoreFolder(FolderItem folder) {
+    setState(() {
+      final idx = _folders.indexWhere((f) => f.id == folder.id);
+      if (idx != -1) {
+        _folders[idx] = folder.copyWith(isTrash: false);
+      }
+      for (int i = 0; i < _documents.length; i++) {
+        if (_documents[i].folderId == folder.id) {
+          _documents[i] = _documents[i].copyWith(isTrash: false);
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _permanentlyDeleteFolder(FolderItem folder) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+        title: const Text('ลบโฟลเดอร์ถาวร?'),
+        content: Text(
+          'คุณต้องการลบโฟลเดอร์ "${folder.name}" และเอกสารภายในทั้งหมดอย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ลบถาวร'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _folders.removeWhere((f) => f.id == folder.id);
+      _documents.removeWhere((d) => d.folderId == folder.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _moveToTrashDocument(DocumentItem doc) {
+    setState(() {
+      final idx = _documents.indexWhere((d) => d.id == doc.id);
+      if (idx != -1) {
+        _documents[idx] = doc.copyWith(isTrash: true);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'เลิกทำ',
+          onPressed: () => _restoreDocument(doc),
+        ),
+      ),
+    );
+  }
+
+  void _restoreDocument(DocumentItem doc) {
+    setState(() {
+      final idx = _documents.indexWhere((d) => d.id == doc.id);
+      if (idx != -1) {
+        _documents[idx] = doc.copyWith(isTrash: false);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _permanentlyDeleteDocument(DocumentItem doc) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
+        title: const Text('ลบไฟล์ถาวร?'),
+        content: Text('คุณต้องการลบ "${doc.name}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ลบถาวร'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
     setState(() {
       _documents.removeWhere((d) => d.id == doc.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _emptyTrash() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+        title: const Text('ล้างถังขยะ?'),
+        content: const Text('รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('ล้างถังขยะ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      final trashedFolderIds = _folders.where((f) => f.isTrash).map((f) => f.id).toSet();
+      _folders.removeWhere((f) => f.isTrash);
+      _documents.removeWhere(
+        (d) => d.isTrash || (d.folderId != null && trashedFolderIds.contains(d.folderId)),
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _handleFolderTap(FolderItem folder) async {
+    if (folder.isTrash) {
+      final shouldRestore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+          title: const Text('โฟลเดอร์อยู่ในถังขยะ'),
+          content: Text('คุณต้องการกู้คืนโฟลเดอร์ "${folder.name}" หรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('กู้คืน'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldRestore == true) {
+        _restoreFolder(folder);
+      }
+      return;
+    }
+
+    setState(() {
+      _currentFolderId = folder.id;
     });
   }
 
@@ -415,28 +684,35 @@ class _NoteListScreenState extends State<NoteListScreen> {
     }
   }
 
-  // คำนวณจำนวนคอลัมน์แบบ Responsive (Desktop, Tablet, Phone)
+  // คำนวณจำนวนคอลัมน์แบบ Responsive (Desktop, Tablet, Phone) ให้ระยะห่างกระชับสมส่วน
   int _calculateColumnCount(double width) {
-    if (width < 600) return 2; // Phone
-    if (width < 900) return 3; // Small Tablet
-    if (width < 1200) return 4; // iPad / Tablet Horizontal
-    return 6; // Desktop
+    if (width < 480) return 2; // Phone
+    if (width < 740) return 3; // Small Tablet
+    if (width < 1020) return 4; // Tablet / Small Desktop
+    if (width < 1300) return 5; // Desktop
+    return 6; // Large Desktop
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isRoot = _currentFolderId == null;
+    final isTrashView = _filter == ViewFilter.trash;
 
-    // กรองโฟลเดอร์ (แสดงเฉพาะหน้าแรก root)
+    // กรองโฟลเดอร์
     final visibleFolders = _folders.where((f) {
-      if (!isRoot) return false;
-      if (_filter == ViewFilter.filesOnly ||
-          _filter == ViewFilter.markdownOnly ||
-          _filter == ViewFilter.txtOnly) {
-        return false;
+      if (isTrashView) {
+        if (!f.isTrash) return false;
+      } else {
+        if (f.isTrash) return false;
+        if (!isRoot) return false;
+        if (_filter == ViewFilter.filesOnly ||
+            _filter == ViewFilter.markdownOnly ||
+            _filter == ViewFilter.txtOnly) {
+          return false;
+        }
+        if (_filter == ViewFilter.starred && !f.isStarred) return false;
       }
-      if (_filter == ViewFilter.starred && !f.isStarred) return false;
       if (_searchQuery.isNotEmpty) {
         return f.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }
@@ -445,13 +721,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     // กรองเอกสาร
     final visibleDocuments = _documents.where((d) {
-      // ตรวจสอบว่าอยู่ในโฟลเดอร์ปัจจุบันหรือไม่
-      if (d.folderId != _currentFolderId) return false;
-
-      if (_filter == ViewFilter.foldersOnly) return false;
-      if (_filter == ViewFilter.starred && !d.isStarred) return false;
-      if (_filter == ViewFilter.markdownOnly && !d.isMarkdown) return false;
-      if (_filter == ViewFilter.txtOnly && !d.isTxt) return false;
+      if (isTrashView) {
+        if (!d.isTrash) return false;
+      } else {
+        if (d.isTrash) return false;
+        if (d.folderId != _currentFolderId) return false;
+        if (_filter == ViewFilter.foldersOnly) return false;
+        if (_filter == ViewFilter.starred && !d.isStarred) return false;
+        if (_filter == ViewFilter.markdownOnly && !d.isMarkdown) return false;
+        if (_filter == ViewFilter.txtOnly && !d.isTxt) return false;
+      }
 
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
@@ -461,21 +740,53 @@ class _NoteListScreenState extends State<NoteListScreen> {
       return true;
     }).toList();
 
+    void sortFolders(List<FolderItem> list) {
+      switch (_sortMode) {
+        case SortMode.newest:
+          list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        case SortMode.oldest:
+          list.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+        case SortMode.nameAsc:
+          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        case SortMode.nameDesc:
+          list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+      }
+    }
+
+    void sortDocs(List<DocumentItem> list) {
+      switch (_sortMode) {
+        case SortMode.newest:
+          list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        case SortMode.oldest:
+          list.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+        case SortMode.nameAsc:
+          list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        case SortMode.nameDesc:
+          list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+      }
+    }
+
+    sortFolders(visibleFolders);
+    sortDocs(visibleDocuments);
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: theme.colorScheme.surface,
-        leading: isRoot
-            ? null
-            : IconButton(
+        leading: (!isRoot || isTrashView)
+            ? IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 onPressed: () {
                   setState(() {
                     _currentFolderId = null;
+                    if (isTrashView) {
+                      _filter = ViewFilter.all;
+                    }
                   });
                 },
-              ),
+              )
+            : null,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -490,16 +801,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   });
                 },
               )
-            : Row(
-                children: [
-                  Text(
-                    isRoot ? 'เอกสาร' : _currentFolder?.name ?? 'โฟลเดอร์',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            : Text(
+                isTrashView
+                    ? 'ถังขยะ'
+                    : (isRoot ? 'เอกสาร' : _currentFolder?.name ?? 'โฟลเดอร์'),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
         actions: [
           IconButton(
@@ -518,9 +827,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.cloud_sync_outlined),
-            tooltip: 'ดึงข้อมูลไฟล์ล่าสุด (Refresh)',
-            onPressed: _loadDeviceDocuments,
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'การตั้งค่า (Settings)',
+            onPressed: _openSettings,
           ),
           const SizedBox(width: 8),
         ],
@@ -534,105 +843,263 @@ class _NoteListScreenState extends State<NoteListScreen> {
               // Toolbar: Filter & Actions Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    // ตัวเลือกตัวกรอง (☰ ทั้งหมด)
-                    PopupMenuButton<ViewFilter>(
-                      initialValue: _filter,
-                      onSelected: (val) {
-                        setState(() {
-                          _filter = val;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                child: constraints.maxWidth < 420
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.menu_rounded, size: 18),
-                            if (constraints.maxWidth > 340) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                _getFilterLabel(_filter),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                            const Icon(Icons.arrow_drop_down_rounded, size: 18),
+                            _buildFilterMenu(theme),
+                            const SizedBox(width: 8),
+                            _buildSortMenu(),
+                            const SizedBox(width: 4),
+                            if (isTrashView)
+                              _buildEmptyTrashButton(context)
+                            else
+                              _buildNewButton(context),
+                            const SizedBox(width: 4),
+                            _buildViewModeButton(),
                           ],
                         ),
+                      )
+                    : Row(
+                        children: [
+                          _buildFilterMenu(theme),
+                          const Spacer(),
+                          _buildSortMenu(),
+                          const SizedBox(width: 4),
+                          if (isTrashView)
+                            _buildEmptyTrashButton(context)
+                          else
+                            _buildNewButton(context),
+                          const SizedBox(width: 8),
+                          _buildViewModeButton(),
+                        ],
                       ),
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: ViewFilter.all,
-                          child: Text('ทั้งหมด'),
-                        ),
-                        const PopupMenuItem(
-                          value: ViewFilter.starred,
-                          child: Text('⭐ ติดดาว (รายการโปรด)'),
-                        ),
-                        const PopupMenuItem(
-                          value: ViewFilter.foldersOnly,
-                          child: Text('📁 เฉพาะโฟลเดอร์'),
-                        ),
-                        const PopupMenuItem(
-                          value: ViewFilter.filesOnly,
-                          child: Text('📄 ไฟล์ทั้งหมด (.md, .txt)'),
-                        ),
-                        const PopupMenuItem(
-                          value: ViewFilter.markdownOnly,
-                          child: Text('📝 เฉพาะ Markdown (.md)'),
-                        ),
-                        const PopupMenuItem(
-                          value: ViewFilter.txtOnly,
-                          child: Text('📋 เฉพาะ Text (.txt)'),
-                        ),
-                      ],
-                    ),
-
-                    const Spacer(),
-
-                    // ปุ่ม "+ ใหม่" สไตล์ Pill Button สีเด่น
-                    _buildNewButton(context),
-
-                    const SizedBox(width: 8),
-
-                    // ปุ่มสลับมุมมอง Grid / List
-                    IconButton(
-                      icon: Icon(
-                        _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
-                      ),
-                      tooltip: _isGridView ? 'มุมมองรายการ' : 'มุมมองตาราง',
-                      onPressed: () {
-                        setState(() {
-                          _isGridView = !_isGridView;
-                        });
-                      },
-                    ),
-                  ],
-                ),
               ),
 
               const Divider(height: 1),
 
               // Main Content Grid / List
               Expanded(
-                child: visibleFolders.isEmpty && visibleDocuments.isEmpty
-                    ? _buildEmptyState(context)
-                    : _isGridView
-                        ? _buildGridView(visibleFolders, visibleDocuments, columns)
-                        : _buildListView(visibleFolders, visibleDocuments),
+                child: RefreshIndicator(
+                  onRefresh: _loadDeviceDocuments,
+                  child: visibleFolders.isEmpty && visibleDocuments.isEmpty
+                      ? LayoutBuilder(
+                          builder: (context, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: _buildEmptyState(context),
+                            ),
+                          ),
+                        )
+                      : (_isGridView
+                          ? _buildGridView(visibleFolders, visibleDocuments, columns)
+                          : _buildListView(visibleFolders, visibleDocuments)),
+                ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  // ปุ่มล้างถังขยะ
+  Widget _buildEmptyTrashButton(BuildContext context) {
+    final hasTrash = _folders.any((f) => f.isTrash) || _documents.any((d) => d.isTrash);
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(0, 36),
+      ),
+      onPressed: hasTrash ? _emptyTrash : null,
+      icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+      label: const Text(
+        'ล้างถังขยะ',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+    );
+  }
+
+  // เมนูตัวกรอง
+  Widget _buildFilterMenu(ThemeData theme) {
+    final trashCount = _folders.where((f) => f.isTrash).length +
+        _documents.where((d) => d.isTrash).length;
+    final isTrash = _filter == ViewFilter.trash;
+
+    return PopupMenuButton<ViewFilter>(
+      initialValue: _filter,
+      onSelected: (val) {
+        setState(() {
+          _filter = val;
+          if (val == ViewFilter.trash) {
+            _currentFolderId = null;
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isTrash
+              ? Colors.red.withValues(alpha: 0.15)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isTrash ? Icons.delete_outline_rounded : Icons.menu_rounded,
+              size: 18,
+              color: isTrash ? Colors.red : null,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _getFilterLabel(_filter),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isTrash ? Colors.red : null,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 18,
+              color: isTrash ? Colors.red : null,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: ViewFilter.all,
+          child: Text('ทั้งหมด'),
+        ),
+        const PopupMenuItem(
+          value: ViewFilter.starred,
+          child: Text('⭐ ติดดาว (รายการโปรด)'),
+        ),
+        const PopupMenuItem(
+          value: ViewFilter.foldersOnly,
+          child: Text('📁 เฉพาะโฟลเดอร์'),
+        ),
+        const PopupMenuItem(
+          value: ViewFilter.filesOnly,
+          child: Text('📄 ไฟล์ทั้งหมด (.md, .txt)'),
+        ),
+        const PopupMenuItem(
+          value: ViewFilter.markdownOnly,
+          child: Text('📝 เฉพาะ Markdown (.md)'),
+        ),
+        const PopupMenuItem(
+          value: ViewFilter.txtOnly,
+          child: Text('📋 เฉพาะ Text (.txt)'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: ViewFilter.trash,
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+              const SizedBox(width: 8),
+              const Text('ถังขยะ', style: TextStyle(color: Colors.red)),
+              if (trashCount > 0) ...[
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$trashCount',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ปุ่มจัดเรียง (Sort)
+  Widget _buildSortMenu() {
+    return PopupMenuButton<SortMode>(
+      initialValue: _sortMode,
+      tooltip: 'จัดเรียงตาม',
+      icon: const Icon(Icons.sort_rounded, size: 20),
+      onSelected: (mode) {
+        setState(() {
+          _sortMode = mode;
+        });
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: SortMode.newest,
+          child: Row(
+            children: [
+              Icon(Icons.access_time_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('ล่าสุด (วันที่แก้ไข)'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: SortMode.oldest,
+          child: Row(
+            children: [
+              Icon(Icons.history_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('เก่าสุด (วันที่แก้ไข)'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: SortMode.nameAsc,
+          child: Row(
+            children: [
+              Icon(Icons.arrow_downward_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('ชื่อ (ก - ฮ / A - Z)'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: SortMode.nameDesc,
+          child: Row(
+            children: [
+              Icon(Icons.arrow_upward_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('ชื่อ (ฮ - ก / Z - A)'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ปุ่มสลับมุมมอง Grid / List
+  Widget _buildViewModeButton() {
+    return IconButton(
+      icon: Icon(
+        _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
+      ),
+      tooltip: _isGridView ? 'มุมมองรายการ' : 'มุมมองตาราง',
+      onPressed: () {
+        setState(() {
+          _isGridView = !_isGridView;
+        });
+      },
     );
   }
 
@@ -735,12 +1202,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final totalItems = folders.length + documents.length;
 
     return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.82,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.86,
       ),
       itemCount: totalItems,
       itemBuilder: (context, index) {
@@ -755,68 +1223,85 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
-  // การ์ดโฟลเดอร์ใน Grid View
+  // การ์ดโฟลเดอร์ใน Grid View (ขนาดเท่ากับเอกสาร MD/TXT สมมาตร มีกรอบ สัดส่วน และเงาสวยงาม)
   Widget _buildFolderGridCard(FolderItem folder) {
     final theme = Theme.of(context);
-    final count = _documents.where((d) => d.folderId == folder.id).length;
+    final count = _documents.where((d) => d.folderId == folder.id && !d.isTrash).length;
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: AspectRatio(
-            aspectRatio: 1.15,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  setState(() {
-                    _currentFolderId = folder.id;
-                  });
-                },
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _handleFolderTap(folder),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
                 child: Container(
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    color: theme.colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Stack(
                     children: [
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.folder_rounded,
-                              size: 64,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.85),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '$count ไฟล์',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
+                      // ป้ายระบุประเภทและจำนวนไฟล์ในโฟลเดอร์
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: IconButton(
-                          iconSize: 20,
-                          icon: Icon(
-                            folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                            color: folder.isStarred ? Colors.amber : Colors.grey,
+                        child: Text(
+                          '$count ไฟล์',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: primary,
                           ),
-                          onPressed: () => _toggleFolderStar(folder),
                         ),
                       ),
+                      // ไอคอนโฟลเดอร์ตรงกลาง ขนาดสมดุลพอดีกับตัวการ์ด
+                      Center(
+                        child: Icon(
+                          Icons.folder_rounded,
+                          size: 52,
+                          color: primary,
+                        ),
+                      ),
+                      // ปุ่มติดดาว (⭐ รายการโปรด)
+                      if (!folder.isTrash)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: IconButton(
+                            iconSize: 20,
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(),
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(
+                              folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                              color: folder.isStarred
+                                  ? Colors.amberAccent
+                                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            ),
+                            onPressed: () => _toggleFolderStar(folder),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -824,87 +1309,138 @@ class _NoteListScreenState extends State<NoteListScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _currentFolderId = folder.id;
-                  });
-                },
-                child: Text(
-                  folder.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _handleFolderTap(folder),
+                      child: Text(
+                        folder.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+                  PopupMenuButton<String>(
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    ),
+                    onSelected: (val) {
+                      if (val == 'open') _handleFolderTap(folder);
+                      if (val == 'trash') _moveToTrashFolder(folder);
+                      if (val == 'restore') _restoreFolder(folder);
+                      if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
+                    },
+                    itemBuilder: (ctx) => folder.isTrash
+                        ? const [
+                            PopupMenuItem(
+                              value: 'restore',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('กู้คืน'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete_perm',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ]
+                        : const [
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.folder_open_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปิดโฟลเดอร์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'trash',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                  ),
+                ],
               ),
-            ),
-            PopupMenuButton<String>(
-              iconSize: 16,
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.arrow_drop_down_rounded),
-              onSelected: (val) {
-                if (val == 'delete') _deleteFolder(folder);
-              },
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('ลบโฟลเดอร์', style: TextStyle(color: Colors.red)),
+              const SizedBox(height: 2),
+              Text(
+                'โฟลเดอร์ • ${_formatDate(folder.updatedAt)}',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                 ),
-              ],
-            ),
-          ],
-        ),
-        Text(
-          _formatDate(folder.updatedAt),
-          style: TextStyle(
-            fontSize: 10,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
   }
 
-  // การ์ดเอกสารใน Grid View (รูปทรงกระดาษ/สมุดโน้ต Preview)
+  // การ์ดเอกสารใน Grid View (รูปทรงกระดาษ/สมุดโน้ต Preview มีสัดส่วนสมดุลกับโฟลเดอร์)
   Widget _buildDocumentGridCard(DocumentItem doc) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isTxt = doc.isTxt;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: AspectRatio(
-            aspectRatio: 0.82,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => _openDocument(doc),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _openDocument(doc),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -923,7 +1459,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             child: Text(
                               isTxt ? 'TXT' : 'MD',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
                                 color: isTxt ? Colors.teal : Colors.blue,
                               ),
@@ -934,8 +1470,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             child: Text(
                               doc.content,
                               style: TextStyle(
-                                fontSize: 10,
-                                height: 1.3,
+                                fontSize: 11,
+                                height: 1.35,
                                 color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                               ),
                               overflow: TextOverflow.fade,
@@ -948,6 +1484,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         right: -4,
                         child: IconButton(
                           iconSize: 20,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                          visualDensity: VisualDensity.compact,
                           icon: Icon(
                             doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
                             color: doc.isStarred ? Colors.amber : Colors.grey,
@@ -962,54 +1501,103 @@ class _NoteListScreenState extends State<NoteListScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: GestureDetector(
-                onTap: () => _openDocument(doc),
-                child: Text(
-                  doc.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _openDocument(doc),
+                      child: Text(
+                        doc.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+                  PopupMenuButton<String>(
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    ),
+                    onSelected: (val) {
+                      if (val == 'open') _openDocument(doc);
+                      if (val == 'trash') _moveToTrashDocument(doc);
+                      if (val == 'restore') _restoreDocument(doc);
+                      if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
+                    },
+                    itemBuilder: (ctx) => doc.isTrash
+                        ? const [
+                            PopupMenuItem(
+                              value: 'restore',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('กู้คืน'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete_perm',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ]
+                        : const [
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_note_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปิดเอกสาร'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'trash',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                  ),
+                ],
               ),
-            ),
-            PopupMenuButton<String>(
-              iconSize: 16,
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.arrow_drop_down_rounded),
-              onSelected: (val) {
-                if (val == 'open') _openDocument(doc);
-                if (val == 'delete') _deleteDocument(doc);
-              },
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'open',
-                  child: Text('เปิดเอกสาร'),
+              const SizedBox(height: 2),
+              Text(
+                '${isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(doc.updatedAt)}',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                 ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('ลบไฟล์', style: TextStyle(color: Colors.red)),
-                ),
-              ],
-            ),
-          ],
-        ),
-        Text(
-          _formatDate(doc.updatedAt),
-          style: TextStyle(
-            fontSize: 10,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -1017,27 +1605,89 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // List View ทางเลือก
   Widget _buildListView(List<FolderItem> folders, List<DocumentItem> documents) {
+    final theme = Theme.of(context);
+    final isTrashView = _filter == ViewFilter.trash;
+
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
         if (folders.isNotEmpty) ...[
           for (final folder in folders)
             ListTile(
-              leading: const Icon(Icons.folder_rounded, color: Colors.amber, size: 36),
+              leading: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 36),
               title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(_formatDate(folder.updatedAt)),
-              trailing: IconButton(
-                icon: Icon(
-                  folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: folder.isStarred ? Colors.amber : Colors.grey,
-                ),
-                onPressed: () => _toggleFolderStar(folder),
+              subtitle: Text(
+                '${_documents.where((d) => d.folderId == folder.id && !d.isTrash).length} ไฟล์ • ${_formatDate(folder.updatedAt)}',
               ),
-              onTap: () {
-                setState(() {
-                  _currentFolderId = folder.id;
-                });
-              },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isTrashView)
+                    IconButton(
+                      icon: Icon(
+                        folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: folder.isStarred ? Colors.amber : Colors.grey,
+                      ),
+                      onPressed: () => _toggleFolderStar(folder),
+                    ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded, size: 20),
+                    onSelected: (val) {
+                      if (val == 'open') _handleFolderTap(folder);
+                      if (val == 'trash') _moveToTrashFolder(folder);
+                      if (val == 'restore') _restoreFolder(folder);
+                      if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
+                    },
+                    itemBuilder: (ctx) => folder.isTrash
+                        ? const [
+                            PopupMenuItem(
+                              value: 'restore',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('กู้คืน'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete_perm',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ]
+                        : const [
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.folder_open_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปิดโฟลเดอร์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'trash',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                  ),
+                ],
+              ),
+              onTap: () => _handleFolderTap(folder),
             ),
         ],
         if (documents.isNotEmpty) ...[
@@ -1052,12 +1702,72 @@ class _NoteListScreenState extends State<NoteListScreen> {
               subtitle: Text(
                 '${doc.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(doc.updatedAt)}',
               ),
-              trailing: IconButton(
-                icon: Icon(
-                  doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: doc.isStarred ? Colors.amber : Colors.grey,
-                ),
-                onPressed: () => _toggleDocumentStar(doc),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isTrashView)
+                    IconButton(
+                      icon: Icon(
+                        doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: doc.isStarred ? Colors.amber : Colors.grey,
+                      ),
+                      onPressed: () => _toggleDocumentStar(doc),
+                    ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded, size: 20),
+                    onSelected: (val) {
+                      if (val == 'open') _openDocument(doc);
+                      if (val == 'trash') _moveToTrashDocument(doc);
+                      if (val == 'restore') _restoreDocument(doc);
+                      if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
+                    },
+                    itemBuilder: (ctx) => doc.isTrash
+                        ? const [
+                            PopupMenuItem(
+                              value: 'restore',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('กู้คืน'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete_perm',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ]
+                        : const [
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_note_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปิดเอกสาร'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'trash',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                  ),
+                ],
               ),
               onTap: () => _openDocument(doc),
             ),
@@ -1068,6 +1778,39 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
+    final isTrashView = _filter == ViewFilter.trash;
+
+    if (isTrashView) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.delete_outline_rounded,
+                size: 64,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'ถังขยะว่างเปล่า',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Center(
       child: Padding(
@@ -1114,6 +1857,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         return 'Markdown (.md)';
       case ViewFilter.txtOnly:
         return 'Text (.txt)';
+      case ViewFilter.trash:
+        return 'ถังขยะ 🗑️';
     }
   }
 }

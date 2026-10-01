@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:mnote/core/theme/app_theme.dart';
 
 abstract final class DocumentPageMetrics {
   static const width = 1000.0;
@@ -24,6 +25,32 @@ class MarkdownDocumentSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = AppTheme.colorScheme(Brightness.light);
+    final documentTheme = ThemeData.from(
+      colorScheme: appColors,
+      textTheme: Theme.of(context).textTheme.apply(
+        bodyColor: appColors.onSurface,
+        displayColor: appColors.onSurface,
+      ),
+      useMaterial3: true,
+    ).copyWith(scaffoldBackgroundColor: Colors.white);
+    final colors = documentTheme.colorScheme;
+    final markdownStyle = MarkdownStyleSheet.fromTheme(documentTheme).copyWith(
+      blockquoteDecoration: BoxDecoration(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(color: colors.primary, width: 4)),
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      codeblockPadding: const EdgeInsets.all(16),
+      horizontalRuleDecoration: BoxDecoration(
+        border: Border(top: BorderSide(color: colors.outlineVariant, width: 1)),
+      ),
+    );
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),
       child: ColoredBox(
@@ -34,11 +61,12 @@ class MarkdownDocumentSurface extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Theme(
-              data: ThemeData(brightness: Brightness.light, useMaterial3: true),
+              data: documentTheme,
               child: MarkdownBody(
                 key: selectable ? const Key('markdown-preview') : null,
                 data: markdown,
                 fitContent: false,
+                styleSheet: markdownStyle,
                 imageDirectory: imageDirectory,
                 selectable: selectable,
                 onTapLink: onTapLink,

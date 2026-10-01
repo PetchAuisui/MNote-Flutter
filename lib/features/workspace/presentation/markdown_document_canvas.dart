@@ -1,0 +1,116 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+
+abstract final class DocumentPageMetrics {
+  static const width = 1000.0;
+  static const initialHeight = 2400.0;
+}
+
+class MarkdownDocumentSurface extends StatelessWidget {
+  const MarkdownDocumentSurface({
+    super.key,
+    required this.markdown,
+    required this.height,
+    required this.selectable,
+    this.imageDirectory,
+    this.onTapLink,
+  });
+
+  final String markdown;
+  final double height;
+  final bool selectable;
+  final String? imageDirectory;
+  final void Function(String, String?, String?)? onTapLink;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: height),
+      child: ColoredBox(
+        key: const Key('markdown-document-page'),
+        color: Colors.white,
+        child: SizedBox(
+          width: DocumentPageMetrics.width,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Theme(
+              data: ThemeData(brightness: Brightness.light, useMaterial3: true),
+              child: MarkdownBody(
+                key: selectable ? const Key('markdown-preview') : null,
+                data: markdown,
+                imageDirectory: imageDirectory,
+                selectable: selectable,
+                onTapLink: onTapLink,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MarkdownPreviewCanvas extends StatefulWidget {
+  const MarkdownPreviewCanvas({
+    super.key,
+    required this.markdown,
+    required this.height,
+    this.imageDirectory,
+    this.onTapLink,
+  });
+
+  final String markdown;
+  final double height;
+  final String? imageDirectory;
+  final void Function(String, String?, String?)? onTapLink;
+
+  @override
+  State<MarkdownPreviewCanvas> createState() => _MarkdownPreviewCanvasState();
+}
+
+class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
+  final _transform = TransformationController();
+  double _viewportWidth = 0;
+
+  void _fit() {
+    final scale = (_viewportWidth / DocumentPageMetrics.width).clamp(0.1, 4.0);
+    _transform.value = Matrix4.diagonal3Values(scale, scale, 1);
+  }
+
+  @override
+  void dispose() {
+    _transform.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_viewportWidth != constraints.maxWidth) {
+          _viewportWidth = constraints.maxWidth;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _fit();
+          });
+        }
+        return InteractiveViewer(
+          transformationController: _transform,
+          constrained: false,
+          alignment: Alignment.topLeft,
+          minScale: 0.1,
+          maxScale: 4,
+          child: SizedBox(
+            width: DocumentPageMetrics.width,
+            child: MarkdownDocumentSurface(
+              markdown: widget.markdown,
+              height: widget.height,
+              selectable: true,
+              imageDirectory: widget.imageDirectory,
+              onTapLink: widget.onTapLink,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

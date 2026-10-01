@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ink_page.dart';
@@ -902,25 +902,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildPreview() {
-    final content = _workspace.document.content;
-    if (content.trim().isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text(
-            'ยังไม่มีเนื้อหา\nกลับไปที่โหมดแก้ไขเพื่อเริ่มเขียน',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    return Markdown(
-      key: const Key('markdown-preview'),
-      data: content,
-      selectable: true,
+    return MarkdownPreviewCanvas(
+      markdown: _workspace.document.content,
+      height: _ink.height,
       imageDirectory: _imageDirectory,
-      padding: const EdgeInsets.all(24),
       onTapLink: (text, href, title) => _openLink(href),
     );
   }

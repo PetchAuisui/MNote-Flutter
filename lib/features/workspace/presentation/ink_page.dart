@@ -3,10 +3,10 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
+import 'markdown_document_canvas.dart';
 
 class InkPage extends StatefulWidget {
   const InkPage({
@@ -229,30 +229,11 @@ class _InkPageState extends State<InkPage> {
                     child: Stack(
                       key: _pageKey,
                       children: [
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: widget.session.height,
-                          ),
-                          child: ColoredBox(
-                            color: Colors.white,
-                            child: SizedBox(
-                              width: InkSession.pageWidth,
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Theme(
-                                  data: ThemeData(
-                                    brightness: Brightness.light,
-                                    useMaterial3: true,
-                                  ),
-                                  child: MarkdownBody(
-                                    data: widget.markdown,
-                                    imageDirectory: widget.imageDirectory,
-                                    selectable: false,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        MarkdownDocumentSurface(
+                          markdown: widget.markdown,
+                          height: widget.session.height,
+                          selectable: false,
+                          imageDirectory: widget.imageDirectory,
                         ),
                         Positioned.fill(
                           child: Scribble(notifier: pen, drawPen: false),

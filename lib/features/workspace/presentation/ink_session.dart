@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:scribble/scribble.dart';
 
+import 'markdown_document_canvas.dart';
+
 /// Coordinates belong to the page, never to Markdown blocks or the viewport.
 class InkSession extends ChangeNotifier {
-  static const pageWidth = 1000.0;
-  double height = 2400;
+  static const pageWidth = DocumentPageMetrics.width;
+  double height = DocumentPageMetrics.initialHeight;
   late final ScribbleNotifier pen = ScribbleNotifier(
     allowedPointersMode: ScribblePointerMode.penOnly,
     widths: const [3, 6, 12],

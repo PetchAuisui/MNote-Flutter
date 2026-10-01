@@ -335,8 +335,8 @@ class _InkToolbar extends StatelessWidget {
                   _toolButton(
                     key: const Key('ink-highlighter'),
                     tooltip: 'ปากกาไฮไลต์',
-                    icon: const Icon(Icons.border_color_outlined),
-                    selectedIcon: const Icon(Icons.border_color),
+                    icon: const Icon(Icons.highlight_outlined),
+                    selectedIcon: const Icon(Icons.highlight),
                     selected: selectedTool == _InkTool.highlighter,
                     onPressed: () => onToolSelected(_InkTool.highlighter),
                   ),

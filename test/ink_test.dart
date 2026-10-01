@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
@@ -29,6 +30,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final editorCard = tester.widget<Card>(
+      find.byKey(const Key('document-surface')),
+    );
+    final editorPage = tester.widget<DecoratedBox>(
+      find.byKey(const Key('markdown-editor-page')),
+    );
+    expect(editorCard.color, Colors.white);
+    expect((editorPage.decoration as BoxDecoration).color, Colors.white);
+
     await tester.tap(find.text('แสดงผล'));
     await tester.pumpAndSettle();
     final preview = tester.widget<MarkdownDocumentSurface>(
@@ -38,6 +48,10 @@ void main() {
       find.byKey(const Key('markdown-document-page')),
     );
     expect(previewPage.color, Colors.white);
+    expect(
+      tester.widget<MarkdownBody>(find.byType(MarkdownBody)).fitContent,
+      isFalse,
+    );
 
     await tester.tap(find.text('จด'));
     await tester.pumpAndSettle();
@@ -48,6 +62,10 @@ void main() {
       find.byKey(const Key('markdown-document-page')),
     );
     expect(inkPage.color, Colors.white);
+    expect(
+      tester.widget<MarkdownBody>(find.byType(MarkdownBody)).fitContent,
+      isFalse,
+    );
     expect(ink.markdown, preview.markdown);
     expect(ink.height, preview.height);
     expect(DocumentPageMetrics.width, 1000);

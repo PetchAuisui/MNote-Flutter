@@ -1430,7 +1430,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
             children: [
               Icon(Icons.description_outlined, color: Colors.blue),
               SizedBox(width: 10),
-              Text('เอกสาร Markdown ใหม่ (.md)'),
+              Expanded(child: Text('เอกสาร Markdown ใหม่ (.md)')),
             ],
           ),
         ),
@@ -1440,7 +1440,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
             children: [
               Icon(Icons.text_snippet_outlined, color: Colors.teal),
               SizedBox(width: 10),
-              Text('ไฟล์ข้อความใหม่ (.txt)'),
+              Expanded(child: Text('ไฟล์ข้อความใหม่ (.txt)')),
             ],
           ),
         ),
@@ -1451,7 +1451,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               children: [
                 Icon(Icons.create_new_folder_outlined, color: Colors.amber),
                 SizedBox(width: 10),
-                Text('โฟลเดอร์ใหม่'),
+                Expanded(child: Text('โฟลเดอร์ใหม่')),
               ],
             ),
           ),
@@ -1462,7 +1462,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
             children: [
               Icon(Icons.file_open_outlined, color: Colors.orange),
               SizedBox(width: 10),
-              Text('ดึงไฟล์จากเครื่อง (Import)'),
+              Expanded(child: Text('ดึงไฟล์จากเครื่อง (Import)')),
             ],
           ),
         ),

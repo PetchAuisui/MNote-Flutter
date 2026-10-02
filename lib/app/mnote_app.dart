@@ -6,9 +6,14 @@ import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
 class MnoteApp extends StatelessWidget {
-  const MnoteApp({super.key, this.documentRepository});
+  const MnoteApp({
+    super.key,
+    this.documentRepository,
+    this.home,
+  });
 
   final DocumentRepository? documentRepository;
+  final Widget? home;
 
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
@@ -35,9 +40,10 @@ class MnoteApp extends StatelessWidget {
               theme: AppTheme.theme(Brightness.light, font: currentFont),
               darkTheme: AppTheme.theme(Brightness.dark, font: currentFont),
               themeMode: currentThemeMode,
-              home: NoteListScreen(
-                repository: effectiveRepository,
-              ),
+              home: home ??
+                  NoteListScreen(
+                    repository: effectiveRepository,
+                  ),
             );
           },
         );

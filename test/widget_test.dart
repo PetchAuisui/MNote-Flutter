@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/screens/note_list_screen.dart';
 
 import 'helpers/fakes.dart';
+
+Widget _buildWorkspaceApp([DocumentRepository? repository]) {
+  final repo = repository ?? FakeDocumentRepository();
+  return MnoteApp(
+    documentRepository: repo,
+    home: MarkdownWorkspacePage(repository: repo),
+  );
+}
 
 void main() {
   testWidgets('gutter baseline matches the rendered editor baseline', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
-    );
+    await tester.pumpWidget(_buildWorkspaceApp());
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'Hello');
     await tester.pump();
     final editable = tester
@@ -38,7 +47,7 @@ void main() {
 
   testWidgets('shows the empty Markdown workspace', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     expect(find.text('Untitled.md'), findsOneWidget);
@@ -66,7 +75,7 @@ void main() {
 
   testWidgets('undoes and redoes editor changes', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     final editorFinder = find.byKey(const Key('markdown-editor'));
     await tester.tap(editorFinder);
@@ -95,7 +104,7 @@ void main() {
 
   testWidgets('undoes a formatting toolbar action', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     final editorFinder = find.byKey(const Key('markdown-editor'));
     await tester.tap(editorFinder);
@@ -120,7 +129,7 @@ void main() {
 
   testWidgets('applies a heading level to the current line', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -140,7 +149,7 @@ void main() {
 
   testWidgets('supports four Markdown heading levels', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -160,7 +169,7 @@ void main() {
 
   testWidgets('formats multiple selected lines as a list', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -186,7 +195,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -210,7 +219,7 @@ void main() {
 
   testWidgets('indents and outdents a nested list item', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -242,7 +251,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
 
@@ -259,7 +268,7 @@ void main() {
 
   testWidgets('updates line numbers while editing Markdown', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     await tester.enterText(
@@ -274,7 +283,7 @@ void main() {
 
   testWidgets('renames a document from the app bar', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     await tester.tap(find.byKey(const Key('document-title')));
@@ -293,7 +302,7 @@ void main() {
 
   testWidgets('edits Markdown and renders a preview', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     await tester.enterText(
@@ -315,7 +324,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
@@ -345,7 +354,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      _buildWorkspaceApp(),
     );
 
     expect(find.byKey(const Key('toolbar-bold')), findsOneWidget);
@@ -378,6 +387,37 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('MnoteApp defaults to NoteListScreen and navigates into MarkdownWorkspacePage and back', (tester) async {
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(documentRepository: repo),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteListScreen), findsOneWidget);
+    expect(find.text('เอกสาร'), findsOneWidget);
+
+    // Create a new markdown file via "+ ใหม่"
+    await tester.tap(find.text('ใหม่'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('เอกสาร Markdown ใหม่ (.md)'));
+    await tester.pumpAndSettle();
+
+    // Confirm creation dialog
+    await tester.tap(find.text('สร้างไฟล์'));
+    await tester.pumpAndSettle();
+
+    // Now in MarkdownWorkspacePage!
+    expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+    expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+
+    // Can navigate back
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NoteListScreen), findsOneWidget);
   });
 }
 

@@ -15,6 +15,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
     required this.selectable,
     this.imageDirectory,
     this.onTapLink,
+    this.builders,
   });
 
   final String markdown;
@@ -22,6 +23,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
   final bool selectable;
   final String? imageDirectory;
   final void Function(String, String?, String?)? onTapLink;
+  final Map<String, MarkdownElementBuilder>? builders;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +72,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
                 imageDirectory: imageDirectory,
                 selectable: selectable,
                 onTapLink: onTapLink,
+                builders: builders ?? const {},
               ),
             ),
           ),
@@ -86,12 +89,14 @@ class MarkdownPreviewCanvas extends StatefulWidget {
     required this.height,
     this.imageDirectory,
     this.onTapLink,
+    this.builders,
   });
 
   final String markdown;
   final double height;
   final String? imageDirectory;
   final void Function(String, String?, String?)? onTapLink;
+  final Map<String, MarkdownElementBuilder>? builders;
 
   @override
   State<MarkdownPreviewCanvas> createState() => _MarkdownPreviewCanvasState();
@@ -136,6 +141,7 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
               selectable: true,
               imageDirectory: widget.imageDirectory,
               onTapLink: widget.onTapLink,
+              builders: widget.builders,
             ),
           ),
         );

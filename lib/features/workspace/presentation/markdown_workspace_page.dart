@@ -5,6 +5,7 @@ import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ink_page.dart';
@@ -905,6 +906,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       height: _ink.height,
       imageDirectory: _imageDirectory,
       onTapLink: (text, href, title) => _openLink(href),
+      builders: {'code': MermaidElementBuilder()},
     );
   }
 

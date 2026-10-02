@@ -4,7 +4,7 @@
 
 - Branch: `feature/mermaid-preview`
 - เวอร์ชัน mermaid ที่ฝังในแอป: **11.17.2** (ดู `assets/mermaid/VERSION.txt`)
-- สถานะ: ใช้งานได้บน Android (ทดสอบบนแท็บเล็ตจริงแล้ว)
+- สถานะ: ใช้งานได้บน Android (ทดสอบบนแท็บเล็ตจริงแล้ว รวมถึงตอนออฟไลน์)
 
 ---
 
@@ -76,11 +76,14 @@ flowchart TD
   F -->|ไม่มี| E2[MermaidDiagramFallbackView]
   F -->|มี| G[MermaidHtmlCache.htmlFor]
   G --> H[WebView loadHtmlString]
-  H --> I[runJavaScript renderDiagram]
-  I --> J[JS ส่งผลผ่าน MermaidBridge]
-  J --> K{parseMermaidBridgeMessage}
-  K -->|rendered| L[แสดงภาพ และจำความสูง]
-  K -->|error| E3[MermaidDiagramErrorView]
+  H --> T[MermaidRenderSession.begin ออก token]
+  T --> I[runJavaScript renderDiagram พร้อม token]
+  I --> J[JS ส่งผลพร้อม token ผ่าน MermaidBridge]
+  J --> K[parseMermaidBridgeMessage]
+  K --> S{token ตรงกับคำสั่งล่าสุด?}
+  S -->|ไม่| X[ทิ้งผลเก่า]
+  S -->|ใช่ และ rendered| L[แสดงภาพ และจำความสูง]
+  S -->|ใช่ และ error| E3[MermaidDiagramErrorView]
 ```
 
 ลำดับโดยละเอียด:
@@ -90,10 +93,10 @@ flowchart TD
 3. ถ้าเป็น mermaid จะทำความสะอาดโค้ดด้วย `normalizeMermaidSource` (แปลง CRLF เป็น LF, ตัดบรรทัดว่างหัวท้าย) แล้วสร้าง `MermaidDiagramView`
 4. `MermaidDiagramView` ตรวจว่ามี WebView หรือไม่จาก `WebViewPlatform.instance` ถ้าไม่มี (รวมถึงตอนรัน `flutter test`) จะแสดง fallback
 5. `MermaidHtmlCache` อ่าน `assets/mermaid/mermaid.min.js` ครั้งเดียว แล้วสร้าง HTML ด้วย `buildMermaidHtml` แยกตามธีม (สว่าง/มืด) และเก็บไว้ใช้ร่วมกันทุกไดอะแกรม
-6. WebView โหลด HTML นั้น เมื่อโหลดเสร็จ (`onPageFinished`) จะเรียก `runJavaScript(buildMermaidRenderCall(source))` **โค้ดของผู้ใช้ส่งเข้าทางนี้เท่านั้น ไม่อยู่ใน HTML**
-7. JS เรียก `mermaid.render` แล้วส่งผลกลับเป็น JSON ผ่าน channel ชื่อ `MermaidBridge`: สำเร็จส่ง `{"type":"rendered","height":N}` ไม่สำเร็จส่ง `{"type":"error","message":"..."}`
+6. WebView โหลด HTML นั้น เมื่อโหลดเสร็จ (`onPageFinished`) widget ขอเลขคำสั่ง (token) ใหม่จาก `MermaidRenderSession.begin` แล้วเรียก `runJavaScript(buildMermaidRenderCall(source, token))` **โค้ดของผู้ใช้ส่งเข้าทางนี้เท่านั้น ไม่อยู่ใน HTML** ทุกครั้งที่โค้ดเปลี่ยน จะได้ token ใหม่
+7. JS เรียก `mermaid.render` แล้วส่งผลกลับเป็น JSON ผ่าน channel ชื่อ `MermaidBridge` พร้อม token เดิม: สำเร็จส่ง `{"type":"rendered","height":N,"token":T}` ไม่สำเร็จส่ง `{"type":"error","message":"...","token":T}` ถ้ามีคำสั่งใหม่เข้ามาระหว่างวาด JS จะไม่เขียนภาพและไม่ส่งผลของคำสั่งเก่า
 8. `parseMermaidBridgeMessage` แปลง JSON เป็น `MermaidRendered` หรือ `MermaidRenderFailed` (sealed class) และไม่มีวัน throw
-9. สำเร็จ: ปรับความสูง widget ตามที่วัดได้ (จำกัด 48-2000 ด้วย `clampMermaidHeight`) และบันทึกลง `MermaidHeightCache` ไม่สำเร็จ: แสดง `MermaidDiagramErrorView`
+9. `MermaidRenderSession.handle` ทิ้งผลที่ token ไม่ตรงกับคำสั่งล่าสุด ถ้าตรง: สำเร็จจะจำกัดความสูง (48-2000 ด้วย `clampMermaidHeight`) บันทึกลง `MermaidHeightCache` ด้วย source ของคำสั่งนั้น แล้ว widget ปรับความสูง ไม่สำเร็จจะแสดง `MermaidDiagramErrorView`
 
 ---
 
@@ -107,6 +110,7 @@ flowchart TD
 | `mermaid_html.dart` | `buildMermaidHtml`, `buildMermaidRenderCall`, `mermaidChannelName`, โมเดลข้อความ `MermaidBridgeMessage` และ `parseMermaidBridgeMessage` | ไม่ |
 | `mermaid_html_cache.dart` | `MermaidHtmlCache` โหลด asset และเก็บ HTML ตามธีม ลองใหม่ได้ถ้าโหลดล้ม | services เท่านั้น |
 | `mermaid_height_cache.dart` | `MermaidHeightCache` (จำความสูง สูงสุด 100 รายการ), `clampMermaidHeight` | ไม่ |
+| `mermaid_render_session.dart` | `MermaidRenderSession` ออกเลขคำสั่งวาด ตัดสินว่าผลจาก WebView เป็นของคำสั่งล่าสุดหรือไม่ (กัน race condition) และบันทึกความสูงลง cache | ไม่ |
 | `mermaid_status_views.dart` | หน้าจอสถานะว่าง, fallback และ error | ใช่ |
 | `mermaid_diagram_view.dart` | widget หลักที่ควบคุม WebView (**ไฟล์เดียวที่ผูกกับ WebView**) | ใช่ |
 | `mermaid_element_builder.dart` | ตัวเชื่อมกับ `flutter_markdown_plus` | ใช่ |
@@ -126,19 +130,17 @@ asset: `assets/mermaid/mermaid.min.js` (3.5 MB), `LICENSE` (MIT ของ mermai
 
 ## 5. ความปลอดภัย
 
-เนื้อหาโน้ตมาจากผู้ใช้หรือไฟล์ที่เปิดมา จึงถือว่าไม่น่าเชื่อถือ มาตรการซ้อนกันหลายชั้นดังนี้
-
-| มาตรการ                                                                                         | ป้องกันอะไร                                                    | test ที่ยืนยัน                                                                           |     |
-| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --- |
-| โค้ดผู้ใช้ไม่อยู่ใน HTML ส่งผ่าน `runJavaScript` ด้วย `jsonEncode` และ escape `\u2028`/`\u2029` | การแทรกโค้ดผ่าน `</script>` หรือเครื่องหมายคำพูด               | `mermaid_html_test.dart` group `buildMermaidRenderCall` (test ไป-กลับด้วยข้อความอันตราย) |     |
-| CSP `default-src 'none'`                                                                        | สคริปต์ใดก็ตามส่งข้อมูลออกนอกเครื่องหรือโหลดของจากภายนอกไม่ได้ | `mermaid_html_test.dart` (มี CSP, ไม่มี `http://`/`https://`)                            |     |
-| `securityLevel: 'strict'`                                                                       | mermaid กรอง HTML ในไดอะแกรมและปิดการคลิกที่รันสคริปต์         | `mermaid_html_test.dart`                                                                 |     |
-| ด่าน `</script` สำหรับไฟล์ mermaid                                                              | HTML แตกถ้าอัปเกรด mermaid เป็นเวอร์ชันที่มีสตริงนี้           | group `security` รวม test ที่อ่านไฟล์ asset จริง                                         |     |
-| `NavigationDelegate` อนุญาตแค่ `about:blank`                                                    | ลิงก์ในไดอะแกรมพาไปหน้าเว็บอื่นภายในกล่อง                      | ทดสอบบนเครื่อง                                                                           |     |
-| ตัวแปลข้อความจาก JS ไม่มีวัน throw                                                              | ข้อมูลผิดรูปแบบจาก WebView ทำให้แอป crash                      | `parseMermaidBridgeMessage` test ข้อมูลขยะ                                               |     |
-| ไม่ส่ง `baseUrl` และ Android ปิดการเข้าถึงไฟล์เป็นค่าเริ่มต้นสำหรับ targetSdk 30 ขึ้นไป         | หน้าเว็บอ่านไฟล์ในเครื่อง                                      | (อาศัยค่าเริ่มต้นของระบบ ไม่ได้ตั้งเองเพราะ `webview_flutter` ไม่มีคำสั่งนี้)            |     |
-
 ไฟล์โน้ตอาจมาจากแหล่งที่ไม่น่าเชื่อถือ เช่น ดาวน์โหลดจากอินเทอร์เน็ต ซึ่งอาจซ่อนโค้ดอันตรายไว้ในบล็อก mermaid เราจึงถือว่ากล่องไดอะแกรม (WebView) เป็นพื้นที่ปิด: โค้ดของผู้ใช้ถูกส่งเข้าไปเป็นข้อความเท่านั้น ไม่กลายเป็นคำสั่ง, กล่องเชื่อมต่ออินเทอร์เน็ตไม่ได้, ไปหน้าเว็บอื่นไม่ได้ และอ่านไฟล์ในเครื่องไม่ได้ มาตรการซ้อนกันหลายชั้น (defense in depth) ถ้าชั้นหนึ่งพลาด ชั้นอื่นยังป้องกันอยู่
+
+| มาตรการ | ป้องกันอะไร | test ที่ยืนยัน |
+|---|---|---|
+| โค้ดผู้ใช้ไม่อยู่ใน HTML ส่งผ่าน `runJavaScript` ด้วย `jsonEncode` และ escape `\u2028`/`\u2029` | การแทรกโค้ดผ่าน `</script>` หรือเครื่องหมายคำพูด | `mermaid_html_test.dart` group `buildMermaidRenderCall` (test ไป-กลับด้วยข้อความอันตราย) |
+| CSP `default-src 'none'` | สคริปต์ใดก็ตามส่งข้อมูลออกนอกเครื่องหรือโหลดของจากภายนอกไม่ได้ | `mermaid_html_test.dart` (มี CSP, ไม่มี `http://`/`https://`) |
+| `securityLevel: 'strict'` | mermaid กรอง HTML ในไดอะแกรมและปิดการคลิกที่รันสคริปต์ | `mermaid_html_test.dart` |
+| ด่าน `</script` สำหรับไฟล์ mermaid | HTML แตกถ้าอัปเกรด mermaid เป็นเวอร์ชันที่มีสตริงนี้ | group `security` รวม test ที่อ่านไฟล์ asset จริง |
+| `NavigationDelegate` อนุญาตแค่ `about:blank` | ลิงก์ในไดอะแกรมพาไปหน้าเว็บอื่นภายในกล่อง | ทดสอบบนเครื่อง |
+| ตัวแปลข้อความจาก JS ไม่มีวัน throw | ข้อมูลผิดรูปแบบจาก WebView ทำให้แอป crash | `parseMermaidBridgeMessage` test ข้อมูลขยะ |
+| ไม่ส่ง `baseUrl` และ Android ปิดการเข้าถึงไฟล์เป็นค่าเริ่มต้นสำหรับ targetSdk 30 ขึ้นไป | หน้าเว็บอ่านไฟล์ในเครื่อง | (อาศัยค่าเริ่มต้นของระบบ ไม่ได้ตั้งเองเพราะ `webview_flutter` ไม่มีคำสั่งนี้) |
 
 ---
 
@@ -149,15 +151,16 @@ asset: `assets/mermaid/mermaid.min.js` (3.5 MB), `LICENSE` (MIT ของ mermai
 | ไฟล์ | ครอบคลุม |
 |---|---|
 | `mermaid_block_test.dart` | ตรวจภาษา, ตัวพิมพ์, ชื่อคล้าย (`mermaidjs`), การทำความสะอาดโค้ด |
-| `mermaid_html_test.dart` | โครง HTML, การตั้งค่าความปลอดภัย, Security Test, ตัวแปลข้อความ |
+| `mermaid_html_test.dart` | โครง HTML, การตั้งค่าความปลอดภัย, Security Test, ตัวแปลข้อความรวมถึง token |
 | `mermaid_html_cache_test.dart` | โหลดครั้งเดียว, แยกธีม, ลองใหม่หลังล้ม (ทั้งแบบ sync และ async), ยามเฝ้าว่า asset ลงทะเบียนใน pubspec |
 | `mermaid_height_cache_test.dart` | เก็บ/ค้น, แยกธีม, ลบตัวเก่าเมื่อเต็ม, จำกัดช่วงความสูง |
+| `mermaid_render_session_test.dart` | ผลของคำสั่งเก่าที่ตอบกลับช้าถูกทิ้ง (A → B → A), height cache เป็นของคำสั่งล่าสุด, จำกัดความสูง, แยกธีม |
 | `mermaid_status_views_test.dart` | หน้าจอว่าง, fallback, error (จำกัดข้อความ 3 บรรทัด, โค้ดเลือกได้) |
 | `mermaid_diagram_view_test.dart` | เลือกสถานะถูกต้อง รวมถึง fallback อัตโนมัติเมื่อไม่มี WebView |
 | `mermaid_element_builder_test.dart` | mermaid ถูกแปลง, ภาษาอื่น/ไม่ระบุภาษา/inline code ไม่ถูกแตะ, หลายบล็อก, บล็อกว่าง |
 | `mermaid_preview_test.dart` | ผ่านแอปจริง (`MnoteApp`): พิมพ์, สลับไปแสดงผล, ได้ไดอะแกรมและโค้ดภาษาอื่นครบ |
 
-ผลล่าสุด: test ทั้งโปรเจกต์ 95 ตัวผ่าน, coverage ทั้งโปรเจกต์ **73.6%** (751/1020), โฟลเดอร์ mermaid **59.0%** (138/234)
+ผลล่าสุด: test ทั้งโปรเจกต์ 105 ตัวผ่าน, coverage ทั้งโปรเจกต์ **74.2%** (776/1046), โฟลเดอร์ mermaid **62.7%** (163/260)
 
 **ทำไมโฟลเดอร์ mermaid ไม่ถึง 70%:** ส่วนที่ไม่ถูก test เกือบทั้งหมดคือโค้ดที่สร้างและคุยกับ WebView ใน `mermaid_diagram_view.dart` ซึ่ง `flutter test` รันไม่ได้ logic ทั้งหมดที่อยู่ข้างใต้จึงถูกแยกออกมาเป็นไฟล์ที่ test ได้ 95-100% และส่วน WebView ทดสอบบนเครื่องจริงแทน ถ้าต้องการยกส่วนนี้ ทางที่ดีที่สุดคือเขียน WebView ปลอมใน test (ต้องเพิ่ม `webview_flutter_platform_interface` เป็น dev dependency)
 
@@ -165,11 +168,14 @@ asset: `assets/mermaid/mermaid.min.js` (3.5 MB), `LICENSE` (MIT ของ mermai
 
 ผ่านทั้งหมด: flowchart และ sequence ที่มีภาษาไทย, ไดอะแกรมยาว (ความสูงพอดี), เลื่อนหน้าโดยเริ่มปัดบนไดอะแกรม, กล่อง error และการกลับมาหลังแก้โค้ด, ไดอะแกรมว่าง, โหมดมืดไม่มีกล่องขาว, code block dart ในเอกสารเดียวกันแสดงครบ, เลือกข้อความใน preview ได้, ไม่มี error ของ CSP ใน log
 
+ทดสอบเพิ่มเติม: แบ่งหน้าจอให้แอปแคบประมาณครึ่งจอ (ไดอะแกรมย่อลงพอดี ไม่ล้น) และเปิดโหมดเครื่องบิน (ไดอะแกรมวาดได้ตามปกติ ยืนยันว่าทำงานออฟไลน์)
+
 ---
 
 ## 7. การนำไปใช้ที่อื่น
 
-###  ใช้ในหน้าอื่นของแอปที่แสดง Markdown
+### ใช้ในหน้าอื่นของแอปที่แสดง Markdown
+
 ถ้าหน้าอื่นในแอป (เช่น หน้าคำตอบจาก AI หรือ annotation) แสดงข้อความด้วย `Markdown` หรือ `MarkdownBody` จาก `flutter_markdown_plus` หน้านั้นจะยังไม่วาดไดอะแกรมจนกว่าจะเพิ่ม builder:
 
 ```dart
@@ -185,6 +191,8 @@ MarkdownBody(
 - ถ้า widget นั้นมี builder ของ `'code'` อยู่แล้ว ต้องเขียน builder ตัวใหม่ที่ลอง mermaid ก่อน แล้วค่อยส่งต่อให้ตัวเดิมเมื่อได้ `null` เพราะ map ใส่ builder ได้ทีละตัวต่อแท็ก
 
 ### ใช้ widget ไดอะแกรมโดยตรง
+
+ใช้เมื่อต้องการแสดงไดอะแกรมอย่างเดียวโดยไม่ผ่าน Markdown เช่น ไดอะแกรมที่ AI สร้างจากโน้ต
 
 ```dart
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_block.dart';
@@ -217,6 +225,8 @@ MermaidDiagramView(source: normalizeMermaidSource(text));
 
 ## 8. การอัปเกรด mermaid
 
+ไฟล์ mermaid ในแอปถูกล็อกไว้ที่เวอร์ชันเดียว (ไม่โหลดจากอินเทอร์เน็ต) เพื่อให้ทำงานออฟไลน์ ปลอดภัย และคาดเดาได้ ควรอัปเกรดเมื่อมีช่องโหว่ความปลอดภัย, เมื่อผู้ใช้เขียนไดอะแกรมแบบใหม่ที่ GitHub วาดได้แต่ Mnote ขึ้น error หรือเมื่อ mermaid แก้บั๊กที่กระทบผู้ใช้
+
 1. ดาวน์โหลด `mermaid.min.js` จาก `dist/` ของแพ็กเกจ mermaid เวอร์ชันที่ต้องการ แล้ววางทับ `assets/mermaid/mermaid.min.js`
 2. แก้ `assets/mermaid/VERSION.txt` (เวอร์ชัน, แหล่งที่มา, วันที่) และตรวจว่า `LICENSE` ยังเป็นฉบับเดียวกัน
 3. รัน `flutter test` test ใน group `security` ของ `mermaid_html_test.dart` จะแดงถ้าไฟล์ใหม่มี `</script` ซึ่งฝังแบบ inline ไม่ได้
@@ -234,12 +244,14 @@ MermaidDiagramView(source: normalizeMermaidSource(text));
 - Web, Windows, Linux แสดงเป็นโค้ดแทนภาพ
 - ไดอะแกรมที่เลื่อนออกนอกจอจะถูกทิ้งเพื่อประหยัดหน่วยความจำ และวาดใหม่เมื่อเลื่อนกลับ (หน่วงแป๊บหนึ่ง) ความสูงถูกจำไว้จึงไม่ทำให้หน้ากระโดด
 - ไดอะแกรมที่สูงเกิน 2000 logical pixel (ประมาณ 2-3 หน้าจอ) จะแสดงเฉพาะส่วนบน 2000 pixel ส่วนที่เกินจะมองไม่เห็นและเลื่อนดูในกล่องไม่ได้ เพดานนี้มีไว้กันหน่วยความจำของ WebView บานปลาย (ปรับได้ที่ `mermaidMaxHeight`)
+- ไดอะแกรมจะย่อลงให้พอดีความกว้างจอ ไดอะแกรมแนวนอน (`graph LR`) ที่มีกล่องจำนวนมาก เมื่อดูบนจอแคบตัวอักษรจะเล็กลงตาม ถ้ากล่องเยอะแนะนำให้ใช้ `graph TD` (แนวตั้ง) และตอนนี้ยังซูมด้วยสองนิ้วไม่ได้
 - ไดอะแกรมอยู่ในกรอบพื้นเทาของ code block ตามสไตล์ของ `flutter_markdown_plus`
 - ลิงก์และการคลิกในไดอะแกรมใช้ไม่ได้ (ตั้งใจปิดเพื่อความปลอดภัย)
 
 ### เรื่องที่ต้องระวังถ้าแก้ในอนาคต
 
 - **ห้ามเปลี่ยน builder ไปลงทะเบียนกับ `'pre'`** (เหตุผลในหัวข้อ 7) test `mermaid_element_builder_test.dart` ข้อ dart และไม่ระบุภาษาจะแดงถ้ามีคนเปลี่ยน
+- **ทุกคำสั่งวาดต้องผ่าน `MermaidRenderSession.begin`** และส่ง token ไปกับ `buildMermaidRenderCall` ห้ามอัปเดต state หรือ cache จากข้อความของ WebView โดยไม่ผ่าน `session.handle` ไม่อย่างนั้นผลของโค้ดเก่าที่ตอบกลับช้าจะทับไดอะแกรมใหม่
 - **ถ้าทำ live preview** (แสดงผลสดระหว่างพิมพ์) ต้องทดสอบกรณีแก้ไดอะแกรมจาก error กลับเป็นถูกโดยไม่สลับแท็บ ตอนนี้กรณีนี้ไม่เกิดเพราะการสลับแท็บสร้างหน้า preview ใหม่ทุกครั้ง
 - **ห้ามใส่โค้ดผู้ใช้ลงใน HTML โดยตรง** ให้ส่งผ่าน `buildMermaidRenderCall` เท่านั้น
 - **ชื่อ channel ใช้ `mermaidChannelName` เสมอ** ทั้งฝั่ง JS และ Dart
@@ -254,6 +266,7 @@ MermaidDiagramView(source: normalizeMermaidSource(text));
 2. `flutter clean` แล้ว `flutter pub get`
 3. ถ้ายังไม่หาย เพิ่ม `kotlin.incremental=false` ในไฟล์ตั้งค่า Gradle ส่วนตัว `C:\Users\<ชื่อผู้ใช้>\.gradle\gradle.properties` (ห้ามแก้ `android/gradle.properties` ใน repo เพราะกระทบทุกคน) แล้วทำข้อ 1-2 ซ้ำ
 
+---
 
 ## 11. งานที่วางแผนต่อ
 

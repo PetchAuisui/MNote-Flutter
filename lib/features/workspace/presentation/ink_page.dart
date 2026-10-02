@@ -267,9 +267,9 @@ class _InkHistoryDock extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Material(
       key: const Key('ink-history-dock'),
-      color: colors.inverseSurface,
-      elevation: 3,
-      borderRadius: BorderRadius.circular(16),
+      color: colors.surfaceContainerHighest,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -277,16 +277,16 @@ class _InkHistoryDock extends StatelessWidget {
           IconButton(
             key: const Key('ink-undo'),
             tooltip: 'ย้อนกลับหมึก',
-            color: colors.onInverseSurface,
-            disabledColor: colors.onInverseSurface.withValues(alpha: 0.38),
+            color: colors.onSurfaceVariant,
+            disabledColor: colors.onSurfaceVariant.withValues(alpha: 0.38),
             onPressed: onUndo,
             icon: const Icon(Icons.undo),
           ),
           IconButton(
             key: const Key('ink-redo'),
             tooltip: 'ทำซ้ำหมึก',
-            color: colors.onInverseSurface,
-            disabledColor: colors.onInverseSurface.withValues(alpha: 0.38),
+            color: colors.onSurfaceVariant,
+            disabledColor: colors.onSurfaceVariant.withValues(alpha: 0.38),
             onPressed: onRedo,
             icon: const Icon(Icons.redo),
           ),

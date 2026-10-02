@@ -145,6 +145,17 @@ void main() {
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-management-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-history-dock')), findsOneWidget);
+    final historyDock = tester.widget<Material>(
+      find.byKey(const Key('ink-history-dock')),
+    );
+    final historyContext = tester.element(
+      find.byKey(const Key('ink-history-dock')),
+    );
+    expect(
+      historyDock.color,
+      Theme.of(historyContext).colorScheme.surfaceContainerHighest,
+    );
+    expect(historyDock.elevation, 0);
     final toolbarRect = tester.getRect(find.byKey(const Key('ink-toolbar')));
     final historyDockRect = tester.getRect(
       find.byKey(const Key('ink-history-dock')),

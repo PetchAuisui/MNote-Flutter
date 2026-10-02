@@ -145,6 +145,17 @@ void main() {
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-management-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-history-dock')), findsOneWidget);
+    final toolbarRect = tester.getRect(find.byKey(const Key('ink-toolbar')));
+    final historyDockRect = tester.getRect(
+      find.byKey(const Key('ink-history-dock')),
+    );
+    expect(toolbarRect.contains(historyDockRect.topLeft), isTrue);
+    expect(
+      toolbarRect.contains(
+        historyDockRect.bottomRight - const Offset(0.1, 0.1),
+      ),
+      isTrue,
+    );
     expect(
       find.descendant(
         of: find.byKey(const Key('ink-toolbar')),

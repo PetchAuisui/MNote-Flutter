@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
@@ -15,11 +15,13 @@ class InkPage extends StatefulWidget {
     required this.markdown,
     required this.name,
     this.imageDirectory,
+    this.fileStorage = const DeviceInkFileStorage(),
   });
   final InkSession session;
   final String markdown;
   final String name;
   final String? imageDirectory;
+  final InkFileStorage fileStorage;
 
   @override
   State<InkPage> createState() => _InkPageState();
@@ -122,15 +124,11 @@ class _InkPageState extends State<InkPage> {
     try {
       if (save) {
         final snapshot = widget.session.encode();
-        final uri = await FilePicker.saveFile(
-          dialogTitle: 'บันทึกหมึกแยกจาก Markdown',
-          fileName: '${widget.name}.ink.json',
+        final saved = await widget.fileStorage.save(
+          name: '${widget.name}.ink.json',
           bytes: Uint8List.fromList(utf8.encode(snapshot)),
-          mimeType: 'application/json',
-          type: FileType.custom,
-          allowedExtensions: ['json'],
         );
-        if (uri != null && mounted) widget.session.markSaved(snapshot);
+        if (saved && mounted) widget.session.markSaved(snapshot);
       } else {
         if (widget.session.isDirty) {
           final discard = await showDialog<bool>(
@@ -151,12 +149,8 @@ class _InkPageState extends State<InkPage> {
           );
           if (discard != true || !mounted) return;
         }
-        final file = await FilePicker.pickFile(
-          type: FileType.custom,
-          allowedExtensions: ['json'],
-        );
-        if (file == null) return;
-        final bytes = await file.readAsBytes();
+        final bytes = await widget.fileStorage.open();
+        if (bytes == null) return;
         if (!mounted) return;
         widget.session.load(utf8.decode(bytes));
       }

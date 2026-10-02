@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
+import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:scribble/scribble.dart';
@@ -229,6 +234,57 @@ void main() {
     expect(session.pen.currentSketch, sketch);
   });
 
+  testWidgets(
+    'saves ink through storage and only marks successful saves clean',
+    (tester) async {
+      final session = InkSession();
+      final storage = FakeInkFileStorage();
+      addTearDown(session.dispose);
+      session.pen.setSketch(sketch: sketch);
+
+      await tester.pumpWidget(_inkPage(session: session, storage: storage));
+      await tester.tap(find.byKey(const Key('ink-save')));
+      await tester.pumpAndSettle();
+
+      expect(storage.savedName, 'notes.md.ink.json');
+      expect(
+        jsonDecode(utf8.decode(storage.savedBytes!))['format'],
+        'mnote-ink',
+      );
+      expect(session.isDirty, isFalse);
+
+      session.pen.clear();
+      storage.saveResult = false;
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('ink-save')));
+      await tester.pumpAndSettle();
+
+      expect(session.isDirty, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('opens ink through storage and restores a clean session', (
+    tester,
+  ) async {
+    final source = InkSession()..pen.setSketch(sketch: sketch);
+    final target = InkSession();
+    final storage = FakeInkFileStorage(
+      openBytes: Uint8List.fromList(utf8.encode(source.encode())),
+    );
+    addTearDown(source.dispose);
+    addTearDown(target.dispose);
+
+    await tester.pumpWidget(_inkPage(session: target, storage: storage));
+    await tester.tap(find.byKey(const Key('ink-open')));
+    await tester.pumpAndSettle();
+
+    expect(storage.openCalls, 1);
+    expect(target.pen.currentSketch, sketch);
+    expect(target.isDirty, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ink survives Markdown deletion, mode switch and resize', (
     tester,
   ) async {
@@ -261,4 +317,43 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+}
+
+Widget _inkPage({
+  required InkSession session,
+  required InkFileStorage storage,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: InkPage(
+        session: session,
+        markdown: '# Notes',
+        name: 'notes.md',
+        fileStorage: storage,
+      ),
+    ),
+  );
+}
+
+class FakeInkFileStorage implements InkFileStorage {
+  FakeInkFileStorage({this.openBytes});
+
+  Uint8List? openBytes;
+  Uint8List? savedBytes;
+  String? savedName;
+  bool saveResult = true;
+  int openCalls = 0;
+
+  @override
+  Future<Uint8List?> open() async {
+    openCalls += 1;
+    return openBytes;
+  }
+
+  @override
+  Future<bool> save({required String name, required Uint8List bytes}) async {
+    savedName = name;
+    savedBytes = bytes;
+    return saveResult;
+  }
 }

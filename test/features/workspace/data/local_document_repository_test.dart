@@ -6,6 +6,7 @@ import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 import '../../../helpers/fakes.dart';
 
@@ -88,5 +89,47 @@ void main() {
     expect(storage.writtenUri, isNull);
     expect(saved?.name, 'renamed.md');
     expect(saved?.isDirty, isFalse);
+  });
+
+  test('delegates file delete to storage', () async {
+    final uri = Uri.file('/tmp/deleted.md');
+    await repository.delete(uri);
+    expect(storage.deletedUris, contains(uri));
+  });
+
+  test('saves and loads library metadata round-trip', () async {
+    final metadata = LibraryMetadata(
+      folders: [
+        FolderItem(
+          id: 'f1',
+          name: 'โฟลเดอร์ทดสอบ',
+          updatedAt: DateTime(2026, 1, 1),
+          isStarred: true,
+        ),
+      ],
+      documents: [
+        DocumentItem(
+          id: 'd1',
+          name: 'test.md',
+          content: 'hello',
+          updatedAt: DateTime(2026, 1, 2),
+          folderId: 'f1',
+          uri: Uri.file('/tmp/test.md'),
+          isStarred: false,
+          isTrash: false,
+        ),
+      ],
+    );
+
+    await repository.saveMetadata(metadata);
+    expect(storage.metadataContent, isNotNull);
+
+    final loaded = await repository.loadMetadata();
+    expect(loaded?.folders.length, 1);
+    expect(loaded?.folders.first.name, 'โฟลเดอร์ทดสอบ');
+    expect(loaded?.folders.first.isStarred, isTrue);
+    expect(loaded?.documents.length, 1);
+    expect(loaded?.documents.first.name, 'test.md');
+    expect(loaded?.documents.first.uri, Uri.file('/tmp/test.md'));
   });
 }

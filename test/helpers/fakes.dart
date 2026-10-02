@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 class FakeDocumentStorage implements DocumentStorage {
   SelectedDocumentFile? selectedFile;
@@ -23,6 +24,9 @@ class FakeDocumentStorage implements DocumentStorage {
     return saveUri;
   }
 
+  String? metadataContent;
+  final List<Uri> deletedUris = [];
+
   @override
   Future<void> write(Uri uri, Uint8List bytes) async {
     writtenUri = uri;
@@ -31,12 +35,27 @@ class FakeDocumentStorage implements DocumentStorage {
 
   @override
   Future<List<SelectedDocumentFile>> listDocuments() async => [];
+
+  @override
+  Future<void> delete(Uri uri) async {
+    deletedUris.add(uri);
+  }
+
+  @override
+  Future<String?> readMetadata() async => metadataContent;
+
+  @override
+  Future<void> writeMetadata(String content) async {
+    metadataContent = content;
+  }
 }
 
 class FakeDocumentRepository implements DocumentRepository {
   MarkdownDocument? openResult;
   MarkdownDocument? saveResult;
   List<MarkdownDocument> listResult = [];
+  LibraryMetadata? storedMetadata;
+  final List<Uri> deletedUris = [];
   Object? error;
   int openCalls = 0;
   int saveCalls = 0;
@@ -68,5 +87,18 @@ class FakeDocumentRepository implements DocumentRepository {
     listCalls += 1;
     if (error case final error?) throw error;
     return listResult;
+  }
+
+  @override
+  Future<void> delete(Uri uri) async {
+    deletedUris.add(uri);
+  }
+
+  @override
+  Future<LibraryMetadata?> loadMetadata() async => storedMetadata;
+
+  @override
+  Future<void> saveMetadata(LibraryMetadata metadata) async {
+    storedMetadata = metadata;
   }
 }

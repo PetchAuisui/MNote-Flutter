@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 class LocalDocumentRepository implements DocumentRepository {
   const LocalDocumentRepository(this._storage);
@@ -79,6 +80,25 @@ class LocalDocumentRepository implements DocumentRepository {
     } catch (e) {
       throw DocumentReadException('ไม่สามารถดึงรายการเอกสารได้: $e');
     }
+  }
+
+  @override
+  Future<void> delete(Uri uri) => _storage.delete(uri);
+
+  @override
+  Future<LibraryMetadata?> loadMetadata() async {
+    try {
+      final raw = await _storage.readMetadata();
+      if (raw == null || raw.trim().isEmpty) return null;
+      return LibraryMetadata.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveMetadata(LibraryMetadata metadata) async {
+    await _storage.writeMetadata(jsonEncode(metadata.toJson()));
   }
 
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));

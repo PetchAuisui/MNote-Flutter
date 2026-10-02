@@ -20,4 +20,10 @@ abstract interface class DocumentStorage {
   Future<Uri?> saveAs({required String name, required Uint8List bytes});
 
   Future<List<SelectedDocumentFile>> listDocuments();
+
+  Future<void> delete(Uri uri);
+
+  Future<String?> readMetadata();
+
+  Future<void> writeMetadata(String content);
 }

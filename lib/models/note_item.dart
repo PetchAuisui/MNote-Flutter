@@ -1,3 +1,63 @@
+class LibraryMetadata {
+  final List<FolderItem> folders;
+  final List<DocumentItem> documents;
+
+  const LibraryMetadata({
+    this.folders = const [],
+    this.documents = const [],
+  });
+
+  Map<String, dynamic> toJson() => {
+    'folders': folders.map((f) => {
+      'id': f.id,
+      'name': f.name,
+      'updatedAt': f.updatedAt.toIso8601String(),
+      'isStarred': f.isStarred,
+      'isTrash': f.isTrash,
+    }).toList(),
+    'documents': documents.map((d) => {
+      'id': d.id,
+      'name': d.name,
+      'content': d.content,
+      'updatedAt': d.updatedAt.toIso8601String(),
+      'folderId': d.folderId,
+      'isStarred': d.isStarred,
+      'uri': d.uri?.toString(),
+      'isTrash': d.isTrash,
+    }).toList(),
+  };
+
+  factory LibraryMetadata.fromJson(Map<String, dynamic> json) {
+    final foldersList = (json['folders'] as List<dynamic>?) ?? [];
+    final docsList = (json['documents'] as List<dynamic>?) ?? [];
+    return LibraryMetadata(
+      folders: foldersList.map((f) {
+        final map = f as Map<String, dynamic>;
+        return FolderItem(
+          id: map['id'] as String,
+          name: map['name'] as String,
+          updatedAt: DateTime.tryParse(map['updatedAt'] as String? ?? '') ?? DateTime.now(),
+          isStarred: map['isStarred'] as bool? ?? false,
+          isTrash: map['isTrash'] as bool? ?? false,
+        );
+      }).toList(),
+      documents: docsList.map((d) {
+        final map = d as Map<String, dynamic>;
+        return DocumentItem(
+          id: map['id'] as String,
+          name: map['name'] as String,
+          content: map['content'] as String? ?? '',
+          updatedAt: DateTime.tryParse(map['updatedAt'] as String? ?? '') ?? DateTime.now(),
+          folderId: map['folderId'] as String?,
+          isStarred: map['isStarred'] as bool? ?? false,
+          uri: map['uri'] != null ? Uri.tryParse(map['uri'] as String) : null,
+          isTrash: map['isTrash'] as bool? ?? false,
+        );
+      }).toList(),
+    );
+  }
+}
+
 class FolderItem {
   final String id;
   final String name;

@@ -71,5 +71,32 @@ class DeviceDocumentStorage implements DocumentStorage {
     }
     return result;
   }
+
+  @override
+  Future<void> delete(Uri uri) async {
+    if (uri.scheme == 'file') {
+      final file = File.fromUri(uri);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
+
+  @override
+  Future<String?> readMetadata() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/.mnote_library.json');
+    if (await file.exists()) {
+      return file.readAsString();
+    }
+    return null;
+  }
+
+  @override
+  Future<void> writeMetadata(String content) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/.mnote_library.json');
+    await file.writeAsString(content, flush: true);
+  }
 }
 

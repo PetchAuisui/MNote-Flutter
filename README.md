@@ -9,6 +9,7 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 - เปิดไฟล์ `.md`, `.markdown` และ `.txt` ด้วย file picker ของระบบ
 - แก้ไขข้อความและติดตามสถานะที่ยังไม่ได้บันทึก
 - สลับระหว่างโหมดแก้ไขกับ preview แบบ GitHub Flavored Markdown
+- แสดงบล็อกโค้ด `mermaid` ใน preview เป็นไดอะแกรมแบบออฟไลน์ (รายละเอียดใน [docs/mermaid-preview.md](docs/mermaid-preview.md))
 - บันทึกไฟล์เดิมเมื่อระบบให้ file URI และใช้ Save As เป็น fallback
 - แทรก bold, italic, heading, list, quote, code, link และ image reference จาก toolbar
 - แสดงรูปจาก URL, absolute file URI และ relative path ของเอกสาร
@@ -136,6 +137,7 @@ flutter test
 - ปุ่มแทรกรูปเพิ่ม URI ของไฟล์ลงใน Markdown โดยตรง ยังไม่ได้คัดลอกรูปเข้า companion asset folder ดังนั้นลิงก์รูปอาจใช้ข้ามอุปกรณ์ไม่ได้
 - Android/iOS อาจส่ง document URI ที่เขียนทับตรง ๆ ไม่ได้ แอปจะเปิด Save As เพื่อให้ผู้ใช้เลือกปลายทางแทน
 - annotation layer, autosave, recent documents, local database, cloud sync และ AI ยังไม่ได้รวมใน milestone นี้
+- ไดอะแกรม Mermaid เพิ่มขนาดแอปประมาณ 3.5 MB, รองรับ Android และ iOS และบน Web/Windows/Linux จะแสดงเป็นโค้ดแทนภาพ (ดู [docs/mermaid-preview.md](docs/mermaid-preview.md))
 
 ## เอกสารอ้างอิงของโครงการ
 

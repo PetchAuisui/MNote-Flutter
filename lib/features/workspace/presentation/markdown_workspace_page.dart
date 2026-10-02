@@ -3,6 +3,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -809,6 +810,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       imageDirectory: _imageDirectory,
       padding: const EdgeInsets.all(24),
       onTapLink: (text, href, title) => _openLink(href),
+      builders: {'code': MermaidElementBuilder()},
     );
   }
 

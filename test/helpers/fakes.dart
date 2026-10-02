@@ -27,11 +27,17 @@ class FakeDocumentStorage implements DocumentStorage {
   String? metadataContent;
   final List<Uri> deletedUris = [];
 
+  final Map<Uri, Uint8List> fileData = {};
+
   @override
   Future<void> write(Uri uri, Uint8List bytes) async {
     writtenUri = uri;
     writtenBytes = bytes;
+    fileData[uri] = bytes;
   }
+
+  @override
+  Future<Uint8List?> read(Uri uri) async => fileData[uri] ?? writtenBytes;
 
   @override
   Future<List<SelectedDocumentFile>> listDocuments() async => [];
@@ -88,6 +94,11 @@ class FakeDocumentRepository implements DocumentRepository {
     if (error case final error?) throw error;
     return listResult;
   }
+
+  final Map<Uri, String> documentContents = {};
+
+  @override
+  Future<String?> readDocument(Uri uri) async => documentContents[uri];
 
   @override
   Future<void> delete(Uri uri) async {

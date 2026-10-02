@@ -550,5 +550,40 @@ void main() {
     expect(find.text('note1'), findsOneWidget);
     expect(find.byIcon(Icons.star_rounded), findsOneWidget);
   });
+
+  testWidgets('reloads fresh content from backing file when opening document', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
+    final docUri = Uri.parse('file:///data/docs/live.md');
+    fakeRepo.documentContents[docUri] = 'Brand new external content';
+
+    final testDoc = DocumentItem(
+      id: 'doc_live',
+      name: 'live.md',
+      content: 'old cached content',
+      updatedAt: DateTime(2026, 9, 21),
+      uri: docUri,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [testDoc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the document to open it in MarkdownWorkspacePage
+    await tester.tap(find.text('live'));
+    await tester.pumpAndSettle();
+
+    // The editor should contain the fresh content from repo.readDocument
+    final editor = tester.widget<TextField>(
+      find.byKey(const Key('markdown-editor')),
+    );
+    expect(editor.controller?.text, 'Brand new external content');
+  });
 }
 

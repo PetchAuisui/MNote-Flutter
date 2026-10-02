@@ -10,6 +10,8 @@ abstract interface class DocumentRepository {
 
   Future<List<MarkdownDocument>> listDocuments();
 
+  Future<String?> readDocument(Uri uri);
+
   Future<void> delete(Uri uri);
 
   Future<LibraryMetadata?> loadMetadata();

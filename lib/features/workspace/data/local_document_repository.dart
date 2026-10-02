@@ -83,6 +83,17 @@ class LocalDocumentRepository implements DocumentRepository {
   }
 
   @override
+  Future<String?> readDocument(Uri uri) async {
+    try {
+      final bytes = await _storage.read(uri);
+      if (bytes == null) return null;
+      return utf8.decode(_withoutByteOrderMark(bytes));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
   Future<void> delete(Uri uri) => _storage.delete(uri);
 
   @override

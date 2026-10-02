@@ -47,6 +47,17 @@ class DeviceDocumentStorage implements DocumentStorage {
   }
 
   @override
+  Future<Uint8List?> read(Uri uri) async {
+    if (uri.scheme == 'file') {
+      final file = File.fromUri(uri);
+      if (await file.exists()) {
+        return file.readAsBytes();
+      }
+    }
+    return null;
+  }
+
+  @override
   Future<List<SelectedDocumentFile>> listDocuments() async {
     final appDir = await getApplicationDocumentsDirectory();
     final dir = Directory(appDir.path);

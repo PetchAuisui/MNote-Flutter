@@ -89,10 +89,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
       if (docs.isNotEmpty) {
         setState(() {
           for (final doc in docs) {
-            final exists = _documents.any(
+            final existingIndex = _documents.indexWhere(
               (d) => doc.uri != null && d.uri == doc.uri,
             );
-            if (!exists) {
+            if (existingIndex != -1) {
+              if (_documents[existingIndex].content != doc.content ||
+                  _documents[existingIndex].name != doc.name) {
+                _documents[existingIndex] = _documents[existingIndex].copyWith(
+                  content: doc.content,
+                  name: doc.name,
+                );
+              }
+            } else {
               _documents.add(
                 DocumentItem(
                   id: 'dev_${doc.uri.toString().hashCode.abs()}_${doc.name}',
@@ -321,11 +329,21 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (!mounted) return;
 
+    String currentContent = item.content;
+    if (item.uri != null) {
+      final fresh = await widget.repository.readDocument(item.uri!);
+      if (fresh != null) {
+        currentContent = fresh;
+      }
+    }
+
+    if (!mounted) return;
+
     final doc = MarkdownDocument(
       name: item.name,
-      content: item.content,
+      content: currentContent,
       savedName: item.name,
-      savedContent: item.content,
+      savedContent: currentContent,
       uri: item.uri,
     );
 
@@ -341,7 +359,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
     if (updatedDoc != null) {
       setState(() {
         final idx = _documents.indexWhere((d) => d.id == item.id);
-        if (idx != -1) {
+        final isDifferentUri = item.uri != null &&
+            updatedDoc.uri != null &&
+            updatedDoc.uri != item.uri;
+        if (isDifferentUri) {
+          final newDoc = DocumentItem(
+            id: 'doc_${updatedDoc.uri.toString().hashCode.abs()}',
+            name: updatedDoc.name,
+            content: updatedDoc.content,
+            updatedAt: DateTime.now(),
+            folderId: item.folderId,
+            uri: updatedDoc.uri,
+          );
+          _documents.insert(0, newDoc);
+        } else if (idx != -1) {
           _documents[idx] = _documents[idx].copyWith(
             name: updatedDoc.name,
             content: updatedDoc.content,

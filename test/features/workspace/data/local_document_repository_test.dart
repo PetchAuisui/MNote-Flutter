@@ -97,6 +97,13 @@ void main() {
     expect(storage.deletedUris, contains(uri));
   });
 
+  test('reads document content from storage', () async {
+    final uri = Uri.file('/tmp/hello.md');
+    await storage.write(uri, Uint8List.fromList('Hello World'.codeUnits));
+    final content = await repository.readDocument(uri);
+    expect(content, 'Hello World');
+  });
+
   test('saves and loads library metadata round-trip', () async {
     final metadata = LibraryMetadata(
       folders: [

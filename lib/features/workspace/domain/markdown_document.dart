@@ -30,6 +30,15 @@ class MarkdownDocument {
     );
   }
 
+  factory MarkdownDocument.example(String content) {
+    return MarkdownDocument(
+      name: 'Welcome.md',
+      content: content,
+      savedName: 'Welcome.md',
+      savedContent: content,
+    );
+  }
+
   final String name;
   final String content;
   final String savedName;

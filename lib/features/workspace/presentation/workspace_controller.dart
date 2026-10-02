@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 
-enum WorkspaceMode { edit, preview }
+enum WorkspaceMode { edit, preview, ink }
 
 class WorkspaceController extends ChangeNotifier {
   WorkspaceController(this._repository, {MarkdownDocument? initialDocument})
@@ -42,6 +42,18 @@ class WorkspaceController extends ChangeNotifier {
     _mode = WorkspaceMode.edit;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  bool loadExample(String content) {
+    if (_document.name != 'Untitled.md' ||
+        _document.content.isNotEmpty ||
+        _document.uri != null) {
+      return false;
+    }
+    _document = MarkdownDocument.example(content);
+    _errorMessage = null;
+    notifyListeners();
+    return true;
   }
 
   Future<bool> openDocument() {

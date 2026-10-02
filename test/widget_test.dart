@@ -16,6 +16,63 @@ Widget _buildWorkspaceApp([DocumentRepository? repository]) {
 }
 
 void main() {
+  testWidgets('loads the bundled example and centers modes on iPad', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome.md'), findsOneWidget);
+    expect(find.textContaining('ยินดีต้อนรับสู่ Mnote'), findsOneWidget);
+    final switcher = find.byKey(const Key('workspace-mode-switcher'));
+    expect(tester.getCenter(switcher).dx, closeTo(512, 0.5));
+    expect(
+      tester.getSize(find.byKey(const Key('workspace-header'))).height,
+      68,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('document returns to full height after keyboard closes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1194, 834);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewPadding = const FakeViewPadding(bottom: 20);
+    tester.view.padding = const FakeViewPadding(bottom: 20);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp());
+    final editor = find.byKey(const Key('markdown-editor'));
+    final initialBottom = tester.getBottomLeft(editor).dy;
+    expect(834 - initialBottom, lessThan(80));
+    final surface = find.byKey(const Key('document-surface'));
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    expect(
+      tester
+          .getRect(surface)
+          .contains(
+            tester.getCenter(find.byKey(const Key('document-statistics'))),
+          ),
+      isTrue,
+    );
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    tester.view.padding = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(editor).dy, lessThanOrEqualTo(834 - 320));
+    tester.view.viewInsets = FakeViewPadding.zero;
+    tester.view.padding = const FakeViewPadding(bottom: 20);
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(editor).dy, closeTo(initialBottom, 0.1));
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    await tester.tap(find.text('แสดงผล'));
+    await tester.pumpAndSettle();
+    expect(tester.getBottomLeft(surface).dy, closeTo(834 - 20 - 8, 0.1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('gutter baseline matches the rendered editor baseline', (
     tester,
   ) async {

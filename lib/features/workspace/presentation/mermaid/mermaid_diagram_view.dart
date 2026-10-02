@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'mermaid_height_cache.dart';
 import 'mermaid_html.dart';
 import 'mermaid_html_cache.dart';
+import 'mermaid_render_session.dart';
 import 'mermaid_status_views.dart';
 
 /// วิดเจ็ตสำหรับแสดงผลไดอะแกรม Mermaid ด้วย WebView พร้อมรองรับสถานะการโหลด ข้อผิดพลาด และ fallback
@@ -36,6 +37,7 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
   bool? _lastIsDark;
   Timer? _timeoutTimer;
   int _generation = 0;
+  late final MermaidRenderSession _session;
 
   bool get _isSupported =>
       widget.webViewSupported ?? (WebViewPlatform.instance != null);
@@ -43,6 +45,12 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
   MermaidHtmlCache get _cache => widget.htmlCache ?? defaultMermaidHtmlCache;
   MermaidHeightCache get _heightCache =>
       widget.heightCache ?? defaultMermaidHeightCache;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = MermaidRenderSession(heightCache: _heightCache);
+  }
 
   @override
   void didChangeDependencies() {
@@ -120,23 +128,19 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
           final parsed = parseMermaidBridgeMessage(message.message);
           if (parsed == null) return;
 
+          final outcome = _session.handle(parsed);
+          if (outcome == null) return;
+
           _timeoutTimer?.cancel();
           if (!mounted) return;
 
           setState(() {
             _isLoading = false;
-            switch (parsed) {
-              case MermaidRendered(:final height):
-                final clampedHeight = clampMermaidHeight(height);
-                _diagramHeight = clampedHeight;
+            switch (outcome) {
+              case MermaidRenderSucceeded(:final height):
+                _diagramHeight = height;
                 _errorMessage = null;
-                _heightCache.store(
-                  isDark: _lastIsDark ?? false,
-                  source: widget.source,
-                  height: clampedHeight,
-                );
-
-              case MermaidRenderFailed(:final message):
+              case MermaidRenderErrored(:final message):
                 _errorMessage = message;
             }
           });
@@ -176,10 +180,17 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
   }
 
   Future<void> _renderDiagram() async {
-    final js = buildMermaidRenderCall(widget.source);
+    final token = _session.begin(
+      source: widget.source,
+      isDark: _lastIsDark ?? false,
+    );
+    final js = buildMermaidRenderCall(widget.source, token);
+
     try {
       await _controller?.runJavaScript(js);
     } catch (e) {
+      if (!_session.isCurrent(token)) return;
+
       _timeoutTimer?.cancel();
       if (!mounted) return;
       setState(() {

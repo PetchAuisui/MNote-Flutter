@@ -7,23 +7,51 @@ import 'package:mnote/features/workspace/presentation/mermaid/mermaid_html.dart'
 void main() {
   const fakeScript = '/* fake mermaid */';
   group('parseMermaidBridgeMessage', () {
-    test('rendered พร้อม height ตัวเลขเต็ม', () {
+    test('rendered พร้อม height ตัวเลขเต็ม และไม่มี token', () {
       final result = parseMermaidBridgeMessage(
         '{"type":"rendered","height":120}',
       );
       expect(
         result,
-        isA<MermaidRendered>().having((m) => m.height, 'height', 120.0),
+        isA<MermaidRendered>()
+            .having((m) => m.height, 'height', 120.0)
+            .having((m) => m.token, 'token', isNull),
       );
     });
 
-    test('rendered พร้อม height ทศนิยม', () {
+    test('rendered พร้อม height ทศนิยม และ token เป็น int', () {
       final result = parseMermaidBridgeMessage(
-        '{"type":"rendered","height":120.5}',
+        '{"type":"rendered","height":120.5,"token":3}',
       );
       expect(
         result,
-        isA<MermaidRendered>().having((m) => m.height, 'height', 120.5),
+        isA<MermaidRendered>()
+            .having((m) => m.height, 'height', 120.5)
+            .having((m) => m.token, 'token', 3),
+      );
+    });
+
+    test('rendered พร้อม token เป็นสตริง ต้องได้ token เป็น null', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":120,"token":"3"}',
+      );
+      expect(
+        result,
+        isA<MermaidRendered>()
+            .having((m) => m.height, 'height', 120.0)
+            .having((m) => m.token, 'token', isNull),
+      );
+    });
+
+    test('token เป็น object ต้องได้ token เป็น null แต่ยังได้ข้อความ', () {
+      final result = parseMermaidBridgeMessage(
+        '{"type":"rendered","height":100,"token":{}}',
+      );
+      expect(
+        result,
+        isA<MermaidRendered>()
+            .having((m) => m.height, 'height', 100.0)
+            .having((m) => m.token, 'token', isNull),
       );
     });
 
@@ -41,17 +69,15 @@ void main() {
       expect(result, isNull);
     });
 
-    test('error พร้อม message', () {
+    test('error พร้อม message และ token', () {
       final result = parseMermaidBridgeMessage(
-        '{"type":"error","message":"Parse error"}',
+        '{"type":"error","message":"Parse error","token":5}',
       );
       expect(
         result,
-        isA<MermaidRenderFailed>().having(
-          (m) => m.message,
-          'message',
-          'Parse error',
-        ),
+        isA<MermaidRenderFailed>()
+            .having((m) => m.message, 'message', 'Parse error')
+            .having((m) => m.token, 'token', 5),
       );
     });
 
@@ -59,11 +85,9 @@ void main() {
       final result = parseMermaidBridgeMessage('{"type":"error"}');
       expect(
         result,
-        isA<MermaidRenderFailed>().having(
-          (m) => m.message,
-          'message',
-          'Unknown render error',
-        ),
+        isA<MermaidRenderFailed>()
+            .having((m) => m.message, 'message', 'Unknown render error')
+            .having((m) => m.token, 'token', isNull),
       );
     });
 
@@ -140,6 +164,12 @@ void main() {
       expect(html, isNot(contains('http://')));
       expect(html, isNot(contains('https://')));
     });
+
+    test('มีตัวแปร latestToken และการตรวจสอบ token !== latestToken', () {
+      final html = buildMermaidHtml(mermaidScript: fakeScript, isDark: false);
+      expect(html, contains('let latestToken = 0;'));
+      expect(html, contains('token !== latestToken'));
+    });
   });
 
   group('security', () {
@@ -175,10 +205,10 @@ void main() {
   });
 
   group('buildMermaidRenderCall', () {
-    test('ผลลัพธ์ขึ้นต้นด้วย window.renderDiagram( และลงท้ายด้วย );', () {
-      final call = buildMermaidRenderCall('graph TD;');
+    test('ผลลัพธ์ขึ้นต้นด้วย window.renderDiagram( และลงท้ายด้วย , 7);', () {
+      final call = buildMermaidRenderCall('graph TD;', 7);
       expect(call.startsWith('window.renderDiagram('), isTrue);
-      expect(call.endsWith(');'), isTrue);
+      expect(call.endsWith(', 7);'), isTrue);
     });
 
     test(
@@ -186,29 +216,37 @@ void main() {
       () {
         const payload =
             'graph TD\n  A["</script><script>alert(1)</script>"] --> B \'quote\' "dq" \\\\back';
-        final call = buildMermaidRenderCall(payload);
+        final call = buildMermaidRenderCall(payload, 7);
 
         const prefix = 'window.renderDiagram(';
-        final jsonContent = call.substring(prefix.length, call.length - 2);
+        const suffix = ', 7);';
+        final jsonContent = call.substring(
+          prefix.length,
+          call.length - suffix.length,
+        );
         expect(jsonDecode(jsonContent), equals(payload));
       },
     );
 
     test('ผลลัพธ์ไม่มีการขึ้นบรรทัดใหม่จริง (\\n) อยู่ข้างใน', () {
-      final call = buildMermaidRenderCall('graph TD\n  A-->B\r\n  C-->D');
+      final call = buildMermaidRenderCall('graph TD\n  A-->B\r\n  C-->D', 7);
       expect(call.contains('\n'), isFalse);
       expect(call.contains('\r'), isFalse);
     });
 
     test('จัดการอักขระพิเศษ \\u2028 และ \\u2029 ได้ถูกต้อง', () {
       const special = 'line1 \u2028 line2 \u2029 end';
-      final call = buildMermaidRenderCall(special);
+      final call = buildMermaidRenderCall(special, 7);
 
       expect(call.contains('\u2028'), isFalse);
       expect(call.contains('\u2029'), isFalse);
 
       const prefix = 'window.renderDiagram(';
-      final jsonContent = call.substring(prefix.length, call.length - 2);
+      const suffix = ', 7);';
+      final jsonContent = call.substring(
+        prefix.length,
+        call.length - suffix.length,
+      );
       expect(jsonDecode(jsonContent), equals(special));
     });
   });

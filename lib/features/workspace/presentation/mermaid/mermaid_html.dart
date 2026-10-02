@@ -42,28 +42,41 @@ String buildMermaidHtml({required String mermaidScript, required bool isDark}) {
       });
     }
 
-    window.renderDiagram = async function (source) {
+    let latestToken = 0;
+
+    window.renderDiagram = async function (source, token) {
+      latestToken = token;
+
       if (typeof mermaid === 'undefined') {
         $mermaidChannelName.postMessage(JSON.stringify({
           type: "error",
-          message: "Mermaid library is not loaded"
+          message: "Mermaid library is not loaded",
+          token: token
         }));
         return;
       }
 
       try {
-        const { svg } = await mermaid.render('mnote-diagram', source);
+        const { svg } = await mermaid.render('mnote-diagram-' + token, source);
+        if (token !== latestToken) return;
+
         const container = document.getElementById('diagram');
+        if (!container) return;
+
         container.innerHTML = svg;
         const height = Math.ceil(container.getBoundingClientRect().height);
         $mermaidChannelName.postMessage(JSON.stringify({
           type: "rendered",
-          height: height
+          height: height,
+          token: token
         }));
       } catch (e) {
+        if (token !== latestToken) return;
+
         $mermaidChannelName.postMessage(JSON.stringify({
           type: "error",
-          message: (e && e.message) ? String(e.message) : String(e)
+          message: (e && e.message) ? String(e.message) : String(e),
+          token: token
         }));
       }
     };
@@ -72,8 +85,8 @@ String buildMermaidHtml({required String mermaidScript, required bool isDark}) {
 </html>''';
 }
 
-/// สร้างคำสั่ง JavaScript สำหรับเรียก window.renderDiagram พร้อมใส่โค้ดไดอะแกรมที่ encode ปลอดภัยแล้ว
-String buildMermaidRenderCall(String source) {
+/// สร้างคำสั่ง JavaScript สำหรับเรียก window.renderDiagram พร้อมใส่โค้ดไดอะแกรมที่ encode ปลอดภัยแล้วและ token
+String buildMermaidRenderCall(String source, int token) {
   var encoded = jsonEncode(source);
 
   // WebView รุ่นเก่าถือว่า \u2028 และ \u2029 เป็นการขึ้นบรรทัดใหม่กลางสตริง จึงต้อง escape เพิ่ม
@@ -81,24 +94,28 @@ String buildMermaidRenderCall(String source) {
       .replaceAll('\u2028', r'\u2028')
       .replaceAll('\u2029', r'\u2029');
 
-  return 'window.renderDiagram($encoded);';
+  return 'window.renderDiagram($encoded, $token);';
 }
 
 /// คลาสแม่ของข้อความที่ได้รับจาก JavaScript ผ่าน MermaidBridge
 sealed class MermaidBridgeMessage {
-  const MermaidBridgeMessage();
+  const MermaidBridgeMessage({this.token});
+
+  final int? token;
 }
 
 /// ข้อความแจ้งว่าเรนเดอร์สำเร็จ พร้อมความสูงของไดอะแกรม
 final class MermaidRendered extends MermaidBridgeMessage {
   final double height;
-  const MermaidRendered(this.height);
+
+  const MermaidRendered(this.height, {super.token});
 }
 
 /// ข้อความแจ้งว่าการเรนเดอร์ล้มเหลว พร้อมรายละเอียดข้อผิดพลาด
 final class MermaidRenderFailed extends MermaidBridgeMessage {
   final String message;
-  const MermaidRenderFailed(this.message);
+
+  const MermaidRenderFailed(this.message, {super.token});
 }
 
 /// แปลงข้อความ JSON ดิบจาก JavaScript Bridge ให้เป็น [MermaidBridgeMessage]
@@ -111,11 +128,13 @@ MermaidBridgeMessage? parseMermaidBridgeMessage(String raw) {
       return null;
     }
 
+    final token = decoded['token'] is int ? decoded['token'] as int : null;
     final type = decoded['type'];
+
     if (type == 'rendered') {
       final height = decoded['height'];
       if (height is num && height >= 0) {
-        return MermaidRendered(height.toDouble());
+        return MermaidRendered(height.toDouble(), token: token);
       }
       return null;
     }
@@ -123,9 +142,9 @@ MermaidBridgeMessage? parseMermaidBridgeMessage(String raw) {
     if (type == 'error') {
       final message = decoded['message'];
       if (message is String && message.isNotEmpty) {
-        return MermaidRenderFailed(message);
+        return MermaidRenderFailed(message, token: token);
       }
-      return const MermaidRenderFailed('Unknown render error');
+      return MermaidRenderFailed('Unknown render error', token: token);
     }
 
     return null;

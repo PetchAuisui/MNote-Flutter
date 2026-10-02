@@ -47,6 +47,7 @@ abstract final class AppTheme {
   }
 
   static TextTheme _createTextTheme(Brightness brightness, AppFontFamily font) {
+    GoogleFonts.config.allowRuntimeFetching = false;
     final base = ThemeData(brightness: brightness).textTheme;
     final TextTheme textTheme;
     switch (font) {

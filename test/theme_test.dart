@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/core/theme/app_theme.dart';
 
 void main() {
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
   group('AppTheme', () {
     test('defines the core colors matching Material Theme Builder', () {
       expect(AppTheme.primarySeed, const Color(0xFF9CB6FF));

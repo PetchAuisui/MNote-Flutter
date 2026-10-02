@@ -448,5 +448,107 @@ void main() {
     expect(txtIndex < folderIndex, isTrue);
     expect(folderIndex < mdIndex, isTrue);
   });
+
+  testWidgets('permanently deleting document deletes backing file via repository and persists metadata', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
+    final fileUri = Uri.parse('file:///data/docs/delete_me.md');
+
+    final testDoc = DocumentItem(
+      id: 'd_delete',
+      name: 'delete_me.md',
+      content: 'sample content',
+      updatedAt: DateTime(2026, 9, 21),
+      uri: fileUri,
+      isTrash: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [testDoc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Switch to trash filter
+    await tester.tap(find.text('ทั้งหมด'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ถังขยะ'));
+    await tester.pumpAndSettle();
+
+    // Verify document is in trash view
+    expect(find.text('delete_me'), findsOneWidget);
+
+    // Long press on the document card to open options
+    await tester.longPress(find.text('delete_me'));
+    await tester.pumpAndSettle();
+
+    // Tap 'ลบถาวร'
+    await tester.tap(find.text('ลบถาวร'));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog
+    expect(find.text('ลบไฟล์ถาวร?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'ลบถาวร'));
+    await tester.pumpAndSettle();
+
+    // Backing file should be deleted in repo
+    expect(fakeRepo.deletedUris, contains(fileUri));
+
+    // Metadata should have been persisted without the deleted doc
+    final savedMeta = await fakeRepo.loadMetadata();
+    expect(savedMeta, isNotNull);
+    expect(savedMeta!.documents.any((d) => d.id == 'd_delete'), isFalse);
+  });
+
+  testWidgets('persists starred and trash states across screen reloads', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
+    final docUri = Uri.parse('file:///data/docs/note1.md');
+
+    final testDoc = DocumentItem(
+      id: 'doc_1',
+      name: 'note1.md',
+      content: 'hello world',
+      updatedAt: DateTime(2026, 9, 21),
+      uri: docUri,
+    );
+
+    // First session: open NoteListScreen and star the document
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [testDoc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap star icon
+    await tester.tap(find.byIcon(Icons.star_outline_rounded));
+    await tester.pumpAndSettle();
+
+    // Verify metadata was saved with starred status
+    final meta = await fakeRepo.loadMetadata();
+    expect(meta, isNotNull);
+    expect(meta!.documents.firstWhere((d) => d.id == 'doc_1').isStarred, isTrue);
+
+    // Second session: create a new NoteListScreen without initialDocuments, it loads from metadata
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('note1'), findsOneWidget);
+    expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+  });
 }
 

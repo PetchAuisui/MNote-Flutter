@@ -52,18 +52,50 @@ class _NoteListScreenState extends State<NoteListScreen> {
     super.dispose();
   }
 
-  // ดึงไฟล์จากที่เก็บข้อมูลในเครื่องผ่าน repository
+  Future<void> _persistLibrary() async {
+    try {
+      await widget.repository.saveMetadata(
+        LibraryMetadata(
+          folders: _folders,
+          documents: _documents,
+        ),
+      );
+    } catch (_) {}
+  }
+
+  // ดึงไฟล์จากที่เก็บข้อมูลในเครื่องและโหลด persistent metadata index
   Future<void> _loadDeviceDocuments() async {
     try {
+      final savedMetadata = await widget.repository.loadMetadata();
+      if (savedMetadata != null) {
+        setState(() {
+          for (final folder in savedMetadata.folders) {
+            if (!_folders.any((f) => f.id == folder.id)) {
+              _folders.add(folder);
+            }
+          }
+          for (final doc in savedMetadata.documents) {
+            final exists = _documents.any(
+              (d) => d.id == doc.id || (doc.uri != null && d.uri == doc.uri),
+            );
+            if (!exists) {
+              _documents.add(doc);
+            }
+          }
+        });
+      }
+
       final docs = await widget.repository.listDocuments();
       if (docs.isNotEmpty) {
         setState(() {
           for (final doc in docs) {
-            final exists = _documents.any((d) => d.uri == doc.uri && d.name == doc.name);
+            final exists = _documents.any(
+              (d) => doc.uri != null && d.uri == doc.uri,
+            );
             if (!exists) {
               _documents.add(
                 DocumentItem(
-                  id: 'dev_${DateTime.now().millisecondsSinceEpoch}_${doc.name}',
+                  id: 'dev_${doc.uri.toString().hashCode.abs()}_${doc.name}',
                   name: doc.name,
                   content: doc.content,
                   updatedAt: DateTime.now(),
@@ -74,21 +106,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
           }
         });
       }
+
+      await _persistLibrary();
     } catch (_) {
       // หากยังไม่มีไฟล์ในเครื่องหรือระบบไฟล์ยังไม่พร้อม ให้ใช้ไฟล์เริ่มต้น
     }
   }
 
-  // ดึงไฟล์ภายนอกจากเครื่อง (Import / Open from Device)
+  // ดึงไฟล์ภายนอกจากเครื่อง (Import / Open from Device) โดยระบุ identity จาก URI
   Future<void> _importDocumentFromDevice() async {
     try {
       final doc = await widget.repository.open();
       if (doc == null) return;
 
-      final existingIndex = _documents.indexWhere((d) => d.name == doc.name);
+      final existingIndex = _documents.indexWhere(
+        (d) => doc.uri != null && d.uri == doc.uri,
+      );
       if (existingIndex != -1) {
         setState(() {
           _documents[existingIndex] = _documents[existingIndex].copyWith(
+            name: doc.name,
             content: doc.content,
             updatedAt: DateTime.now(),
             uri: doc.uri,
@@ -96,7 +133,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         });
       } else {
         final newDoc = DocumentItem(
-          id: 'imp_${DateTime.now().millisecondsSinceEpoch}',
+          id: 'imp_${doc.uri?.toString().hashCode.abs() ?? DateTime.now().millisecondsSinceEpoch}',
           name: doc.name,
           content: doc.content,
           updatedAt: DateTime.now(),
@@ -107,6 +144,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
           _documents.insert(0, newDoc);
         });
       }
+
+      await _persistLibrary();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -186,6 +225,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       _documents.insert(0, newDoc);
     });
 
+    await _persistLibrary();
+
     _openDocument(newDoc);
   }
 
@@ -237,12 +278,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
       );
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // เปิดเอกสารใน Workspace Page
@@ -305,10 +350,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
           );
         }
       });
+      await _persistLibrary();
     }
 
     // รีเฟรชรายการหลังปิด editor
-    _loadDeviceDocuments();
+    await _loadDeviceDocuments();
   }
 
   void _toggleFolderStar(FolderItem folder) {
@@ -318,6 +364,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _folders[index] = folder.copyWith(isStarred: !folder.isStarred);
       }
     });
+    _persistLibrary();
   }
 
   void _toggleDocumentStar(DocumentItem doc) {
@@ -327,6 +374,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _documents[index] = doc.copyWith(isStarred: !doc.isStarred);
       }
     });
+    _persistLibrary();
   }
 
   void _openSettings() {
@@ -526,6 +574,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       }
     });
 
+    _persistLibrary();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
@@ -550,6 +600,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         }
       }
     });
+
+    _persistLibrary();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -584,17 +636,30 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (confirmed != true || !mounted) return;
 
+    final childDocs = _documents.where((d) => d.folderId == folder.id).toList();
+    for (final doc in childDocs) {
+      if (doc.uri != null) {
+        try {
+          await widget.repository.delete(doc.uri!);
+        } catch (_) {}
+      }
+    }
+
     setState(() {
       _folders.removeWhere((f) => f.id == folder.id);
       _documents.removeWhere((d) => d.folderId == folder.id);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _moveToTrashDocument(DocumentItem doc) {
@@ -604,6 +669,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _documents[idx] = doc.copyWith(isTrash: true);
       }
     });
+
+    _persistLibrary();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -624,6 +691,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _documents[idx] = doc.copyWith(isTrash: false);
       }
     });
+
+    _persistLibrary();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -656,16 +725,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (confirmed != true || !mounted) return;
 
+    if (doc.uri != null) {
+      try {
+        await widget.repository.delete(doc.uri!);
+      } catch (_) {}
+    }
+
     setState(() {
       _documents.removeWhere((d) => d.id == doc.id);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _emptyTrash() async {
@@ -691,20 +770,36 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (confirmed != true || !mounted) return;
 
+    final trashedFolderIds = _folders.where((f) => f.isTrash).map((f) => f.id).toSet();
+    final trashedDocs = _documents.where(
+      (d) => d.isTrash || (d.folderId != null && trashedFolderIds.contains(d.folderId)),
+    ).toList();
+
+    for (final doc in trashedDocs) {
+      if (doc.uri != null) {
+        try {
+          await widget.repository.delete(doc.uri!);
+        } catch (_) {}
+      }
+    }
+
     setState(() {
-      final trashedFolderIds = _folders.where((f) => f.isTrash).map((f) => f.id).toSet();
       _folders.removeWhere((f) => f.isTrash);
       _documents.removeWhere(
         (d) => d.isTrash || (d.folderId != null && trashedFolderIds.contains(d.folderId)),
       );
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _handleFolderTap(FolderItem folder) async {

@@ -142,9 +142,9 @@ void main() {
     expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 64);
     expect(find.byKey(const Key('ink-tools-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-style-group')), findsOneWidget);
-    expect(find.byKey(const Key('ink-history-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
-    expect(find.byKey(const Key('ink-files-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-management-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-history-dock')), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const Key('ink-toolbar')),
@@ -163,9 +163,8 @@ void main() {
     final groupCenters = [
       'ink-tools-group',
       'ink-style-group',
-      'ink-history-group',
       'ink-page-group',
-      'ink-files-group',
+      'ink-management-group',
     ].map((key) => tester.getCenter(find.byKey(Key(key))).dx).toList();
     expect(groupCenters, orderedEquals([...groupCenters]..sort()));
 
@@ -215,7 +214,11 @@ void main() {
       find.byKey(const Key('ink-tools-group')).hitTestable(),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('ink-file-menu')).hitTestable(), findsNothing);
+    final dockRect = tester.getRect(find.byKey(const Key('ink-history-dock')));
+    expect(
+      find.byKey(const Key('ink-management-menu')).hitTestable(),
+      findsNothing,
+    );
 
     final toolbarScroll = find.descendant(
       of: find.byKey(const Key('ink-toolbar')),
@@ -225,9 +228,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('ink-file-menu')).hitTestable(),
+      find.byKey(const Key('ink-management-menu')).hitTestable(),
       findsOneWidget,
     );
+    expect(tester.getRect(find.byKey(const Key('ink-history-dock'))), dockRect);
     expect(tester.takeException(), isNull);
   });
 
@@ -248,8 +252,7 @@ void main() {
     pen.setSketch(sketch: sketch);
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('ink-clear')));
-    await tester.pumpAndSettle();
+    await _chooseInkManagementAction(tester, const Key('ink-clear'));
     expect(find.text('ล้างหมึกทั้งหมด?'), findsOneWidget);
     await tester.tap(find.text('ล้างทั้งหมด'));
     await tester.pumpAndSettle();
@@ -302,7 +305,7 @@ void main() {
       session.pen.setSketch(sketch: sketch);
 
       await tester.pumpWidget(_inkPage(session: session, storage: storage));
-      await _chooseInkFileAction(tester, const Key('ink-save'));
+      await _chooseInkManagementAction(tester, const Key('ink-save'));
 
       expect(storage.savedName, 'notes.md.ink.json');
       expect(
@@ -314,7 +317,7 @@ void main() {
       session.pen.clear();
       storage.saveResult = false;
       await tester.pump();
-      await _chooseInkFileAction(tester, const Key('ink-save'));
+      await _chooseInkManagementAction(tester, const Key('ink-save'));
 
       expect(session.isDirty, isTrue);
       expect(tester.takeException(), isNull);
@@ -333,7 +336,7 @@ void main() {
     addTearDown(target.dispose);
 
     await tester.pumpWidget(_inkPage(session: target, storage: storage));
-    await _chooseInkFileAction(tester, const Key('ink-open'));
+    await _chooseInkManagementAction(tester, const Key('ink-open'));
 
     expect(storage.openCalls, 1);
     expect(target.pen.currentSketch, sketch);
@@ -375,8 +378,11 @@ void main() {
   });
 }
 
-Future<void> _chooseInkFileAction(WidgetTester tester, Key actionKey) async {
-  await tester.tap(find.byKey(const Key('ink-file-menu')));
+Future<void> _chooseInkManagementAction(
+  WidgetTester tester,
+  Key actionKey,
+) async {
+  await tester.tap(find.byKey(const Key('ink-management-menu')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(actionKey));
   await tester.pumpAndSettle();

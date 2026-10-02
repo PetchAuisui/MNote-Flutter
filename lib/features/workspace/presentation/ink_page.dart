@@ -185,8 +185,6 @@ class _InkPageState extends State<InkPage> {
             onToolSelected: _selectTool,
             onColorSelected: _selectColor,
             onWidthSelected: _selectWidth,
-            onUndo: pen.canUndo ? pen.undo : null,
-            onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,
             onTouchChanged: () {
               setState(() => _touch = !_touch);
@@ -215,33 +213,48 @@ class _InkPageState extends State<InkPage> {
                   final size = _pageKey.currentContext?.size;
                   if (size != null) widget.session.grow(size.height);
                 });
-                return InteractiveViewer(
-                  transformationController: _transform,
-                  constrained: false,
-                  alignment: Alignment.topLeft,
-                  minScale: 0.1,
-                  maxScale: 4,
-                  panEnabled: !_touch,
-                  scaleEnabled: !_touch,
-                  onInteractionUpdate: (_) =>
-                      pen.setScaleFactor(_transform.value.getMaxScaleOnAxis()),
-                  child: SizedBox(
-                    width: InkSession.pageWidth,
-                    child: Stack(
-                      key: _pageKey,
-                      children: [
-                        MarkdownDocumentSurface(
-                          markdown: widget.markdown,
-                          height: widget.session.height,
-                          selectable: false,
-                          imageDirectory: widget.imageDirectory,
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: InteractiveViewer(
+                        transformationController: _transform,
+                        constrained: false,
+                        alignment: Alignment.topLeft,
+                        minScale: 0.1,
+                        maxScale: 4,
+                        panEnabled: !_touch,
+                        scaleEnabled: !_touch,
+                        onInteractionUpdate: (_) => pen.setScaleFactor(
+                          _transform.value.getMaxScaleOnAxis(),
                         ),
-                        Positioned.fill(
-                          child: Scribble(notifier: pen, drawPen: false),
+                        child: SizedBox(
+                          width: InkSession.pageWidth,
+                          child: Stack(
+                            key: _pageKey,
+                            children: [
+                              MarkdownDocumentSurface(
+                                markdown: widget.markdown,
+                                height: widget.session.height,
+                                selectable: false,
+                                imageDirectory: widget.imageDirectory,
+                              ),
+                              Positioned.fill(
+                                child: Scribble(notifier: pen, drawPen: false),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    PositionedDirectional(
+                      top: 12,
+                      start: 12,
+                      child: _InkHistoryDock(
+                        onUndo: pen.canUndo ? pen.undo : null,
+                        onRedo: pen.canRedo ? pen.redo : null,
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -254,7 +267,47 @@ class _InkPageState extends State<InkPage> {
 
 enum _InkTool { pen, highlighter, eraser }
 
-enum _InkFileAction { open, save }
+enum _InkManagementAction { open, save, clear }
+
+class _InkHistoryDock extends StatelessWidget {
+  const _InkHistoryDock({required this.onUndo, required this.onRedo});
+
+  final VoidCallback? onUndo;
+  final VoidCallback? onRedo;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('ink-history-dock'),
+      color: colors.inverseSurface,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: const Key('ink-undo'),
+            tooltip: 'ย้อนกลับหมึก',
+            color: colors.onInverseSurface,
+            disabledColor: colors.onInverseSurface.withValues(alpha: 0.38),
+            onPressed: onUndo,
+            icon: const Icon(Icons.undo),
+          ),
+          IconButton(
+            key: const Key('ink-redo'),
+            tooltip: 'ทำซ้ำหมึก',
+            color: colors.onInverseSurface,
+            disabledColor: colors.onInverseSurface.withValues(alpha: 0.38),
+            onPressed: onRedo,
+            icon: const Icon(Icons.redo),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _InkToolbar extends StatelessWidget {
   const _InkToolbar({
@@ -266,8 +319,6 @@ class _InkToolbar extends StatelessWidget {
     required this.onToolSelected,
     required this.onColorSelected,
     required this.onWidthSelected,
-    required this.onUndo,
-    required this.onRedo,
     required this.onClear,
     required this.onTouchChanged,
     required this.onFit,
@@ -285,8 +336,6 @@ class _InkToolbar extends StatelessWidget {
   final ValueChanged<_InkTool> onToolSelected;
   final ValueChanged<Color> onColorSelected;
   final ValueChanged<double> onWidthSelected;
-  final VoidCallback? onUndo;
-  final VoidCallback? onRedo;
   final VoidCallback? onClear;
   final VoidCallback onTouchChanged;
   final VoidCallback onFit;
@@ -398,32 +447,6 @@ class _InkToolbar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _InkToolbarGroup(
-                      key: const Key('ink-history-group'),
-                      label: 'ประวัติการแก้ไข',
-                      children: [
-                        IconButton(
-                          key: const Key('ink-undo'),
-                          tooltip: 'ย้อนกลับหมึก',
-                          onPressed: onUndo,
-                          icon: const Icon(Icons.undo),
-                        ),
-                        IconButton(
-                          key: const Key('ink-redo'),
-                          tooltip: 'ทำซ้ำหมึก',
-                          onPressed: onRedo,
-                          icon: const Icon(Icons.redo),
-                        ),
-                        IconButton(
-                          key: const Key('ink-clear'),
-                          tooltip: 'ล้างหมึกทั้งหมด',
-                          color: onClear == null ? null : colors.error,
-                          onPressed: onClear,
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    _InkToolbarGroup(
                       key: const Key('ink-page-group'),
                       label: 'การควบคุมหน้า',
                       children: [
@@ -453,26 +476,28 @@ class _InkToolbar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _InkToolbarGroup(
-                      key: const Key('ink-files-group'),
-                      label: 'ไฟล์หมึก',
+                      key: const Key('ink-management-group'),
+                      label: 'จัดการหมึก',
                       color: colors.secondaryContainer.withValues(alpha: 0.55),
                       children: [
-                        PopupMenuButton<_InkFileAction>(
-                          key: const Key('ink-file-menu'),
-                          tooltip: 'ไฟล์หมึก',
+                        PopupMenuButton<_InkManagementAction>(
+                          key: const Key('ink-management-menu'),
+                          tooltip: 'จัดการหมึก',
                           enabled: !busy,
                           onSelected: (action) {
                             switch (action) {
-                              case _InkFileAction.open:
+                              case _InkManagementAction.open:
                                 onOpen();
-                              case _InkFileAction.save:
+                              case _InkManagementAction.save:
                                 onSave();
+                              case _InkManagementAction.clear:
+                                onClear?.call();
                             }
                           },
                           itemBuilder: (context) => [
                             const PopupMenuItem(
                               key: Key('ink-open'),
-                              value: _InkFileAction.open,
+                              value: _InkManagementAction.open,
                               child: ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: Icon(Icons.folder_open_outlined),
@@ -481,13 +506,34 @@ class _InkToolbar extends StatelessWidget {
                             ),
                             PopupMenuItem(
                               key: const Key('ink-save'),
-                              value: _InkFileAction.save,
+                              value: _InkManagementAction.save,
                               child: ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: Icon(
                                   isDirty ? Icons.save_as : Icons.save_outlined,
                                 ),
                                 title: const Text('บันทึกไฟล์หมึก'),
+                              ),
+                            ),
+                            const PopupMenuDivider(),
+                            PopupMenuItem(
+                              key: const Key('ink-clear'),
+                              value: _InkManagementAction.clear,
+                              enabled: onClear != null,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  Icons.delete_outline,
+                                  color: onClear == null ? null : colors.error,
+                                ),
+                                title: Text(
+                                  'ล้างหมึกทั้งหมด',
+                                  style: TextStyle(
+                                    color: onClear == null
+                                        ? null
+                                        : colors.error,
+                                  ),
+                                ),
                               ),
                             ),
                           ],

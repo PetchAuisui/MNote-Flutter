@@ -139,7 +139,21 @@ void main() {
       tester.widget<IconButton>(find.byKey(const Key('ink-pen'))).isSelected,
       isTrue,
     );
-    expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 56);
+    expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 64);
+    expect(find.byKey(const Key('ink-tools-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-style-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-history-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
+    expect(find.byKey(const Key('ink-files-group')), findsOneWidget);
+
+    final groupCenters = [
+      'ink-tools-group',
+      'ink-style-group',
+      'ink-history-group',
+      'ink-page-group',
+      'ink-files-group',
+    ].map((key) => tester.getCenter(find.byKey(Key(key))).dx).toList();
+    expect(groupCenters, orderedEquals([...groupCenters]..sort()));
 
     await tester.tap(find.byKey(const Key('ink-eraser')));
     await tester.pump();
@@ -169,6 +183,34 @@ void main() {
     await tester.tap(find.text('เส้นหนา'));
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ink toolbar stays usable on a compact phone', (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(
+      _inkPage(session: session, storage: FakeInkFileStorage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('ink-tools-group')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('ink-save')).hitTestable(), findsNothing);
+
+    final toolbarScroll = find.descendant(
+      of: find.byKey(const Key('ink-toolbar')),
+      matching: find.byType(SingleChildScrollView),
+    );
+    await tester.drag(toolbarScroll, const Offset(-700, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('ink-save')).hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

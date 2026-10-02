@@ -308,133 +308,171 @@ class _InkToolbar extends StatelessWidget {
       key: const Key('ink-toolbar'),
       color: colors.surfaceContainerLow,
       child: SizedBox(
-        height: 56,
+        height: 64,
         width: double.infinity,
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _toolButton(
-                    key: const Key('ink-pen'),
-                    tooltip: 'ปากกา',
-                    icon: const Icon(Icons.edit_outlined),
-                    selectedIcon: const Icon(Icons.edit),
-                    selected: selectedTool == _InkTool.pen,
-                    onPressed: () => onToolSelected(_InkTool.pen),
-                  ),
-                  _toolButton(
-                    key: const Key('ink-highlighter'),
-                    tooltip: 'ปากกาไฮไลต์',
-                    icon: const _HighlighterIcon(),
-                    selectedIcon: const _HighlighterIcon(),
-                    selected: selectedTool == _InkTool.highlighter,
-                    onPressed: () => onToolSelected(_InkTool.highlighter),
-                  ),
-                  _toolButton(
-                    key: const Key('ink-eraser'),
-                    tooltip: 'ยางลบทั้งเส้น',
-                    icon: const _EraserIcon(),
-                    selectedIcon: const _EraserIcon(filled: true),
-                    selected: selectedTool == _InkTool.eraser,
-                    onPressed: () => onToolSelected(_InkTool.eraser),
-                  ),
-                  const _InkToolbarDivider(),
-                  PopupMenuButton<Color>(
-                    key: const Key('ink-color'),
-                    tooltip: 'เลือกสีปากกา',
-                    initialValue: penColor,
-                    onSelected: onColorSelected,
-                    itemBuilder: (context) => [
-                      for (final color in _colors)
-                        PopupMenuItem(
-                          value: color,
-                          child: Row(
-                            children: [
-                              Icon(Icons.circle, color: color),
-                              const SizedBox(width: 12),
-                              Text(_colorName(color)),
-                              if (color == penColor) ...[
-                                const Spacer(),
-                                const Icon(Icons.check),
-                              ],
-                            ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _InkToolbarGroup(
+                      key: const Key('ink-tools-group'),
+                      label: 'เครื่องมือวาด',
+                      color: colors.primaryContainer.withValues(alpha: 0.45),
+                      children: [
+                        _toolButton(
+                          key: const Key('ink-pen'),
+                          tooltip: 'ปากกา',
+                          icon: const Icon(Icons.edit_outlined),
+                          selectedIcon: const Icon(Icons.edit),
+                          selected: selectedTool == _InkTool.pen,
+                          onPressed: () => onToolSelected(_InkTool.pen),
+                        ),
+                        _toolButton(
+                          key: const Key('ink-highlighter'),
+                          tooltip: 'ปากกาไฮไลต์',
+                          icon: const _HighlighterIcon(),
+                          selectedIcon: const _HighlighterIcon(),
+                          selected: selectedTool == _InkTool.highlighter,
+                          onPressed: () => onToolSelected(_InkTool.highlighter),
+                        ),
+                        _toolButton(
+                          key: const Key('ink-eraser'),
+                          tooltip: 'ยางลบทั้งเส้น',
+                          icon: const _EraserIcon(),
+                          selectedIcon: const _EraserIcon(filled: true),
+                          selected: selectedTool == _InkTool.eraser,
+                          onPressed: () => onToolSelected(_InkTool.eraser),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    _InkToolbarGroup(
+                      key: const Key('ink-style-group'),
+                      label: 'รูปแบบเส้น',
+                      children: [
+                        PopupMenuButton<Color>(
+                          key: const Key('ink-color'),
+                          tooltip: 'เลือกสีปากกา',
+                          initialValue: penColor,
+                          onSelected: onColorSelected,
+                          itemBuilder: (context) => [
+                            for (final color in _colors)
+                              PopupMenuItem(
+                                value: color,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.circle, color: color),
+                                    const SizedBox(width: 12),
+                                    Text(_colorName(color)),
+                                    if (color == penColor) ...[
+                                      const Spacer(),
+                                      const Icon(Icons.check),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                          ],
+                          icon: Icon(Icons.circle, color: penColor, size: 22),
+                        ),
+                        PopupMenuButton<double>(
+                          key: const Key('ink-width'),
+                          tooltip: 'เลือกความหนาปากกา',
+                          initialValue: penWidth,
+                          onSelected: onWidthSelected,
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(value: 3, child: Text('เส้นบาง')),
+                            PopupMenuItem(value: 6, child: Text('เส้นกลาง')),
+                            PopupMenuItem(value: 12, child: Text('เส้นหนา')),
+                          ],
+                          icon: const Icon(Icons.line_weight),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    _InkToolbarGroup(
+                      key: const Key('ink-history-group'),
+                      label: 'ประวัติการแก้ไข',
+                      children: [
+                        IconButton(
+                          key: const Key('ink-undo'),
+                          tooltip: 'ย้อนกลับหมึก',
+                          onPressed: onUndo,
+                          icon: const Icon(Icons.undo),
+                        ),
+                        IconButton(
+                          key: const Key('ink-redo'),
+                          tooltip: 'ทำซ้ำหมึก',
+                          onPressed: onRedo,
+                          icon: const Icon(Icons.redo),
+                        ),
+                        IconButton(
+                          key: const Key('ink-clear'),
+                          tooltip: 'ล้างหมึกทั้งหมด',
+                          color: onClear == null ? null : colors.error,
+                          onPressed: onClear,
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    _InkToolbarGroup(
+                      key: const Key('ink-page-group'),
+                      label: 'การควบคุมหน้า',
+                      children: [
+                        _toolButton(
+                          key: const Key('ink-touch'),
+                          tooltip: touchEnabled
+                              ? 'ใช้นิ้วเขียนอยู่'
+                              : 'Apple Pencil เขียน · นิ้วเลื่อนหน้า',
+                          icon: const Icon(Icons.touch_app_outlined),
+                          selectedIcon: const Icon(Icons.touch_app),
+                          selected: touchEnabled,
+                          onPressed: onTouchChanged,
+                        ),
+                        IconButton(
+                          key: const Key('ink-fit'),
+                          tooltip: 'พอดีความกว้าง',
+                          onPressed: onFit,
+                          icon: const Icon(Icons.fit_screen),
+                        ),
+                        IconButton(
+                          key: const Key('ink-grow'),
+                          tooltip: 'เพิ่มพื้นที่ด้านล่าง',
+                          onPressed: onGrow,
+                          icon: const Icon(Icons.vertical_align_bottom),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    _InkToolbarGroup(
+                      key: const Key('ink-files-group'),
+                      label: 'ไฟล์หมึก',
+                      color: colors.secondaryContainer.withValues(alpha: 0.55),
+                      children: [
+                        IconButton(
+                          key: const Key('ink-open'),
+                          tooltip: 'เปิดไฟล์หมึก',
+                          onPressed: busy ? null : onOpen,
+                          icon: const Icon(Icons.folder_open_outlined),
+                        ),
+                        IconButton.filledTonal(
+                          key: const Key('ink-save'),
+                          tooltip: 'บันทึกไฟล์หมึก',
+                          onPressed: busy ? null : onSave,
+                          icon: Icon(
+                            isDirty ? Icons.save_as : Icons.save_outlined,
                           ),
                         ),
-                    ],
-                    icon: Icon(Icons.circle, color: penColor, size: 22),
-                  ),
-                  PopupMenuButton<double>(
-                    key: const Key('ink-width'),
-                    tooltip: 'เลือกความหนาปากกา',
-                    initialValue: penWidth,
-                    onSelected: onWidthSelected,
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 3, child: Text('เส้นบาง')),
-                      PopupMenuItem(value: 6, child: Text('เส้นกลาง')),
-                      PopupMenuItem(value: 12, child: Text('เส้นหนา')),
-                    ],
-                    icon: const Icon(Icons.line_weight),
-                  ),
-                  const _InkToolbarDivider(),
-                  IconButton(
-                    key: const Key('ink-undo'),
-                    tooltip: 'ย้อนกลับหมึก',
-                    onPressed: onUndo,
-                    icon: const Icon(Icons.undo),
-                  ),
-                  IconButton(
-                    key: const Key('ink-redo'),
-                    tooltip: 'ทำซ้ำหมึก',
-                    onPressed: onRedo,
-                    icon: const Icon(Icons.redo),
-                  ),
-                  IconButton(
-                    key: const Key('ink-clear'),
-                    tooltip: 'ล้างหมึกทั้งหมด',
-                    onPressed: onClear,
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                  const _InkToolbarDivider(),
-                  _toolButton(
-                    key: const Key('ink-touch'),
-                    tooltip: touchEnabled
-                        ? 'ใช้นิ้วเขียนอยู่'
-                        : 'Apple Pencil เขียน · นิ้วเลื่อนหน้า',
-                    icon: const Icon(Icons.touch_app_outlined),
-                    selectedIcon: const Icon(Icons.touch_app),
-                    selected: touchEnabled,
-                    onPressed: onTouchChanged,
-                  ),
-                  IconButton(
-                    key: const Key('ink-fit'),
-                    tooltip: 'พอดีความกว้าง',
-                    onPressed: onFit,
-                    icon: const Icon(Icons.fit_screen),
-                  ),
-                  IconButton(
-                    key: const Key('ink-grow'),
-                    tooltip: 'เพิ่มพื้นที่ด้านล่าง',
-                    onPressed: onGrow,
-                    icon: const Icon(Icons.vertical_align_bottom),
-                  ),
-                  const _InkToolbarDivider(),
-                  IconButton(
-                    key: const Key('ink-open'),
-                    tooltip: 'เปิดไฟล์หมึก',
-                    onPressed: busy ? null : onOpen,
-                    icon: const Icon(Icons.folder_open_outlined),
-                  ),
-                  IconButton(
-                    key: const Key('ink-save'),
-                    tooltip: 'บันทึกไฟล์หมึก',
-                    onPressed: busy ? null : onSave,
-                    icon: Icon(isDirty ? Icons.save_as : Icons.save_outlined),
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -466,6 +504,35 @@ class _InkToolbar extends StatelessWidget {
     0xFF237A3B => 'เขียว',
     _ => 'ม่วง',
   };
+}
+
+class _InkToolbarGroup extends StatelessWidget {
+  const _InkToolbarGroup({
+    super.key,
+    required this.label,
+    required this.children,
+    this.color,
+  });
+
+  final String label;
+  final List<Widget> children;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      label: label,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color ?? colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
+  }
 }
 
 class _HighlighterIcon extends StatelessWidget {
@@ -584,14 +651,4 @@ class _EraserIconPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EraserIconPainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.filled != filled;
-}
-
-class _InkToolbarDivider extends StatelessWidget {
-  const _InkToolbarDivider();
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 24,
-    child: VerticalDivider(color: Theme.of(context).colorScheme.outlineVariant),
-  );
 }

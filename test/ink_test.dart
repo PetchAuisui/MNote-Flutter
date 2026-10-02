@@ -145,6 +145,20 @@ void main() {
     expect(find.byKey(const Key('ink-history-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-files-group')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('ink-toolbar')),
+        matching: find.byIcon(Icons.folder_open_outlined),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('ink-toolbar')),
+        matching: find.byIcon(Icons.save_outlined),
+      ),
+      findsNothing,
+    );
 
     final groupCenters = [
       'ink-tools-group',
@@ -201,7 +215,7 @@ void main() {
       find.byKey(const Key('ink-tools-group')).hitTestable(),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('ink-save')).hitTestable(), findsNothing);
+    expect(find.byKey(const Key('ink-file-menu')).hitTestable(), findsNothing);
 
     final toolbarScroll = find.descendant(
       of: find.byKey(const Key('ink-toolbar')),
@@ -210,7 +224,10 @@ void main() {
     await tester.drag(toolbarScroll, const Offset(-700, 0));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('ink-save')).hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const Key('ink-file-menu')).hitTestable(),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -285,8 +302,7 @@ void main() {
       session.pen.setSketch(sketch: sketch);
 
       await tester.pumpWidget(_inkPage(session: session, storage: storage));
-      await tester.tap(find.byKey(const Key('ink-save')));
-      await tester.pumpAndSettle();
+      await _chooseInkFileAction(tester, const Key('ink-save'));
 
       expect(storage.savedName, 'notes.md.ink.json');
       expect(
@@ -298,8 +314,7 @@ void main() {
       session.pen.clear();
       storage.saveResult = false;
       await tester.pump();
-      await tester.tap(find.byKey(const Key('ink-save')));
-      await tester.pumpAndSettle();
+      await _chooseInkFileAction(tester, const Key('ink-save'));
 
       expect(session.isDirty, isTrue);
       expect(tester.takeException(), isNull);
@@ -318,8 +333,7 @@ void main() {
     addTearDown(target.dispose);
 
     await tester.pumpWidget(_inkPage(session: target, storage: storage));
-    await tester.tap(find.byKey(const Key('ink-open')));
-    await tester.pumpAndSettle();
+    await _chooseInkFileAction(tester, const Key('ink-open'));
 
     expect(storage.openCalls, 1);
     expect(target.pen.currentSketch, sketch);
@@ -359,6 +373,13 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _chooseInkFileAction(WidgetTester tester, Key actionKey) async {
+  await tester.tap(find.byKey(const Key('ink-file-menu')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(actionKey));
+  await tester.pumpAndSettle();
 }
 
 Widget _inkPage({

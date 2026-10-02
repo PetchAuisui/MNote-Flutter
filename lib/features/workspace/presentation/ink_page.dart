@@ -254,6 +254,8 @@ class _InkPageState extends State<InkPage> {
 
 enum _InkTool { pen, highlighter, eraser }
 
+enum _InkFileAction { open, save }
+
 class _InkToolbar extends StatelessWidget {
   const _InkToolbar({
     required this.selectedTool,
@@ -455,18 +457,43 @@ class _InkToolbar extends StatelessWidget {
                       label: 'ไฟล์หมึก',
                       color: colors.secondaryContainer.withValues(alpha: 0.55),
                       children: [
-                        IconButton(
-                          key: const Key('ink-open'),
-                          tooltip: 'เปิดไฟล์หมึก',
-                          onPressed: busy ? null : onOpen,
-                          icon: const Icon(Icons.folder_open_outlined),
-                        ),
-                        IconButton.filledTonal(
-                          key: const Key('ink-save'),
-                          tooltip: 'บันทึกไฟล์หมึก',
-                          onPressed: busy ? null : onSave,
-                          icon: Icon(
-                            isDirty ? Icons.save_as : Icons.save_outlined,
+                        PopupMenuButton<_InkFileAction>(
+                          key: const Key('ink-file-menu'),
+                          tooltip: 'ไฟล์หมึก',
+                          enabled: !busy,
+                          onSelected: (action) {
+                            switch (action) {
+                              case _InkFileAction.open:
+                                onOpen();
+                              case _InkFileAction.save:
+                                onSave();
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              key: Key('ink-open'),
+                              value: _InkFileAction.open,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.folder_open_outlined),
+                                title: Text('เปิดไฟล์หมึก'),
+                              ),
+                            ),
+                            PopupMenuItem(
+                              key: const Key('ink-save'),
+                              value: _InkFileAction.save,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  isDirty ? Icons.save_as : Icons.save_outlined,
+                                ),
+                                title: const Text('บันทึกไฟล์หมึก'),
+                              ),
+                            ),
+                          ],
+                          icon: Badge(
+                            isLabelVisible: isDirty,
+                            child: const Icon(Icons.layers_outlined),
                           ),
                         ),
                       ],

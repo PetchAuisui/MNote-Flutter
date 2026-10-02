@@ -9,7 +9,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'Hello');
     await tester.pump();
@@ -38,7 +41,10 @@ void main() {
 
   testWidgets('shows the empty Markdown workspace', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     expect(find.text('Untitled.md'), findsOneWidget);
@@ -66,7 +72,10 @@ void main() {
 
   testWidgets('undoes and redoes editor changes', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     final editorFinder = find.byKey(const Key('markdown-editor'));
     await tester.tap(editorFinder);
@@ -95,7 +104,10 @@ void main() {
 
   testWidgets('undoes a formatting toolbar action', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     final editorFinder = find.byKey(const Key('markdown-editor'));
     await tester.tap(editorFinder);
@@ -120,7 +132,10 @@ void main() {
 
   testWidgets('applies a heading level to the current line', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -140,7 +155,10 @@ void main() {
 
   testWidgets('supports four Markdown heading levels', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -160,7 +178,10 @@ void main() {
 
   testWidgets('formats multiple selected lines as a list', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -186,7 +207,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -210,7 +234,10 @@ void main() {
 
   testWidgets('indents and outdents a nested list item', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(
       find.byKey(const Key('markdown-editor')),
@@ -242,7 +269,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
     await tester.enterText(find.byKey(const Key('markdown-editor')), 'first');
 
@@ -259,7 +289,10 @@ void main() {
 
   testWidgets('updates line numbers while editing Markdown', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     await tester.enterText(
@@ -274,7 +307,10 @@ void main() {
 
   testWidgets('renames a document from the app bar', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     await tester.tap(find.byKey(const Key('document-title')));
@@ -293,7 +329,10 @@ void main() {
 
   testWidgets('edits Markdown and renders a preview', (tester) async {
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     await tester.enterText(
@@ -315,7 +354,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
@@ -345,7 +387,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MnoteApp(documentRepository: FakeDocumentRepository()),
+      MnoteApp(
+        documentRepository: FakeDocumentRepository(),
+        skipAuth: true,
+      ),
     );
 
     expect(find.byKey(const Key('toolbar-bold')), findsOneWidget);

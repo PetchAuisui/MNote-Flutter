@@ -7,6 +7,7 @@ import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
 import 'markdown_document_canvas.dart';
+import 'mermaid/mermaid_element_builder.dart';
 
 class InkPage extends StatefulWidget {
   const InkPage({
@@ -235,6 +236,7 @@ class _InkPageState extends State<InkPage> {
                           height: widget.session.height,
                           selectable: false,
                           imageDirectory: widget.imageDirectory,
+                          builders: {'code': MermaidElementBuilder()},
                         ),
                         Positioned.fill(
                           child: Scribble(notifier: pen, drawPen: false),

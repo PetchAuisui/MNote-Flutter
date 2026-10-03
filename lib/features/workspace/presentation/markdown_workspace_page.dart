@@ -6,6 +6,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
+import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ink_page.dart';
@@ -35,7 +36,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   );
 
   late final WorkspaceController _workspace;
-  late final TextEditingController _textController;
+  late final ObsidianMarkdownEditingController _textController;
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
@@ -51,12 +52,20 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       widget.repository,
       initialDocument: widget.initialDocument,
     )..addListener(_onWorkspaceChanged);
-    _textController = TextEditingController(text: _workspace.document.content);
+    _textController = ObsidianMarkdownEditingController(
+      text: _workspace.document.content,
+    );
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
     _loadBundledExample();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _textController.primaryColor = Theme.of(context).colorScheme.primary;
   }
 
   Future<void> _loadBundledExample() async {
@@ -500,7 +509,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           children: [
             if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
             _buildWorkspaceHeader(document),
-            if (_workspace.mode == WorkspaceMode.edit)
+            if (_workspace.mode == WorkspaceMode.edit ||
+                _workspace.mode == WorkspaceMode.split)
               _buildFormattingToolbar(),
             Expanded(
               child: Padding(
@@ -519,6 +529,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       Expanded(
                         child: _workspace.mode == WorkspaceMode.edit
                             ? _buildEditor()
+                            : _workspace.mode == WorkspaceMode.split
+                            ? _buildSplitView()
                             : _workspace.mode == WorkspaceMode.ink
                             ? InkPage(
                                 key: ObjectKey(_ink),
@@ -535,7 +547,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
-                              '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                              _workspace.mode == WorkspaceMode.split
+                                  ? 'รวมจอ (Obsidian Split) · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                  : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
                               key: const Key('document-statistics'),
                               maxLines: 1,
                               textAlign: TextAlign.end,
@@ -556,6 +570,48 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     ),
   );
 }
+
+  Widget _buildSplitView() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final isCompact = constraints.maxWidth < 680;
+
+        if (isCompact) {
+          return Column(
+            children: [
+              Expanded(flex: 1, child: _buildEditor()),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              Expanded(flex: 1, child: _buildPreview()),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 1,
+              child: _buildEditor(),
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            Expanded(
+              flex: 1,
+              child: _buildPreview(),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildWorkspaceHeader(MarkdownDocument document) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -592,6 +648,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               ),
             );
           }
+          final centerGap = constraints.maxWidth >= 960 ? 430.0 : 380.0;
           return SizedBox(
             height: 68,
             child: Stack(
@@ -613,7 +670,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           child: title,
                         ),
                       ),
-                      const SizedBox(width: 340),
+                      SizedBox(width: centerGap),
                       Expanded(
                         child: Align(
                           alignment: Alignment.centerRight,
@@ -703,12 +760,24 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return SegmentedButton<WorkspaceMode>(
       key: const Key('workspace-mode-switcher'),
       showSelectedIcon: false,
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 10),
+        ),
+      ),
       segments: [
         ButtonSegment(
           value: WorkspaceMode.edit,
           icon: const Icon(Icons.edit_outlined),
           label: compact ? null : const Text('แก้ไข'),
-          tooltip: 'แก้ไข Markdown',
+          tooltip: 'แก้ไข Markdown (Live Preview)',
+        ),
+        ButtonSegment(
+          value: WorkspaceMode.split,
+          icon: const Icon(Icons.vertical_split_outlined),
+          label: compact ? null : const Text('รวมจอ'),
+          tooltip: 'รวม Preview กับ Code (Obsidian Split)',
         ),
         ButtonSegment(
           value: WorkspaceMode.preview,
@@ -987,9 +1056,10 @@ class _LineNumberPainter extends CustomPainter {
     var lineTop = _topPadding - _scrollOffset;
 
     for (var index = 0; index < lines.length; index++) {
+      final lineStyle = _headingStyleForLine(lines[index], editorStyle);
       final editorPainter = _textPainter(
         lines[index].isEmpty ? ' ' : lines[index],
-        editorStyle,
+        lineStyle,
       )..layout(maxWidth: textWidth);
       final editorMetrics = editorPainter.computeLineMetrics();
       final editorBaseline = editorMetrics.isEmpty
@@ -1042,8 +1112,39 @@ class _LineNumberPainter extends CustomPainter {
   }
 
   double get _scrollOffset {
-    if (!scrollController.hasClients) return 0;
+    if (!scrollController.hasClients || scrollController.positions.length != 1) {
+      return 0;
+    }
     return scrollController.offset;
+  }
+
+  static TextStyle _headingStyleForLine(String line, TextStyle baseStyle) {
+    if (line.startsWith('#')) {
+      final match = RegExp(r'^(#{1,6})\s+').firstMatch(line);
+      if (match != null) {
+        final level = match.group(1)!.length;
+        final double factor;
+        switch (level) {
+          case 1:
+            factor = 1.35;
+            break;
+          case 2:
+            factor = 1.22;
+            break;
+          case 3:
+            factor = 1.12;
+            break;
+          default:
+            factor = 1.05;
+            break;
+        }
+        return baseStyle.copyWith(
+          fontSize: (baseStyle.fontSize ?? 15) * factor,
+          fontWeight: FontWeight.bold,
+        );
+      }
+    }
+    return baseStyle;
   }
 
   @override

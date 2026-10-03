@@ -130,6 +130,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('zoom scales ink only once with the document', (tester) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp());
+    await tester.tap(find.text('จด'));
+    await tester.pumpAndSettle();
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    final controller = viewer.transformationController!;
+    final initialScale = controller.value.getMaxScaleOnAxis();
+    final center = tester.getCenter(find.byType(InteractiveViewer));
+    final first = await tester.startGesture(
+      center - const Offset(50, 0),
+      kind: PointerDeviceKind.touch,
+    );
+    final second = await tester.startGesture(
+      center + const Offset(50, 0),
+      kind: PointerDeviceKind.touch,
+    );
+    await tester.pump();
+    await first.moveTo(center - const Offset(150, 0));
+    await second.moveTo(center + const Offset(150, 0));
+    await tester.pump();
+
+    final pen = tester.widget<Scribble>(find.byType(Scribble)).notifier;
+    expect(controller.value.getMaxScaleOnAxis(), greaterThan(initialScale));
+    expect(pen.value.scaleFactor, 1);
+
+    await first.up();
+    await second.up();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ink toolbar switches drawing tools and pen settings', (
     tester,
   ) async {

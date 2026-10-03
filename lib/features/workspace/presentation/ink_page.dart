@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
@@ -54,7 +55,6 @@ class _InkPageState extends State<InkPage> {
   void _fit() {
     final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 4.0);
     _transform.value = Matrix4.diagonal3Values(scale, scale, 1);
-    widget.session.pen.setScaleFactor(scale);
   }
 
   void _selectTool(_InkTool tool) {
@@ -224,8 +224,8 @@ class _InkPageState extends State<InkPage> {
                   maxScale: 4,
                   panEnabled: !_touch,
                   scaleEnabled: !_touch,
-                  onInteractionUpdate: (_) =>
-                      pen.setScaleFactor(_transform.value.getMaxScaleOnAxis()),
+                  // InteractiveViewer already scales the complete page. Keep
+                  // Scribble's scale at 1 so stroke width is not scaled twice.
                   child: SizedBox(
                     width: InkSession.pageWidth,
                     child: Stack(
@@ -352,7 +352,7 @@ class _InkToolbar extends StatelessWidget {
       key: const Key('ink-toolbar'),
       color: colors.surfaceContainerLow,
       child: SizedBox(
-        height: 64,
+        height: workspaceToolbarHeight,
         width: double.infinity,
         child: Row(
           children: [

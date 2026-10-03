@@ -38,6 +38,10 @@ class MarkdownDocumentSurface extends StatelessWidget {
     ).copyWith(scaffoldBackgroundColor: Colors.white);
     final colors = documentTheme.colorScheme;
     final markdownStyle = MarkdownStyleSheet.fromTheme(documentTheme).copyWith(
+      h1: (documentTheme.textTheme.headlineMedium ?? const TextStyle()).copyWith(
+        fontWeight: FontWeight.bold,
+        color: colors.onSurface,
+      ),
       blockquoteDecoration: BoxDecoration(
         color: colors.primaryContainer,
         borderRadius: BorderRadius.circular(8),

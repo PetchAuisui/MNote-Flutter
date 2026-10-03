@@ -65,6 +65,21 @@ abstract final class AppTheme {
         break;
     }
     return textTheme.copyWith(
+      headlineLarge: textTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
+        height: 1.3,
+      ),
+      headlineMedium: textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.4,
+        height: 1.3,
+      ),
+      headlineSmall: textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.3,
+        height: 1.3,
+      ),
       titleLarge: textTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.bold,
         letterSpacing: -0.3,

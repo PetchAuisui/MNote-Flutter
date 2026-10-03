@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 
 class MarkdownFormattingToolbar extends StatelessWidget {
   const MarkdownFormattingToolbar({
@@ -46,6 +47,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Material(
+        key: const Key('markdown-toolbar-surface'),
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
@@ -55,6 +57,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.all(8),
               child: SizedBox(
+                height: workspaceToolbarControlSize,
                 width: double.infinity,
                 child: Row(
                   key: const Key('markdown-formatting-toolbar'),
@@ -329,11 +332,11 @@ class _ToolbarActionButton extends StatelessWidget {
           ? TextButton.icon(
               key: buttonKey,
               onPressed: onPressed,
-              icon: Icon(icon, size: 19),
+              icon: Icon(icon, size: workspaceToolbarIconSize),
               label: Text(label),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                minimumSize: const Size(48, 48),
+                minimumSize: workspaceToolbarControlConstraints,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             )
@@ -341,8 +344,11 @@ class _ToolbarActionButton extends StatelessWidget {
               key: buttonKey,
               onPressed: onPressed,
               tooltip: tooltip ?? label,
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: Icon(icon, size: 21),
+              constraints: const BoxConstraints.tightFor(
+                width: workspaceToolbarControlSize,
+                height: workspaceToolbarControlSize,
+              ),
+              icon: Icon(icon, size: workspaceToolbarIconSize),
             ),
     );
   }
@@ -388,7 +394,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         color: colorScheme.surfaceContainer,
         child: Container(
-          height: 48,
+          height: workspaceToolbarControlSize,
           padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
           decoration: ShapeDecoration(
             color: Colors.transparent,
@@ -397,7 +403,11 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 21, color: colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: workspaceToolbarIconSize,
+                color: colorScheme.onSurfaceVariant,
+              ),
               if (showLabel) ...[
                 const SizedBox(width: 8),
                 Text(

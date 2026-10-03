@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
@@ -352,7 +353,7 @@ class _InkToolbar extends StatelessWidget {
       key: const Key('ink-toolbar'),
       color: colors.surfaceContainerLow,
       child: SizedBox(
-        height: 64,
+        height: workspaceToolbarHeight,
         width: double.infinity,
         child: Row(
           children: [

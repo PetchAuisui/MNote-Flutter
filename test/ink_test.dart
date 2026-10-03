@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
@@ -13,7 +13,9 @@ import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
+
 import 'helpers/fakes.dart';
 
 Widget _buildWorkspaceApp([DocumentRepository? repository]) {
@@ -135,6 +137,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_buildWorkspaceApp());
+    final markdownToolbarHeight = tester
+        .getSize(find.byKey(const Key('markdown-toolbar-surface')))
+        .height;
     await tester.tap(find.text('จด'));
     await tester.pumpAndSettle();
 
@@ -143,7 +148,11 @@ void main() {
       tester.widget<IconButton>(find.byKey(const Key('ink-pen'))).isSelected,
       isTrue,
     );
-    expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 64);
+    expect(
+      tester.getSize(find.byKey(const Key('ink-toolbar'))).height,
+      workspaceToolbarHeight,
+    );
+    expect(markdownToolbarHeight, workspaceToolbarHeight);
     expect(find.byKey(const Key('ink-tools-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-style-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);

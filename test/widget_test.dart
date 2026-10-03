@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
 import 'helpers/fakes.dart';
@@ -388,7 +389,7 @@ void main() {
     final toolbar = tester.getRect(
       find.byKey(const Key('markdown-formatting-toolbar')),
     );
-    expect(toolbar.height, lessThanOrEqualTo(48));
+    expect(toolbar.height, workspaceToolbarControlSize);
     final more = find.byKey(const Key('toolbar-more'));
     expect(more.hitTestable(), findsOneWidget);
     await tester.tap(more);

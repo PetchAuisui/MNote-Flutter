@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:mnote/features/workspace/data/document_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DeviceDocumentStorage implements DocumentStorage {
   const DeviceDocumentStorage();
@@ -44,4 +45,69 @@ class DeviceDocumentStorage implements DocumentStorage {
     }
     return File.fromUri(uri).writeAsBytes(bytes, flush: true);
   }
+
+  @override
+  Future<Uint8List?> read(Uri uri) async {
+    if (uri.scheme == 'file') {
+      final file = File.fromUri(uri);
+      if (await file.exists()) {
+        return file.readAsBytes();
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<List<SelectedDocumentFile>> listDocuments() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final dir = Directory(appDir.path);
+    if (!await dir.exists()) return [];
+
+    final result = <SelectedDocumentFile>[];
+    final files = dir.listSync().whereType<File>();
+
+    for (final file in files) {
+      final ext = file.path.split('.').last.toLowerCase();
+      if (_documentExtensions.contains(ext)) {
+        final filename = file.uri.pathSegments.last;
+        final bytes = await file.readAsBytes();
+        result.add(
+          SelectedDocumentFile(
+            name: filename,
+            uri: file.uri,
+            bytes: bytes,
+          ),
+        );
+      }
+    }
+    return result;
+  }
+
+  @override
+  Future<void> delete(Uri uri) async {
+    if (uri.scheme == 'file') {
+      final file = File.fromUri(uri);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
+
+  @override
+  Future<String?> readMetadata() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/.mnote_library.json');
+    if (await file.exists()) {
+      return file.readAsString();
+    }
+    return null;
+  }
+
+  @override
+  Future<void> writeMetadata(String content) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/.mnote_library.json');
+    await file.writeAsString(content, flush: true);
+  }
 }
+

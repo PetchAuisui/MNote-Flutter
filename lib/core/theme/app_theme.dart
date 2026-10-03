@@ -1,4 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+enum AppFontFamily {
+  prompt('Prompt (โมเดิร์น)', 'Prompt'),
+  sarabun('Sarabun (ทางการ)', 'Sarabun'),
+  kanit('Kanit (มินิมอล)', 'Kanit'),
+  notoSansThai('Noto Sans (สากล)', 'Noto Sans Thai');
+
+  final String label;
+  final String familyName;
+  const AppFontFamily(this.label, this.familyName);
+}
 
 abstract final class AppTheme {
   /// Core colors from the Material Theme Builder design palette.
@@ -11,9 +23,9 @@ abstract final class AppTheme {
   /// Backward compatible alias for the primary seed color.
   static const seedColor = primarySeed;
 
-  static ThemeData get light => _theme(Brightness.light);
+  static ThemeData get light => theme(Brightness.light);
 
-  static ThemeData get dark => _theme(Brightness.dark);
+  static ThemeData get dark => theme(Brightness.dark);
 
   static ColorScheme colorScheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
@@ -34,17 +46,80 @@ abstract final class AppTheme {
     );
   }
 
-  static ThemeData _theme(Brightness brightness) {
+  static TextTheme _createTextTheme(Brightness brightness, AppFontFamily font) {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    final base = ThemeData(brightness: brightness).textTheme;
+    final TextTheme textTheme;
+    switch (font) {
+      case AppFontFamily.prompt:
+        textTheme = GoogleFonts.promptTextTheme(base);
+        break;
+      case AppFontFamily.sarabun:
+        textTheme = GoogleFonts.sarabunTextTheme(base);
+        break;
+      case AppFontFamily.kanit:
+        textTheme = GoogleFonts.kanitTextTheme(base);
+        break;
+      case AppFontFamily.notoSansThai:
+        textTheme = GoogleFonts.notoSansThaiTextTheme(base);
+        break;
+    }
+    return textTheme.copyWith(
+      titleLarge: textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.3,
+        height: 1.3,
+      ),
+      titleMedium: textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        height: 1.35,
+      ),
+      titleSmall: textTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
+        height: 1.35,
+      ),
+      bodyLarge: textTheme.bodyLarge?.copyWith(
+        height: 1.5,
+        letterSpacing: 0.1,
+      ),
+      bodyMedium: textTheme.bodyMedium?.copyWith(
+        height: 1.45,
+        letterSpacing: 0.1,
+      ),
+      bodySmall: textTheme.bodySmall?.copyWith(
+        height: 1.4,
+        letterSpacing: 0.1,
+      ),
+      labelLarge: textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.2,
+      ),
+    );
+  }
+
+  static ThemeData theme(
+    Brightness brightness, {
+    AppFontFamily font = AppFontFamily.prompt,
+  }) {
     final scheme = colorScheme(brightness);
+    final textTheme = _createTextTheme(brightness, font);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      textTheme: textTheme,
+      fontFamily: font.familyName,
       scaffoldBackgroundColor: scheme.surfaceContainerLowest,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

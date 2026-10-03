@@ -9,9 +9,14 @@ import '../../../helpers/fakes.dart';
 
 void main() {
   group('Auth Flow Tests', () {
-    testWidgets('MnoteApp starts on SplashPage by default', (tester) async {
+    testWidgets('MnoteApp starts on SplashPage when auth is enabled', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MnoteApp(documentRepository: FakeDocumentRepository()),
+        MnoteApp(
+          documentRepository: FakeDocumentRepository(),
+          skipAuth: false,
+        ),
       );
 
       expect(find.byType(SplashPage), findsOneWidget);

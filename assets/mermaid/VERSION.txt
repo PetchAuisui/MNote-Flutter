@@ -1,0 +1,3 @@
+mermaid 11.17.2
+source: https://www.npmjs.com/package/mermaid (dist/mermaid.min.js)
+downloaded: 2026-09-30

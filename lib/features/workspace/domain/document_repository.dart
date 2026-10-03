@@ -1,4 +1,5 @@
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 abstract interface class DocumentRepository {
   Future<MarkdownDocument?> open();
@@ -6,6 +7,16 @@ abstract interface class DocumentRepository {
   Future<MarkdownDocument?> save(MarkdownDocument document);
 
   Future<MarkdownDocument?> saveAs(MarkdownDocument document);
+
+  Future<List<MarkdownDocument>> listDocuments();
+
+  Future<String?> readDocument(Uri uri);
+
+  Future<void> delete(Uri uri);
+
+  Future<LibraryMetadata?> loadMetadata();
+
+  Future<void> saveMetadata(LibraryMetadata metadata);
 }
 
 class DocumentReadException implements Exception {

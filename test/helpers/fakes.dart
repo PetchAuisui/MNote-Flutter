@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 class FakeDocumentStorage implements DocumentStorage {
   SelectedDocumentFile? selectedFile;
@@ -23,19 +24,48 @@ class FakeDocumentStorage implements DocumentStorage {
     return saveUri;
   }
 
+  String? metadataContent;
+  final List<Uri> deletedUris = [];
+
+  final Map<Uri, Uint8List> fileData = {};
+
   @override
   Future<void> write(Uri uri, Uint8List bytes) async {
     writtenUri = uri;
     writtenBytes = bytes;
+    fileData[uri] = bytes;
+  }
+
+  @override
+  Future<Uint8List?> read(Uri uri) async => fileData[uri] ?? writtenBytes;
+
+  @override
+  Future<List<SelectedDocumentFile>> listDocuments() async => [];
+
+  @override
+  Future<void> delete(Uri uri) async {
+    deletedUris.add(uri);
+  }
+
+  @override
+  Future<String?> readMetadata() async => metadataContent;
+
+  @override
+  Future<void> writeMetadata(String content) async {
+    metadataContent = content;
   }
 }
 
 class FakeDocumentRepository implements DocumentRepository {
   MarkdownDocument? openResult;
   MarkdownDocument? saveResult;
+  List<MarkdownDocument> listResult = [];
+  LibraryMetadata? storedMetadata;
+  final List<Uri> deletedUris = [];
   Object? error;
   int openCalls = 0;
   int saveCalls = 0;
+  int listCalls = 0;
 
   @override
   Future<MarkdownDocument?> open() async {
@@ -57,4 +87,29 @@ class FakeDocumentRepository implements DocumentRepository {
 
   @override
   Future<MarkdownDocument?> saveAs(MarkdownDocument document) => save(document);
+
+  @override
+  Future<List<MarkdownDocument>> listDocuments() async {
+    listCalls += 1;
+    if (error case final error?) throw error;
+    return listResult;
+  }
+
+  final Map<Uri, String> documentContents = {};
+
+  @override
+  Future<String?> readDocument(Uri uri) async => documentContents[uri];
+
+  @override
+  Future<void> delete(Uri uri) async {
+    deletedUris.add(uri);
+  }
+
+  @override
+  Future<LibraryMetadata?> loadMetadata() async => storedMetadata;
+
+  @override
+  Future<void> saveMetadata(LibraryMetadata metadata) async {
+    storedMetadata = metadata;
+  }
 }

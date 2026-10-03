@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 class LocalDocumentRepository implements DocumentRepository {
   const LocalDocumentRepository(this._storage);
@@ -51,6 +52,64 @@ class LocalDocumentRepository implements DocumentRepository {
     if (uri == null) return null;
 
     return document.markSaved(name: _nameFrom(uri, document.name), uri: uri);
+  }
+
+@override
+  Future<List<MarkdownDocument>> listDocuments() async {
+    try {
+      final files = await _storage.listDocuments();
+      final documents = <MarkdownDocument>[];
+
+      for (final file in files) {
+        try {
+          final content = utf8.decode(_withoutByteOrderMark(file.bytes));
+          documents.add(
+            MarkdownDocument.opened(
+              name: _nameFrom(file.uri, file.name),
+              content: content,
+              uri: file.uri,
+            ),
+          );
+        } on FormatException {
+          // หากมีไฟล์ใด decode utf-8 ไม่ผ่าน ให้ข้ามไฟล์นั้นไป ไม่ให้แอปแครช
+          continue;
+        }
+      }
+
+      return documents;
+    } catch (e) {
+      throw DocumentReadException('ไม่สามารถดึงรายการเอกสารได้: $e');
+    }
+  }
+
+  @override
+  Future<String?> readDocument(Uri uri) async {
+    try {
+      final bytes = await _storage.read(uri);
+      if (bytes == null) return null;
+      return utf8.decode(_withoutByteOrderMark(bytes));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> delete(Uri uri) => _storage.delete(uri);
+
+  @override
+  Future<LibraryMetadata?> loadMetadata() async {
+    try {
+      final raw = await _storage.readMetadata();
+      if (raw == null || raw.trim().isEmpty) return null;
+      return LibraryMetadata.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveMetadata(LibraryMetadata metadata) async {
+    await _storage.writeMetadata(jsonEncode(metadata.toJson()));
   }
 
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));

@@ -5,7 +5,7 @@ import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
-import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ink_page.dart';
@@ -446,6 +446,23 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _insertAtSelectionEnd('$leadingBreak---\n$trailingBreak');
   }
 
+  void _insertDiagramTemplate(MermaidTemplate template) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final leadingBreak = offset > 0 && value.text[offset - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        offset < value.text.length && value.text[offset] != '\n' ? '\n' : '';
+    _insertAtSelectionEnd(
+      '$leadingBreak${buildMermaidFencedBlock(template.source)}\n'
+      '$trailingBreak',
+    );
+  }
+
   void _insertAtSelectionEnd(String token) {
     final value = _textController.value;
     final selection = value.selection.isValid
@@ -814,6 +831,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onHorizontalRule: _insertHorizontalRule,
         onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
         onCodeBlock: _insertCodeBlock,
+        onDiagramTemplate: _insertDiagramTemplate,
         onLink: () =>
             _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
         onImage: _insertImage,

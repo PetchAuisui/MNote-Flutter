@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 
 class MarkdownFormattingToolbar extends StatelessWidget {
   const MarkdownFormattingToolbar({
@@ -19,6 +20,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onCodeBlock,
     required this.onLink,
     required this.onImage,
+    this.onDiagramTemplate,
   });
 
   final VoidCallback? onUndo;
@@ -37,11 +39,13 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onCodeBlock;
   final VoidCallback onLink;
   final VoidCallback onImage;
+  final ValueChanged<MermaidTemplate>? onDiagramTemplate;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final onDiagramTemplate = this.onDiagramTemplate;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -206,6 +210,28 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (onDiagramTemplate != null)
+                      _ToolbarMenuButton<MermaidTemplate>(
+                        buttonKey: const Key('toolbar-diagram'),
+                        icon: Icons.account_tree_outlined,
+                        label: 'ไดอะแกรม',
+                        showLabel: showLabels,
+                        onSelected: onDiagramTemplate,
+                        items: [
+                          for (final template in mermaidTemplates)
+                            PopupMenuItem(
+                              key: Key('toolbar-diagram-${template.id}'),
+                              value: template,
+                              child: ListTile(
+                                leading: Icon(
+                                  _diagramTemplateIcon(template.id),
+                                ),
+                                title: Text(template.label),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                        ],
+                      ),
                     const _ToolbarDivider(),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-link'),
@@ -443,3 +469,9 @@ class _ToolbarDivider extends StatelessWidget {
 enum _CodeStyle { inline, block }
 
 enum _ListStyle { bulleted, ordered }
+
+IconData _diagramTemplateIcon(String id) => switch (id) {
+  'sequence' => Icons.swap_horiz_rounded,
+  'class' => Icons.schema_outlined,
+  _ => Icons.account_tree_outlined,
+};

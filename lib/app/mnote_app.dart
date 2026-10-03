@@ -10,12 +10,12 @@ class MnoteApp extends StatelessWidget {
   const MnoteApp({
     super.key,
     this.documentRepository,
-    this.skipAuth = true,
+    this.skipAuth,
     this.home,
   });
 
   final DocumentRepository? documentRepository;
-  final bool skipAuth;
+  final bool? skipAuth;
   final Widget? home;
 
   /// Global notifier to switch theme mode (Light / Dark / System)
@@ -31,9 +31,15 @@ class MnoteApp extends StatelessWidget {
     final effectiveRepository = documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
-    final defaultHome = skipAuth
-        ? NoteListScreen(repository: effectiveRepository)
-        : SplashPage(repository: effectiveRepository);
+    final destination = NoteListScreen(repository: effectiveRepository);
+    final shouldSkipAuth = skipAuth ?? (documentRepository != null);
+
+    final defaultHome = shouldSkipAuth
+        ? destination
+        : SplashPage(
+            repository: effectiveRepository,
+            nextPage: destination,
+          );
 
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeNotifier,

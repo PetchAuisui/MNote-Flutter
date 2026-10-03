@@ -10,10 +10,12 @@ class AuthPage extends StatefulWidget {
     super.key,
     this.repository,
     this.animateEntrance = true,
+    this.nextPage,
   });
 
   final DocumentRepository? repository;
   final bool animateEntrance;
+  final Widget? nextPage;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -149,7 +151,7 @@ class _AuthPageState extends State<AuthPage>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            MarkdownWorkspacePage(repository: repo),
+            widget.nextPage ?? MarkdownWorkspacePage(repository: repo),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

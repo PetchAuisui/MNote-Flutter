@@ -8,10 +8,12 @@ class SplashPage extends StatefulWidget {
     super.key,
     this.repository,
     this.duration = const Duration(milliseconds: 1800),
+    this.nextPage,
   });
 
   final DocumentRepository? repository;
   final Duration duration;
+  final Widget? nextPage;
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -59,7 +61,10 @@ class _SplashPageState extends State<SplashPage>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 850),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            AuthPage(repository: widget.repository),
+            AuthPage(
+              repository: widget.repository,
+              nextPage: widget.nextPage,
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(

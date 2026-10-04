@@ -1,20 +1,33 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 
 import '../../../../helpers/fakes.dart';
 
+class _FakeMermaidFileSource implements MermaidFileSource {
+  _FakeMermaidFileSource(this.result);
+  final PickedMermaidFile? result;
+
+  @override
+  Future<PickedMermaidFile?> pick() async => result;
+}
+
 /// เปิดหน้า workspace ที่ขนาดจอกำหนด แล้วล้าง editor เป็น [text]
 ///
 /// หน้า workspace โหลด welcome.md เป็นเนื้อหาเริ่มต้นเอง จึงต้องแทนด้วยข้อความที่รู้ค่า
 /// และรอ 600ms หลังแก้ข้อความ เพราะ Flutter รวมการแก้ที่ห่างกันไม่ถึง 500ms
-/// เป็นประวัติ undo ก้อนเดียว
+/// เป็นประวัติ undo ก้อนเดียว [fileSource] ใช้แทนตัวเลือกไฟล์จริง
 Future<void> _pumpWorkspace(
   WidgetTester tester, {
   required Size size,
   String text = '',
+  MermaidFileSource? fileSource,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -25,7 +38,10 @@ Future<void> _pumpWorkspace(
   await tester.pumpWidget(
     MnoteApp(
       documentRepository: repo,
-      home: MarkdownWorkspacePage(repository: repo),
+      home: MarkdownWorkspacePage(
+        repository: repo,
+        mermaidFileSource: fileSource ?? _FakeMermaidFileSource(null),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -169,5 +185,95 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('6. เมนูไดอะแกรมมี Key toolbar-diagram-import', (tester) async {
+      await _pumpWorkspace(tester, size: const Size(1024, 768));
+
+      await tester.tap(find.byKey(const Key('toolbar-diagram')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('toolbar-diagram-import')), findsOneWidget);
+      expect(find.text('นำเข้าจากไฟล์ .mmd…'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      '7. ไฟล์ถูกต้อง: เปิด dialog และ editor ยังคงว่าง (ไม่แทรกเอง)',
+      (tester) async {
+        final fakeSource = _FakeMermaidFileSource(
+          PickedMermaidFile(
+            name: 'flow.mmd',
+            bytes: Uint8List.fromList(utf8.encode('graph TD\n  A-->B')),
+          ),
+        );
+
+        await _pumpWorkspace(
+          tester,
+          size: const Size(1024, 768),
+          fileSource: fakeSource,
+        );
+
+        await tester.tap(find.byKey(const Key('toolbar-diagram')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('toolbar-diagram-import')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('mermaid-import-dialog')), findsOneWidget);
+        expect(find.text('flow.mmd'), findsOneWidget);
+        expect(_editorText(tester), equals(''));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      '8. ไฟล์ .txt: แจ้งเตือนข้อความเรื่องนามสกุล และไม่เปิด dialog',
+      (tester) async {
+        final fakeSource = _FakeMermaidFileSource(
+          PickedMermaidFile(
+            name: 'invalid.txt',
+            bytes: Uint8List.fromList(utf8.encode('graph TD\n  A-->B')),
+          ),
+        );
+
+        await _pumpWorkspace(
+          tester,
+          size: const Size(1024, 768),
+          fileSource: fakeSource,
+        );
+
+        await tester.tap(find.byKey(const Key('toolbar-diagram')));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('toolbar-diagram-import')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('รองรับเฉพาะไฟล์ .mmd หรือ .mermaid'), findsOneWidget);
+        expect(find.byKey(const Key('mermaid-import-dialog')), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('9. ผู้ใช้กดยกเลิก: ไม่เปิด dialog และไม่มีแถบแจ้งเตือน', (
+      tester,
+    ) async {
+      final fakeSource = _FakeMermaidFileSource(null);
+
+      await _pumpWorkspace(
+        tester,
+        size: const Size(1024, 768),
+        fileSource: fakeSource,
+      );
+
+      await tester.tap(find.byKey(const Key('toolbar-diagram')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('toolbar-diagram-import')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('mermaid-import-dialog')), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

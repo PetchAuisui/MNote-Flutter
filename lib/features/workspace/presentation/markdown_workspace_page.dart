@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
+import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
@@ -17,11 +18,13 @@ class MarkdownWorkspacePage extends StatefulWidget {
     required this.repository,
     this.initialDocument,
     this.imagePicker = const DeviceImagePicker(),
+    this.mermaidFileSource = const DeviceMermaidFileSource(),
   });
 
   final DocumentRepository repository;
   final MarkdownDocument? initialDocument;
   final DeviceImagePicker imagePicker;
+  final MermaidFileSource mermaidFileSource;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -463,6 +466,28 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  Future<void> _importDiagramFile() async {
+    final PickedMermaidFile? picked;
+    try {
+      picked = await widget.mermaidFileSource.pick();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่')),
+      );
+      return;
+    }
+    if (picked == null || !mounted) return;
+    switch (parseMermaidImport(name: picked.name, bytes: picked.bytes)) {
+      case MermaidImportFailure(:final message):
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      case MermaidImportSuccess(:final name, :final source):
+        await showMermaidImportDialog(context, fileName: name, source: source);
+    }
+  }
+
   void _insertAtSelectionEnd(String token) {
     final value = _textController.value;
     final selection = value.selection.isValid
@@ -832,6 +857,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
         onCodeBlock: _insertCodeBlock,
         onDiagramTemplate: _insertDiagramTemplate,
+        onImportDiagram: _importDiagramFile,
         onLink: () =>
             _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
         onImage: _insertImage,

@@ -16,3 +16,4 @@ export 'mermaid_file_import.dart'
         MermaidImportSuccess,
         mermaidImportMaxBytes,
         parseMermaidImport;
+export 'mermaid_import_dialog.dart' show showMermaidImportDialog;

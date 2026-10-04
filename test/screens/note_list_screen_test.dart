@@ -44,10 +44,27 @@ void main() {
     ),
   ];
 
-  testWidgets('renders empty state when there are no folders or documents', (tester) async {
+  testWidgets('seeds Welcome.md on initial launch when library is uninitialized', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
     await tester.pumpWidget(
       MaterialApp(
-        home: NoteListScreen(repository: FakeDocumentRepository()),
+        home: NoteListScreen(repository: fakeRepo),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome'), findsOneWidget);
+    final savedMeta = await fakeRepo.loadMetadata();
+    expect(savedMeta, isNotNull);
+    expect(savedMeta!.documents.any((d) => d.name == 'Welcome.md'), isTrue);
+  });
+
+  testWidgets('renders empty state when there are no folders or documents', (tester) async {
+    final fakeRepo = FakeDocumentRepository()
+      ..storedMetadata = LibraryMetadata(folders: [], documents: []);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(repository: fakeRepo),
       ),
     );
     await tester.pumpAndSettle();

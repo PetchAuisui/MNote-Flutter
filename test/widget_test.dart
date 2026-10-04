@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
 import 'helpers/fakes.dart';
@@ -16,7 +18,7 @@ Widget _buildWorkspaceApp([DocumentRepository? repository]) {
 }
 
 void main() {
-  testWidgets('loads the bundled example and centers modes on iPad', (
+  testWidgets('loads and renders the bundled Welcome showcase on iPad', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1024, 900);
@@ -32,6 +34,19 @@ void main() {
     expect(
       tester.getSize(find.byKey(const Key('workspace-header'))).height,
       68,
+    );
+
+    await tester.tap(find.text('แสดงผล'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byKey(const Key('markdown-preview')), findsOneWidget);
+    expect(find.byType(Image, skipOffstage: false), findsOneWidget);
+    expect(find.byType(MermaidDiagramView), findsOneWidget);
+    expect(find.text('หัวข้อระดับ H4', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining('Hello, Mnote!', findRichText: true),
+      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
@@ -388,7 +403,7 @@ void main() {
     final toolbar = tester.getRect(
       find.byKey(const Key('markdown-formatting-toolbar')),
     );
-    expect(toolbar.height, lessThanOrEqualTo(48));
+    expect(toolbar.height, workspaceToolbarControlSize);
     final more = find.byKey(const Key('toolbar-more'));
     expect(more.hitTestable(), findsOneWidget);
     await tester.tap(more);

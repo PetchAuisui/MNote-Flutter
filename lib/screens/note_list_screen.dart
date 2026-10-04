@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
@@ -112,6 +113,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
             }
           }
         });
+      }
+
+      // หากเป็นการเปิดแอปครั้งแรก (ยังไม่มี metadata และไม่มีไฟล์ใดๆ)
+      // ให้โหลด welcome.md เป็นไฟล์เริ่มต้นในคลังเอกสาร
+      if (savedMetadata == null && docs.isEmpty && _documents.isEmpty) {
+        try {
+          final welcomeContent = await rootBundle.loadString('assets/examples/welcome.md');
+          if (mounted && _documents.isEmpty) {
+            setState(() {
+              _documents.add(
+                DocumentItem(
+                  id: 'welcome_initial_doc',
+                  name: 'Welcome.md',
+                  content: welcomeContent,
+                  updatedAt: DateTime.now(),
+                ),
+              );
+            });
+          }
+        } catch (_) {}
       }
 
       await _persistLibrary();

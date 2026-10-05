@@ -68,6 +68,62 @@ void main() {
   );
 
   testWidgets(
+    'Markdown mode and writing mode have identical card, toolbar and content margins and positions',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_buildApp());
+      await tester.pumpAndSettle();
+
+      final markdownCardRect = tester.getRect(
+        find.byKey(const Key('document-surface')),
+      );
+      final markdownToolbarRect = tester.getRect(
+        find.byKey(const Key('markdown-toolbar-surface')),
+      );
+      final markdownFirstBlockRect = tester.getRect(
+        find.byType(MarkdownRenderedBlock).first,
+      );
+
+      // Margins in Markdown mode are symmetric
+      final markdownLeftMargin =
+          markdownFirstBlockRect.left - markdownCardRect.left;
+      final markdownRightMargin =
+          markdownCardRect.right - markdownFirstBlockRect.right;
+      expect(
+        (markdownLeftMargin - markdownRightMargin).abs(),
+        lessThanOrEqualTo(1.0),
+      );
+
+      await tester.tap(find.byTooltip('เขียน'));
+      await tester.pumpAndSettle();
+
+      final inkCardRect = tester.getRect(
+        find.byKey(const Key('document-surface')),
+      );
+      final inkToolbarRect = tester.getRect(
+        find.byKey(const Key('ink-toolbar')),
+      );
+      final inkFirstBlockRect = tester.getRect(
+        find.byType(MarkdownRenderedBlock).first,
+      );
+
+      expect(inkCardRect, markdownCardRect);
+      expect(inkToolbarRect.size, markdownToolbarRect.size);
+      expect(inkToolbarRect.topLeft, markdownToolbarRect.topLeft);
+
+      // Margins in Ink mode are symmetric and match Markdown mode
+      final inkLeftMargin = inkFirstBlockRect.left - inkCardRect.left;
+      final inkRightMargin = inkCardRect.right - inkFirstBlockRect.right;
+      expect((inkLeftMargin - inkRightMargin).abs(), lessThanOrEqualTo(1.0));
+      expect(inkFirstBlockRect.left, markdownFirstBlockRect.left);
+      expect(inkFirstBlockRect.width, markdownFirstBlockRect.width);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'moving between blocks preserves editor focus and leaving restores preview',
     (tester) async {
       final controller = TextEditingController(

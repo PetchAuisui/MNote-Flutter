@@ -89,7 +89,11 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
 
   void _fit() {
     final scale = (_viewportWidth / DocumentPageMetrics.width).clamp(0.1, 4.0);
-    _transform.value = Matrix4.diagonal3Values(scale, scale, 1);
+    final dx = _viewportWidth > DocumentPageMetrics.width
+        ? (_viewportWidth - DocumentPageMetrics.width) / 2
+        : 0.0;
+    _transform.value = Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(dx, 0, 0);
   }
 
   @override

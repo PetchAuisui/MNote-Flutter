@@ -209,51 +209,102 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     _focus.requestFocus();
   }
 
-  Widget _editor() => KeyedSubtree(
-    key: _activeEditorKey,
-    child: TextField(
-      key: const Key('markdown-live-block-editor'),
-      controller: _blockController,
-      focusNode: _focus,
-      maxLines: null,
-      onTapOutside: (_) => _focus.unfocus(),
-      style: const TextStyle(
-        fontSize: 17,
-        height: MarkdownDocumentStyle.lineHeight,
-        color: Color(0xFF202124),
+  Widget _editor() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return KeyedSubtree(
+      key: _activeEditorKey,
+      child: Container(
+        key: const Key('markdown-live-active-block'),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: colorScheme.primary.withValues(alpha: 0.25),
+            width: 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3.5,
+              child: ColoredBox(color: colorScheme.primary),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+              child: TextField(
+                key: const Key('markdown-live-block-editor'),
+                controller: _blockController,
+                focusNode: _focus,
+                maxLines: null,
+                onTapOutside: (_) => _focus.unfocus(),
+                style: const TextStyle(
+                  fontSize: 17,
+                  height: MarkdownDocumentStyle.lineHeight,
+                  color: Color(0xFF202124),
+                ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'เริ่มเขียน Markdown…',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 4),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      decoration: const InputDecoration(
-        border: InputBorder.none,
-        hintText: 'เริ่มเขียน Markdown…',
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 8),
-      ),
-    ),
-  );
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final source = widget.controller.text;
     final documentTheme = MarkdownDocumentStyle.theme(context);
     final children = <Widget>[];
-    var offset = 0;
-    while (offset < source.length) {
-      if (_start == offset) {
-        children.add(_editor());
-        offset = _end;
-        if (offset >= source.length) break;
+    final ranges = markdownBlockRanges(source);
+
+    var editorAdded = false;
+
+    for (final range in ranges) {
+      if (_start != null && range.end <= _start!) {
+        children.add(
+          GestureDetector(
+            key: ValueKey('markdown-block-${range.start}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _activate(range.start, range.end),
+            child: MarkdownRenderedBlock(
+              markdown: range.textInside(source),
+              theme: documentTheme,
+              imageDirectory: widget.imageDirectory,
+              builders: widget.builders,
+            ),
+          ),
+        );
+        continue;
       }
-      final start = offset;
-      final range = markdownBlockRanges(source.substring(offset)).first;
-      final end = start + range.end;
-      offset = end;
+
+      if (_start != null && !editorAdded && range.start >= _start!) {
+        children.add(_editor());
+        editorAdded = true;
+      }
+
+      if (_start != null && range.start < _end && range.end > _start!) {
+        continue;
+      }
+
       children.add(
         GestureDetector(
-          key: ValueKey('markdown-block-$start'),
+          key: ValueKey('markdown-block-${range.start}'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => _activate(start, end),
+          onTap: () => _activate(range.start, range.end),
           child: MarkdownRenderedBlock(
-            markdown: source.substring(start, end),
+            markdown: range.textInside(source),
             theme: documentTheme,
             imageDirectory: widget.imageDirectory,
             builders: widget.builders,
@@ -261,7 +312,11 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         ),
       );
     }
-    if (_start == source.length) children.add(_editor());
+
+    if (_start != null && !editorAdded) {
+      children.add(_editor());
+    }
+
     if (source.isEmpty && _start == null) {
       children.add(
         TextButton(

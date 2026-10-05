@@ -146,9 +146,10 @@ void main() {
       );
       expect(field.focusNode!.hasFocus, isTrue);
       expect(field.controller!.text, contains('- Nested'));
+      expect(find.byKey(const Key('markdown-live-active-block')), findsOneWidget);
       await tester.enterText(
         find.byKey(const Key('markdown-live-block-editor')),
-        '- Main\n  - Changed\n\n',
+        '  - Changed',
       );
       await tester.pumpAndSettle();
       expect(
@@ -158,6 +159,7 @@ void main() {
       field.focusNode!.unfocus();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(find.byKey(const Key('markdown-live-active-block')), findsNothing);
       expect(find.text('Changed', findRichText: true), findsOneWidget);
       expect(find.text('เสร็จ'), findsNothing);
       expect(
@@ -497,7 +499,7 @@ void main() {
       await tester.pump();
       await tester.enterText(
         find.byKey(const Key('markdown-live-block-editor')),
-        'Changed paragraph.\n\n',
+        'Changed paragraph.',
       );
       await tester.pump();
       expect(
@@ -512,7 +514,7 @@ void main() {
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
       );
-      expect(field.controller!.text, '**Changed** paragraph.\n\n');
+      expect(field.controller!.text, '**Changed** paragraph.');
       undo.undo();
       await tester.pump();
       expect(
@@ -567,7 +569,7 @@ void main() {
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
       );
-      expect(field.controller!.text, '```dart\nfirst\n\nsecond\n```\n\n');
+      expect(field.controller!.text, '```dart\nfirst\n\nsecond\n```');
       expect(find.text('Tail', findRichText: true), findsOneWidget);
     },
   );
@@ -645,4 +647,46 @@ void main() {
       });
     }
   });
+
+  testWidgets(
+    'focuses lines line-by-line without bundling blank lines and keeps code box unified',
+    (tester) async {
+      const doc = '# Header\n\nLine Alpha\nLine Beta\n\n```dart\nline 1\n\nline 2\n```\n\nFooter';
+      final controller = TextEditingController(text: doc);
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(controller: controller, onChanged: (_) {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap Line Alpha - only Line Alpha is focused, Line Beta remains rendered
+      await tester.tap(find.text('Line Alpha', findRichText: true));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(field.controller!.text, 'Line Alpha');
+      expect(find.text('Line Beta', findRichText: true), findsOneWidget);
+
+      // Tap Line Beta - switches focus to Line Beta alone
+      await tester.tap(find.text('Line Beta', findRichText: true));
+      await tester.pumpAndSettle();
+      final betaField = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(betaField.controller!.text, 'Line Beta');
+
+      // Tap code box - code box is unified with internal blank lines
+      await tester.tap(find.textContaining('line 1', findRichText: true));
+      await tester.pumpAndSettle();
+      final codeField = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(codeField.controller!.text, '```dart\nline 1\n\nline 2\n```');
+    },
+  );
 }

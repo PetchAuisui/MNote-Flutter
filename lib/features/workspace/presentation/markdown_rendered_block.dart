@@ -3,28 +3,53 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'markdown_document_style.dart';
 
 /// Source ranges used by both the preview and the editable document.
+///
+/// Returns discrete ranges for each non-empty line, while preserving fenced
+/// code blocks (``` or ~~~) as unified multi-line blocks.
+/// Blank lines are excluded from ranges so they remain untouched.
 List<TextRange> markdownBlockRanges(String source) {
   final ranges = <TextRange>[];
   var offset = 0;
   while (offset < source.length) {
-    final start = offset;
-    String? fence;
-    do {
-      final newline = source.indexOf('\n', offset);
-      final end = newline < 0 ? source.length : newline + 1;
-      final line = source.substring(offset, end).trim();
-      final match = RegExp(r'^(`{3,}|~{3,})').firstMatch(line);
-      if (match != null) {
-        if (fence == null) {
-          fence = match.group(1);
-        } else if (line.startsWith(fence)) {
-          fence = null;
+    final newline = source.indexOf('\n', offset);
+    final lineEnd = newline < 0 ? source.length : newline;
+    final line = source.substring(offset, lineEnd);
+
+    if (line.trim().isEmpty) {
+      // Blank line: skip without creating a range
+      offset = newline < 0 ? source.length : newline + 1;
+      continue;
+    }
+
+    final trimmed = line.trimLeft();
+    final match = RegExp(r'^(`{3,}|~{3,})').firstMatch(trimmed);
+    if (match != null) {
+      // Fenced code block: keep entire block together as one range
+      final fence = match.group(1)!;
+      final start = offset;
+      var fenceOffset = newline < 0 ? source.length : newline + 1;
+      while (fenceOffset < source.length) {
+        final nextNewline = source.indexOf('\n', fenceOffset);
+        final nextLineEnd = nextNewline < 0 ? source.length : nextNewline;
+        final nextLine = source.substring(fenceOffset, nextLineEnd).trimLeft();
+        fenceOffset = nextNewline < 0 ? source.length : nextNewline + 1;
+        if (nextLine.startsWith(fence)) {
+          break;
         }
       }
-      offset = end;
-      if (line.isEmpty && fence == null) break;
-    } while (offset < source.length);
-    ranges.add(TextRange(start: start, end: offset));
+      final end = fenceOffset > 0 &&
+              fenceOffset <= source.length &&
+              source[fenceOffset - 1] == '\n'
+          ? fenceOffset - 1
+          : fenceOffset;
+      ranges.add(TextRange(start: start, end: end));
+      offset = fenceOffset;
+      continue;
+    }
+
+    // Single line block
+    ranges.add(TextRange(start: offset, end: lineEnd));
+    offset = newline < 0 ? source.length : newline + 1;
   }
   return ranges;
 }

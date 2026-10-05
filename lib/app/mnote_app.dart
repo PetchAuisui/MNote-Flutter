@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
@@ -34,11 +35,16 @@ class MnoteApp extends StatelessWidget {
     final destination = NoteListScreen(repository: effectiveRepository);
     final shouldSkipAuth = skipAuth ?? (documentRepository != null);
 
+    final guidePage = AppGuidePage(
+      repository: effectiveRepository,
+      nextPage: destination,
+    );
+
     final defaultHome = shouldSkipAuth
         ? destination
         : SplashPage(
             repository: effectiveRepository,
-            nextPage: destination,
+            nextPage: guidePage,
           );
 
     return ValueListenableBuilder<ThemeMode>(

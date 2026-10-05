@@ -6,6 +6,7 @@ import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/markdown_rendered_block.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -137,9 +138,15 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('Title', findRichText: true));
+      await tester.tap(
+        find.text('Title', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Nested', findRichText: true));
+      await tester.tap(
+        find.text('Nested', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
@@ -495,7 +502,10 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('First paragraph.', findRichText: true));
+      await tester.tap(
+        find.text('First paragraph.', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pump();
       await tester.enterText(
         find.byKey(const Key('markdown-live-block-editor')),
@@ -524,7 +534,10 @@ void main() {
       undo.redo();
       await tester.pump();
       expect(controller.text, contains('**Changed**'));
-      await tester.tap(find.text('Changed paragraph.', findRichText: true));
+      await tester.tap(
+        find.text('Changed paragraph.', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pump();
       tester
           .widget<TextField>(
@@ -564,7 +577,10 @@ void main() {
           .unfocus();
       await tester.pumpAndSettle();
       await tester.pump();
-      await tester.tap(find.textContaining('first', findRichText: true));
+      await tester.tap(
+        find.textContaining('first', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pump();
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
@@ -625,7 +641,10 @@ void main() {
         expect(find.byTooltip('แสดงผล Markdown'), findsNothing);
         expect(find.byTooltip('จดด้วยปากกา'), findsNothing);
         expect(find.byKey(const Key('markdown-editor')), findsNothing);
-        await tester.tap(find.text('Live heading', findRichText: true));
+        await tester.tap(
+          find.text('Live heading', findRichText: true),
+          warnIfMissed: false,
+        );
         await tester.pumpAndSettle();
         await tester.enterText(
           find.byKey(const Key('markdown-live-block-editor')),
@@ -664,7 +683,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Line Alpha - only Line Alpha is focused, Line Beta remains rendered
-      await tester.tap(find.text('Line Alpha', findRichText: true));
+      await tester.tap(
+        find.text('Line Alpha', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
@@ -673,7 +695,10 @@ void main() {
       expect(find.text('Line Beta', findRichText: true), findsOneWidget);
 
       // Tap Line Beta - switches focus to Line Beta alone
-      await tester.tap(find.text('Line Beta', findRichText: true));
+      await tester.tap(
+        find.text('Line Beta', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
       final betaField = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
@@ -681,12 +706,56 @@ void main() {
       expect(betaField.controller!.text, 'Line Beta');
 
       // Tap code box - code box is unified with internal blank lines
-      await tester.tap(find.textContaining('line 1', findRichText: true));
+      await tester.tap(
+        find.textContaining('line 1', findRichText: true),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
       final codeField = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
       );
       expect(codeField.controller!.text, '```dart\nline 1\n\nline 2\n```');
+    },
+  );
+
+  testWidgets(
+    'tapping Mermaid diagram activates block editor with source and unfocusing restores preview',
+    (tester) async {
+      const doc = '# Doc\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\nAfter';
+      final controller = TextEditingController(text: doc);
+      addTearDown(controller.dispose);
+      final builders = {'code': MermaidElementBuilder()};
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(
+              controller: controller,
+              onChanged: (_) {},
+              builders: builders,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Mermaid rendered block is present
+      expect(find.byType(MermaidDiagramView), findsOneWidget);
+
+      // Tap on the Mermaid diagram area
+      await tester.tap(find.byType(MermaidDiagramView), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Block editor is now active with the Mermaid code
+      final editor = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(editor.controller!.text, '```mermaid\nflowchart LR\n  A --> B\n```');
+
+      // Unfocus restores Mermaid view
+      editor.focusNode!.unfocus();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(find.byType(MermaidDiagramView), findsOneWidget);
     },
   );
 }

@@ -29,7 +29,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final documentTheme = MarkdownDocumentStyle.theme(context);
-    return ConstrainedBox(
+    final surface = ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),
       child: ColoredBox(
         key: const Key('markdown-document-page'),
@@ -60,6 +60,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
         ),
       ),
     );
+    return selectable ? surface : IgnorePointer(child: surface);
   }
 }
 

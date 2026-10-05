@@ -278,11 +278,13 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
             key: ValueKey('markdown-block-${range.start}'),
             behavior: HitTestBehavior.opaque,
             onTap: () => _activate(range.start, range.end),
-            child: MarkdownRenderedBlock(
-              markdown: range.textInside(source),
-              theme: documentTheme,
-              imageDirectory: widget.imageDirectory,
-              builders: widget.builders,
+            child: IgnorePointer(
+              child: MarkdownRenderedBlock(
+                markdown: range.textInside(source),
+                theme: documentTheme,
+                imageDirectory: widget.imageDirectory,
+                builders: widget.builders,
+              ),
             ),
           ),
         );
@@ -303,11 +305,13 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
           key: ValueKey('markdown-block-${range.start}'),
           behavior: HitTestBehavior.opaque,
           onTap: () => _activate(range.start, range.end),
-          child: MarkdownRenderedBlock(
-            markdown: range.textInside(source),
-            theme: documentTheme,
-            imageDirectory: widget.imageDirectory,
-            builders: widget.builders,
+          child: IgnorePointer(
+            child: MarkdownRenderedBlock(
+              markdown: range.textInside(source),
+              theme: documentTheme,
+              imageDirectory: widget.imageDirectory,
+              builders: widget.builders,
+            ),
           ),
         ),
       );

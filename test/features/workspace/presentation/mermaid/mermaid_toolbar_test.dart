@@ -15,7 +15,7 @@ class _FakeMermaidFileSource implements MermaidFileSource {
   final PickedMermaidFile? result;
 
   @override
-  Future<PickedMermaidFile?> pick() async => result;
+  Future<PickedMermaidFile?> pick({required int maxBytes}) async => result;
 }
 
 /// เปิดหน้า workspace ที่ขนาดจอกำหนด แล้วล้าง editor เป็น [text]

@@ -469,7 +469,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _importDiagramFile() async {
     final PickedMermaidFile? picked;
     try {
-      picked = await widget.mermaidFileSource.pick();
+      picked = await widget.mermaidFileSource.pick(
+        maxBytes: mermaidImportMaxBytes,
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

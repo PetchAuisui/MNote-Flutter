@@ -9,6 +9,7 @@ import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_bu
 import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'markdown_live_editor.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
 
@@ -498,120 +499,87 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         if (didPop) return;
         final shouldPop = await _confirmDiscardChanges();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop(
-            _workspace.document.isDirty ? null : _workspace.document,
-          );
+          Navigator.of(
+            context,
+          ).pop(_workspace.document.isDirty ? null : _workspace.document);
         }
       },
       child: Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
-            _buildWorkspaceHeader(document),
-            if (_workspace.mode == WorkspaceMode.edit ||
-                _workspace.mode == WorkspaceMode.split)
-              _buildFormattingToolbar(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Card(
-                  key: const Key('document-surface'),
-                  margin: EdgeInsets.zero,
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _workspace.mode == WorkspaceMode.edit
-                            ? _buildEditor()
-                            : _workspace.mode == WorkspaceMode.split
-                            ? _buildSplitView()
-                            : _workspace.mode == WorkspaceMode.ink
-                            ? InkPage(
-                                key: ObjectKey(_ink),
-                                session: _ink,
-                                markdown: document.content,
-                                name: document.name,
-                                imageDirectory: _imageDirectory,
-                              )
-                            : _buildPreview(),
-                      ),
-                      if (_workspace.mode != WorkspaceMode.ink)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              _workspace.mode == WorkspaceMode.split
-                                  ? 'รวมจอ (Obsidian Split) · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
-                                  : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                              key: const Key('document-statistics'),
-                              maxLines: 1,
-                              textAlign: TextAlign.end,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: const Color(0xFF5F6368)),
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (_workspace.isBusy)
+                const LinearProgressIndicator(minHeight: 2),
+              _buildWorkspaceHeader(document),
+              if (_workspace.mode == WorkspaceMode.edit ||
+                  _workspace.mode == WorkspaceMode.split)
+                _buildFormattingToolbar(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Card(
+                    key: const Key('document-surface'),
+                    margin: EdgeInsets.zero,
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: _workspace.mode == WorkspaceMode.edit
+                              ? _buildEditor()
+                              : _workspace.mode == WorkspaceMode.split
+                              ? _buildSplitView()
+                              : _workspace.mode == WorkspaceMode.ink
+                              ? InkPage(
+                                  key: ObjectKey(_ink),
+                                  session: _ink,
+                                  markdown: document.content,
+                                  name: document.name,
+                                  imageDirectory: _imageDirectory,
+                                )
+                              : _buildPreview(),
+                        ),
+                        if (_workspace.mode != WorkspaceMode.ink)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                _workspace.mode == WorkspaceMode.split
+                                    ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                    : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                                key: const Key('document-statistics'),
+                                maxLines: 1,
+                                textAlign: TextAlign.end,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: const Color(0xFF5F6368)),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
-  Widget _buildSplitView() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final isCompact = constraints.maxWidth < 680;
-
-        if (isCompact) {
-          return Column(
-            children: [
-              Expanded(flex: 1, child: _buildEditor()),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-              ),
-              Expanded(flex: 1, child: _buildPreview()),
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              flex: 1,
-              child: _buildEditor(),
-            ),
-            VerticalDivider(
-              width: 1,
-              thickness: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            Expanded(
-              flex: 1,
-              child: _buildPreview(),
-            ),
-          ],
-        );
-      },
     );
   }
+
+  Widget _buildSplitView() => MarkdownLiveEditor(
+    undoController: _undoController,
+    controller: _textController,
+    onChanged: _workspace.updateContent,
+    imageDirectory: _imageDirectory,
+    builders: {'code': MermaidElementBuilder()},
+  );
 
   Widget _buildWorkspaceHeader(MarkdownDocument document) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -762,38 +730,27 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       showSelectedIcon: false,
       style: const ButtonStyle(
         visualDensity: VisualDensity.compact,
-        padding: WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 10),
-        ),
+        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10)),
       ),
       segments: [
         ButtonSegment(
           value: WorkspaceMode.edit,
           icon: const Icon(Icons.edit_outlined),
-          label: compact ? null : const Text('แก้ไข'),
-          tooltip: 'แก้ไข Markdown (Live Preview)',
+          label: compact ? null : const Text('Markdown'),
+          tooltip: 'Markdown',
         ),
         ButtonSegment(
           value: WorkspaceMode.split,
-          icon: const Icon(Icons.vertical_split_outlined),
-          label: compact ? null : const Text('รวมจอ'),
-          tooltip: 'รวม Preview กับ Code (Obsidian Split)',
-        ),
-        ButtonSegment(
-          value: WorkspaceMode.preview,
-          icon: const Icon(Icons.visibility_outlined),
-          label: compact ? null : const Text('แสดงผล'),
-          tooltip: 'แสดงผล Markdown',
-        ),
-        ButtonSegment(
-          value: WorkspaceMode.ink,
-          icon: const Icon(Icons.draw_outlined),
-          label: compact ? null : const Text('จด'),
-          tooltip: 'จดด้วยปากกา',
+          icon: const Icon(Icons.edit_document),
+          label: compact ? null : const Text('เขียน'),
+          tooltip: 'เขียน',
         ),
       ],
       selected: {_workspace.mode},
-      onSelectionChanged: (selection) => _workspace.setMode(selection.first),
+      onSelectionChanged: (selection) {
+        _resetUndoHistory();
+        _workspace.setMode(selection.first);
+      },
     );
   }
 
@@ -1112,7 +1069,8 @@ class _LineNumberPainter extends CustomPainter {
   }
 
   double get _scrollOffset {
-    if (!scrollController.hasClients || scrollController.positions.length != 1) {
+    if (!scrollController.hasClients ||
+        scrollController.positions.length != 1) {
       return 0;
     }
     return scrollController.offset;

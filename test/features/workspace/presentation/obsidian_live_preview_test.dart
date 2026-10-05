@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
 
@@ -11,7 +13,12 @@ Widget _buildApp({DocumentRepository? repository}) {
   final repo = repository ?? FakeDocumentRepository();
   return MnoteApp(
     documentRepository: repo,
-    home: MarkdownWorkspacePage(repository: repo),
+    home: MarkdownWorkspacePage(
+      repository: repo,
+      initialDocument: MarkdownDocument.example(
+        '# Live heading\n\nKeep **this** paragraph.\n\n## Mermaid\n',
+      ),
+    ),
   );
 }
 
@@ -69,28 +76,36 @@ void main() {
                 style: const TextStyle(fontSize: 15),
                 withComposing: false,
               );
-              final allTexts = span.children!.map((s) => (s as TextSpan).text).toList();
+              final allTexts = span.children!
+                  .map((s) => (s as TextSpan).text)
+                  .toList();
               expect(allTexts, contains('bold'));
               expect(allTexts, contains('italic'));
               expect(allTexts, contains('code'));
               expect(allTexts, contains('deleted'));
 
               // Find bold span
-              final boldSpan = span.children!.firstWhere(
-                (s) => (s as TextSpan).text == 'bold',
-              ) as TextSpan;
+              final boldSpan =
+                  span.children!.firstWhere(
+                        (s) => (s as TextSpan).text == 'bold',
+                      )
+                      as TextSpan;
               expect(boldSpan.style?.fontWeight, FontWeight.bold);
 
               // Find inline code span
-              final codeSpan = span.children!.firstWhere(
-                (s) => (s as TextSpan).text == 'code',
-              ) as TextSpan;
+              final codeSpan =
+                  span.children!.firstWhere(
+                        (s) => (s as TextSpan).text == 'code',
+                      )
+                      as TextSpan;
               expect(codeSpan.style?.fontFamily, 'monospace');
 
               // Find strikethrough span
-              final strikeSpan = span.children!.firstWhere(
-                (s) => (s as TextSpan).text == 'deleted',
-              ) as TextSpan;
+              final strikeSpan =
+                  span.children!.firstWhere(
+                        (s) => (s as TextSpan).text == 'deleted',
+                      )
+                      as TextSpan;
               expect(strikeSpan.style?.decoration, TextDecoration.lineThrough);
 
               return const SizedBox();
@@ -137,9 +152,11 @@ void main() {
                 style: const TextStyle(fontSize: 15),
                 withComposing: false,
               );
-              final linkSpan = span.children!.firstWhere(
-                (s) => (s as TextSpan).text == 'Flutter',
-              ) as TextSpan;
+              final linkSpan =
+                  span.children!.firstWhere(
+                        (s) => (s as TextSpan).text == 'Flutter',
+                      )
+                      as TextSpan;
               expect(linkSpan.style?.decoration, TextDecoration.underline);
               return const SizedBox();
             },
@@ -149,60 +166,158 @@ void main() {
     });
   });
 
-  group('Obsidian Split View (รวม Preview & Code)', () {
-    testWidgets(
-      'switching to รวมจอ displays both markdown-editor and markdown-preview side-by-side',
-      (tester) async {
-        tester.view.physicalSize = const Size(1024, 900);
+  testWidgets(
+    'block edits, toolbar changes and undo preserve surrounding Markdown',
+    (tester) async {
+      const original = '# Title\n\nFirst **paragraph**.\n\nLast paragraph.\n';
+      final controller = TextEditingController(text: original);
+      final undo = UndoHistoryController();
+      addTearDown(controller.dispose);
+      addTearDown(undo.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(
+              controller: controller,
+              undoController: undo,
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('First paragraph.', findRichText: true));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('markdown-live-block-editor')),
+        'Changed paragraph.\n\n',
+      );
+      await tester.pump();
+      expect(
+        controller.text,
+        '# Title\n\nChanged paragraph.\n\nLast paragraph.\n',
+      );
+      controller.value = controller.value.copyWith(
+        text: '# Title\n\n**Changed** paragraph.\n\nLast paragraph.\n',
+        selection: const TextSelection(baseOffset: 11, extentOffset: 18),
+      );
+      await tester.pump();
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(field.controller!.text, '**Changed** paragraph.\n\n');
+      undo.undo();
+      await tester.pump();
+      expect(
+        controller.text,
+        '# Title\n\nChanged paragraph.\n\nLast paragraph.\n',
+      );
+      undo.redo();
+      await tester.pump();
+      expect(controller.text, contains('**Changed**'));
+      await tester.tap(find.text('Changed paragraph.', findRichText: true));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('finish-live-block')));
+      await tester.pump();
+      expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(find.text('Last paragraph.', findRichText: true), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'empty document can be written and fenced code remains one editable block',
+    (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(controller: controller, onChanged: (_) {}),
+          ),
+        ),
+      );
+      await tester.enterText(
+        find.byKey(const Key('markdown-live-block-editor')),
+        '```dart\nfirst\n\nsecond\n```\n\nTail',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('finish-live-block')));
+      await tester.pump();
+      await tester.tap(find.textContaining('first', findRichText: true));
+      await tester.pump();
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(field.controller!.text, '```dart\nfirst\n\nsecond\n```\n\n');
+      expect(find.text('Tail', findRichText: true), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'appending a block keeps the editor visible after a paragraph without a newline',
+    (tester) async {
+      final controller = TextEditingController(text: 'Existing paragraph');
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(controller: controller, onChanged: (_) {}),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('append-live-block')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const Key('markdown-live-block-editor')),
+        'New paragraph',
+      );
+      await tester.pump();
+      expect(controller.text, 'Existing paragraph\n\nNew paragraph');
+      expect(
+        find.byKey(const Key('markdown-live-block-editor')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Existing paragraph', findRichText: true),
+        findsOneWidget,
+      );
+    },
+  );
+
+  group('Unified live preview', () {
+    for (final width in [400.0, 1024.0]) {
+      testWidgets('edits rendered blocks in one document at width $width', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
-
         await tester.pumpWidget(_buildApp());
         await tester.pumpAndSettle();
-
-        // Initially in edit mode
-        expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
-        expect(find.byKey(const Key('markdown-preview')), findsNothing);
-
-        // Tap 'รวมจอ'
-        await tester.tap(find.text('รวมจอ'));
+        await tester.tap(find.byTooltip('เขียน'));
         await tester.pumpAndSettle();
-
-        // Both editor and preview must be visible at the same time!
-        expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
-        expect(find.byKey(const Key('markdown-preview')), findsOneWidget);
-        expect(find.textContaining('รวมจอ (Obsidian Split)'), findsOneWidget);
-
-        // Typing in editor updates preview in real time
+        expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
+        final modes = tester.widget<SegmentedButton>(
+          find.byKey(const Key('workspace-mode-switcher')),
+        );
+        expect(modes.segments, hasLength(2));
+        expect(find.byTooltip('แสดงผล Markdown'), findsNothing);
+        expect(find.byTooltip('จดด้วยปากกา'), findsNothing);
+        expect(find.byKey(const Key('markdown-editor')), findsNothing);
+        await tester.tap(find.text('Live heading', findRichText: true));
+        await tester.pumpAndSettle();
         await tester.enterText(
-          find.byKey(const Key('markdown-editor')),
-          '# Live Obsidian Update\n\nInstant preview synchronized!',
+          find.byKey(const Key('markdown-live-block-editor')),
+          '# Updated heading\n\n',
         );
         await tester.pumpAndSettle();
-
-        expect(find.text('Live Obsidian Update', findRichText: true), findsOneWidget);
-        expect(find.textContaining('Instant preview synchronized!'), findsWidgets);
-      },
-    );
-
-    testWidgets(
-      'รวมจอ renders vertically on compact screen',
-      (tester) async {
-        tester.view.physicalSize = const Size(400, 800);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-
-        await tester.pumpWidget(_buildApp());
+        await tester.tap(find.byTooltip('Markdown'));
         await tester.pumpAndSettle();
-
-        // On compact screen, mode buttons don't have text labels, find by tooltip
-        await tester.tap(find.byTooltip('รวม Preview กับ Code (Obsidian Split)'));
-        await tester.pumpAndSettle();
-
-        // Both are present in vertical split
-        expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
-        expect(find.byKey(const Key('markdown-preview')), findsOneWidget);
-      },
-    );
+        final editor = tester.widget<TextField>(
+          find.byKey(const Key('markdown-editor')),
+        );
+        expect(editor.controller!.text, startsWith('# Updated heading'));
+        expect(editor.controller!.text, contains('Mermaid'));
+      });
+    }
   });
 }

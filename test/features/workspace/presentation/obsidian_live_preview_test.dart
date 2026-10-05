@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/gestures.dart';
+import 'package:scribble/scribble.dart';
+import 'package:mnote/features/workspace/presentation/ink_page.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
+import 'package:mnote/features/workspace/presentation/markdown_rendered_block.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
+import 'package:mnote/features/workspace/presentation/markdown_editor_decorations.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
 
@@ -23,6 +31,139 @@ Widget _buildApp({DocumentRepository? repository}) {
 }
 
 void main() {
+  testWidgets(
+    'writing mode draws ink and preserves it across Markdown switches',
+    (tester) async {
+      tester.view.physicalSize = const Size(1024, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_buildApp());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
+      await tester.tap(find.byTooltip('เขียน'));
+      await tester.pumpAndSettle();
+      final canvas = find.byType(Scribble);
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(canvas) + const Offset(80, 80),
+        kind: PointerDeviceKind.stylus,
+      );
+      await gesture.moveBy(const Offset(30, 20));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final pen = tester.widget<Scribble>(canvas).notifier as ScribbleNotifier;
+      expect(pen.currentSketch.lines, hasLength(1));
+      await tester.tap(find.byTooltip('Markdown'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('เขียน'));
+      await tester.pumpAndSettle();
+      final restored =
+          tester.widget<Scribble>(find.byType(Scribble)).notifier
+              as ScribbleNotifier;
+      expect(restored.currentSketch.lines, hasLength(1));
+      await tester.tap(find.byTooltip('ย้อนกลับหมึก'));
+      await tester.pumpAndSettle();
+      expect(restored.currentSketch.lines, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'moving between blocks preserves editor focus and leaving restores preview',
+    (tester) async {
+      final controller = TextEditingController(
+        text: '# Title\n\n- Main\n  - Nested\n\nLast paragraph',
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(controller: controller, onChanged: (_) {}),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Title', findRichText: true));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nested', findRichText: true));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('markdown-live-block-editor')),
+      );
+      expect(field.focusNode!.hasFocus, isTrue);
+      expect(field.controller!.text, contains('- Nested'));
+      await tester.enterText(
+        find.byKey(const Key('markdown-live-block-editor')),
+        '- Main\n  - Changed\n\n',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('markdown-live-block-editor')),
+        findsOneWidget,
+      );
+      field.focusNode!.unfocus();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(find.text('Changed', findRichText: true), findsOneWidget);
+      expect(find.text('เสร็จ'), findsNothing);
+      expect(
+        controller.text,
+        '# Title\n\n- Main\n  - Changed\n\nLast paragraph',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'writing and preview have identical block geometry including images and Mermaid',
+    (tester) async {
+      tester.view.physicalSize = const Size(1008, 2200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final source = File('assets/examples/welcome.md').readAsStringSync();
+      final controller = TextEditingController(text: source);
+      addTearDown(controller.dispose);
+      final builders = {'code': MermaidElementBuilder()};
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MarkdownDocumentSurface(
+                markdown: source,
+                height: 0,
+                selectable: false,
+                builders: builders,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      List<Rect> rectangles() =>
+          find.byType(MarkdownRenderedBlock).evaluate().map((e) {
+            final box = e.renderObject! as RenderBox;
+            return box.localToGlobal(Offset.zero) & box.size;
+          }).toList();
+      final previewRects = rectangles();
+      expect(find.byType(Image), findsOneWidget);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownLiveEditor(
+              controller: controller,
+              onChanged: (_) {},
+              builders: builders,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(Image), findsOneWidget);
+      expect(rectangles(), previewRects);
+      expect(find.byKey(const Key('line-number-gutter')), findsNothing);
+      expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   group('ObsidianMarkdownEditingController tests', () {
     late ObsidianMarkdownEditingController controller;
 
@@ -128,8 +269,10 @@ void main() {
                 style: const TextStyle(fontSize: 15),
                 withComposing: false,
               );
-              expect(span.children!.length, 3);
-              final codeContentSpan = span.children![1] as TextSpan;
+              expect(span.toPlainText(), controller.text);
+              final codeContentSpan = span.children!
+                  .cast<TextSpan>()
+                  .firstWhere((s) => s.text == 'final x = 42;\n');
               expect(codeContentSpan.style?.fontFamily, 'monospace');
               expect(codeContentSpan.style?.backgroundColor, isNotNull);
               return const SizedBox();
@@ -165,6 +308,115 @@ void main() {
       );
     });
   });
+
+  testWidgets(
+    'rules and list decorations retain source and reveal markers on the selected line',
+    (tester) async {
+      const source = '- item\n  + nested\n\n---\n* * *\n___';
+      final controller = ObsidianMarkdownEditingController(
+        text: source,
+        hideInactiveSyntax: true,
+      );
+      final scroll = ScrollController();
+      addTearDown(controller.dispose);
+      addTearDown(scroll.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MarkdownEditorDecorations(
+              controller: controller,
+              scrollController: scroll,
+              child: TextField(
+                controller: controller,
+                scrollController: scroll,
+                maxLines: null,
+              ),
+            ),
+          ),
+        ),
+      );
+      TextSpan span() => controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        style: const TextStyle(fontSize: 17),
+        withComposing: false,
+      );
+      TextSpan marker(String text) =>
+          span().children!.cast<TextSpan>().firstWhere((s) => s.text == text);
+      for (final text in ['-', '+', '---', '* * *', '___']) {
+        expect(marker(text).style!.fontSize, 0);
+      }
+      expect(span().toPlainText(), source);
+      controller.editorHasFocus = true;
+      controller.selection = const TextSelection.collapsed(offset: 3);
+      await tester.pump();
+      expect(marker('- ').style!.fontSize, 17);
+      expect(marker('---').style!.fontSize, 0);
+      controller.selection = TextSelection.collapsed(
+        offset: source.indexOf('---') + 1,
+      );
+      await tester.pump();
+      expect(marker('---').style!.fontSize, 17);
+      expect(marker('-').style!.fontSize, 0);
+      expect(controller.text, source);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'syntax follows the cursor and disappears when focus leaves the editor',
+    (tester) async {
+      const source =
+          '# Heading\n**bold** and [link](https://example.com)\nPlain text';
+      final controller = ObsidianMarkdownEditingController(
+        text: source,
+        hideInactiveSyntax: true,
+      );
+      final focus = FocusNode();
+      void syncFocus() => controller.editorHasFocus = focus.hasFocus;
+      focus.addListener(syncFocus);
+      addTearDown(() {
+        focus.removeListener(syncFocus);
+        focus.dispose();
+        controller.dispose();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TextField(
+              controller: controller,
+              focusNode: focus,
+              maxLines: null,
+            ),
+          ),
+        ),
+      );
+      TextSpan span() => controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        style: const TextStyle(fontSize: 17),
+        withComposing: true,
+      );
+      TextSpan marker(String text) =>
+          span().children!.cast<TextSpan>().firstWhere((s) => s.text == text);
+      expect(marker('# ').style!.fontSize, 0);
+      expect(marker('**').style!.fontSize, 0);
+      focus.requestFocus();
+      controller.selection = const TextSelection.collapsed(offset: 4);
+      await tester.pump();
+      expect(marker('# ').style!.fontSize, greaterThan(0));
+      expect(marker('**').style!.fontSize, 0);
+      controller.selection = const TextSelection.collapsed(offset: 14);
+      await tester.pump();
+      expect(marker('# ').style!.fontSize, 0);
+      expect(marker('**').style!.fontSize, 17);
+      focus.unfocus();
+      await tester.pump();
+      expect(marker('**').style!.fontSize, 0);
+      expect(marker('](https://example.com)').style!.fontSize, 0);
+      expect(span().toPlainText(), source);
+      expect(controller.text, source);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'block edits, toolbar changes and undo preserve surrounding Markdown',
@@ -216,7 +468,13 @@ void main() {
       expect(controller.text, contains('**Changed**'));
       await tester.tap(find.text('Changed paragraph.', findRichText: true));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('finish-live-block')));
+      tester
+          .widget<TextField>(
+            find.byKey(const Key('markdown-live-block-editor')),
+          )
+          .focusNode!
+          .unfocus();
+      await tester.pumpAndSettle();
       await tester.pump();
       expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
       expect(find.text('Last paragraph.', findRichText: true), findsOneWidget);
@@ -240,7 +498,13 @@ void main() {
         '```dart\nfirst\n\nsecond\n```\n\nTail',
       );
       await tester.pump();
-      await tester.tap(find.byKey(const Key('finish-live-block')));
+      tester
+          .widget<TextField>(
+            find.byKey(const Key('markdown-live-block-editor')),
+          )
+          .focusNode!
+          .unfocus();
+      await tester.pumpAndSettle();
       await tester.pump();
       await tester.tap(find.textContaining('first', findRichText: true));
       await tester.pump();
@@ -293,7 +557,7 @@ void main() {
         addTearDown(tester.view.reset);
         await tester.pumpWidget(_buildApp());
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('เขียน'));
+        await tester.tap(find.byTooltip('Markdown'));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
         final modes = tester.widget<SegmentedButton>(
@@ -310,13 +574,18 @@ void main() {
           '# Updated heading\n\n',
         );
         await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('เขียน'));
+        await tester.pumpAndSettle();
+        final ink = tester.widget<InkPage>(find.byType(InkPage));
+        expect(ink.markdown, startsWith('# Updated heading'));
+        expect(ink.markdown, contains('Mermaid'));
+        expect(find.byType(Scribble), findsOneWidget);
         await tester.tap(find.byTooltip('Markdown'));
         await tester.pumpAndSettle();
-        final editor = tester.widget<TextField>(
-          find.byKey(const Key('markdown-editor')),
+        expect(
+          find.text('Updated heading', findRichText: true),
+          findsOneWidget,
         );
-        expect(editor.controller!.text, startsWith('# Updated heading'));
-        expect(editor.controller!.text, contains('Mermaid'));
       });
     }
   });

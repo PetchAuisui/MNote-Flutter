@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'markdown_document_style.dart';
+import 'markdown_rendered_block.dart';
 
 /// Renders a document in place, exposing Markdown only in the active block.
 class MarkdownLiveEditor extends StatefulWidget {
@@ -24,6 +26,7 @@ class MarkdownLiveEditor extends StatefulWidget {
 class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   final _blockController = TextEditingController();
   final _focus = FocusNode();
+  final _activeEditorKey = GlobalKey();
   int? _start;
   int _end = 0;
   bool _updating = false;
@@ -41,6 +44,18 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     widget.undoController?.onUndo.addListener(_undo);
     widget.undoController?.onRedo.addListener(_redo);
     _blockController.addListener(_edit);
+    _focus.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (_focus.hasFocus) return;
+    // Focus can change while Flutter moves the editor between document blocks.
+    // Finish only after that move has completed, never during a rebuild.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focus.hasFocus && _start != null) {
+        setState(() => _start = null);
+      }
+    });
   }
 
   @override
@@ -194,53 +209,32 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     _focus.requestFocus();
   }
 
-  Widget _editor() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          key: const Key('finish-live-block'),
-          onPressed: () {
-            _focus.unfocus();
-            setState(() => _start = null);
-          },
-          icon: const Icon(Icons.check, size: 16),
-          label: const Text('เสร็จ'),
-        ),
+  Widget _editor() => KeyedSubtree(
+    key: _activeEditorKey,
+    child: TextField(
+      key: const Key('markdown-live-block-editor'),
+      controller: _blockController,
+      focusNode: _focus,
+      maxLines: null,
+      onTapOutside: (_) => _focus.unfocus(),
+      style: const TextStyle(
+        fontSize: 17,
+        height: MarkdownDocumentStyle.lineHeight,
+        color: Color(0xFF202124),
       ),
-      TextField(
-        key: const Key('markdown-live-block-editor'),
-        controller: _blockController,
-        focusNode: _focus,
-        maxLines: null,
-        style: const TextStyle(
-          fontSize: 17,
-          height: 1.65,
-          color: Color(0xFF202124),
-        ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          hintText: 'เริ่มเขียน Markdown…',
-          isDense: true,
-        ),
+      decoration: const InputDecoration(
+        border: InputBorder.none,
+        hintText: 'เริ่มเขียน Markdown…',
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(vertical: 8),
       ),
-    ],
+    ),
   );
 
   @override
   Widget build(BuildContext context) {
     final source = widget.controller.text;
-    final documentTheme = ThemeData.from(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Theme.of(context).colorScheme.primary,
-      ),
-      textTheme: Theme.of(context).textTheme.apply(
-        bodyColor: const Color(0xFF202124),
-        displayColor: const Color(0xFF202124),
-      ),
-      useMaterial3: true,
-    );
+    final documentTheme = MarkdownDocumentStyle.theme(context);
     final children = <Widget>[];
     var offset = 0;
     while (offset < source.length) {
@@ -250,42 +244,19 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         if (offset >= source.length) break;
       }
       final start = offset;
-      // Keep fenced code (including Mermaid) together across blank lines.
-      String? fence;
-      do {
-        final newline = source.indexOf('\n', offset);
-        final end = newline < 0 ? source.length : newline + 1;
-        final line = source.substring(offset, end).trim();
-        final match = RegExp(r'^(`{3,}|~{3,})').firstMatch(line);
-        if (match != null) {
-          if (fence == null) {
-            fence = match.group(1)!;
-          } else if (line.startsWith(fence)) {
-            fence = null;
-          }
-        }
-        offset = end;
-        if (line.isEmpty && fence == null) break;
-      } while (offset < source.length);
-      final end = offset;
+      final range = markdownBlockRanges(source.substring(offset)).first;
+      final end = start + range.end;
+      offset = end;
       children.add(
         GestureDetector(
+          key: ValueKey('markdown-block-$start'),
           behavior: HitTestBehavior.opaque,
           onTap: () => _activate(start, end),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: MarkdownBody(
-              data: source.substring(start, end),
-              imageDirectory: widget.imageDirectory,
-              builders: widget.builders,
-              styleSheet: MarkdownStyleSheet.fromTheme(documentTheme).copyWith(
-                p: const TextStyle(
-                  fontSize: 17,
-                  height: 1.65,
-                  color: Color(0xFF202124),
-                ),
-              ),
-            ),
+          child: MarkdownRenderedBlock(
+            markdown: source.substring(start, end),
+            theme: documentTheme,
+            imageDirectory: widget.imageDirectory,
+            builders: widget.builders,
           ),
         ),
       );
@@ -302,12 +273,9 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     children.add(
       GestureDetector(
         behavior: HitTestBehavior.opaque,
+        key: const Key('append-live-block'),
         onTap: _appendBlock,
-        child: const SizedBox(
-          key: Key('append-live-block'),
-          height: 120,
-          width: double.infinity,
-        ),
+        child: const SizedBox(height: 120, width: double.infinity),
       ),
     );
     return Theme(
@@ -316,10 +284,12 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         color: Colors.white,
         child: SingleChildScrollView(
           key: const Key('markdown-live-preview'),
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
+              constraints: const BoxConstraints(
+                maxWidth: MarkdownDocumentStyle.maxWidth,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: children,
@@ -337,6 +307,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     widget.undoController?.onUndo.removeListener(_undo);
     widget.undoController?.onRedo.removeListener(_redo);
     _blockController.dispose();
+    _focus.removeListener(_onFocusChanged);
     _focus.dispose();
     super.dispose();
   }

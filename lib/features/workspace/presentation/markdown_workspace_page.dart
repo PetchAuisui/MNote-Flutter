@@ -10,6 +10,7 @@ import 'package:mnote/features/workspace/presentation/obsidian_markdown_controll
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'markdown_live_editor.dart';
+import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
 
@@ -31,8 +32,7 @@ class MarkdownWorkspacePage extends StatefulWidget {
 
 class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   static const _editorTextStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontSize: 15,
+    fontSize: MarkdownDocumentStyle.bodySize,
     height: 1.55,
   );
 
@@ -41,6 +41,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
+  late final FocusNode _markdownFocusNode;
   late UndoHistoryController _undoController;
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
@@ -55,7 +56,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     )..addListener(_onWorkspaceChanged);
     _textController = ObsidianMarkdownEditingController(
       text: _workspace.document.content,
+      showRawSource: true,
     );
+    _markdownFocusNode = FocusNode()..addListener(_onMarkdownFocusChanged);
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
@@ -85,6 +88,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace
       ..removeListener(_onWorkspaceChanged)
       ..dispose();
+    _markdownFocusNode
+      ..removeListener(_onMarkdownFocusChanged)
+      ..dispose();
     _textController.dispose();
     _titleController.dispose();
     _editorScrollController.dispose();
@@ -107,6 +113,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _titleController.text = _workspace.document.name;
     }
     if (mounted) setState(() {});
+  }
+
+  void _onMarkdownFocusChanged() {
+    _textController.editorHasFocus = _markdownFocusNode.hasFocus;
   }
 
   void _onTitleFocusChanged() {
@@ -197,7 +207,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
       successMessage: _ink.isDirty
-          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดจด'
+          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดเขียน'
           : 'บันทึกเอกสารแล้ว',
     );
   }
@@ -734,14 +744,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ),
       segments: [
         ButtonSegment(
-          value: WorkspaceMode.edit,
-          icon: const Icon(Icons.edit_outlined),
+          value: WorkspaceMode.split,
+          icon: const Icon(Icons.edit_document),
           label: compact ? null : const Text('Markdown'),
           tooltip: 'Markdown',
         ),
         ButtonSegment(
-          value: WorkspaceMode.split,
-          icon: const Icon(Icons.edit_document),
+          value: WorkspaceMode.ink,
+          icon: const Icon(Icons.draw_outlined),
           label: compact ? null : const Text('เขียน'),
           tooltip: 'เขียน',
         ),
@@ -882,6 +892,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     bottom: 16,
                     child: TextField(
                       key: const Key('markdown-editor'),
+                      focusNode: _markdownFocusNode,
                       controller: _textController,
                       undoController: _undoController,
                       scrollController: _editorScrollController,
@@ -1013,7 +1024,12 @@ class _LineNumberPainter extends CustomPainter {
     var lineTop = _topPadding - _scrollOffset;
 
     for (var index = 0; index < lines.length; index++) {
-      final lineStyle = _headingStyleForLine(lines[index], editorStyle);
+      final lineStyle =
+          (textController is ObsidianMarkdownEditingController &&
+              (textController as ObsidianMarkdownEditingController)
+                  .showRawSource)
+          ? editorStyle
+          : _headingStyleForLine(lines[index], editorStyle);
       final editorPainter = _textPainter(
         lines[index].isEmpty ? ' ' : lines[index],
         lineStyle,
@@ -1084,16 +1100,16 @@ class _LineNumberPainter extends CustomPainter {
         final double factor;
         switch (level) {
           case 1:
-            factor = 1.35;
+            factor = 28 / 17;
             break;
           case 2:
-            factor = 1.22;
+            factor = 24 / 17;
             break;
           case 3:
-            factor = 1.12;
+            factor = 20 / 17;
             break;
           default:
-            factor = 1.05;
+            factor = MarkdownDocumentStyle.headingSizes[level - 1] / 17;
             break;
         }
         return baseStyle.copyWith(

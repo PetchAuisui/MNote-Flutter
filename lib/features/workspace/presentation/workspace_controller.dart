@@ -10,7 +10,7 @@ class WorkspaceController extends ChangeNotifier {
 
   final DocumentRepository _repository;
   MarkdownDocument _document;
-  WorkspaceMode _mode = WorkspaceMode.edit;
+  WorkspaceMode _mode = WorkspaceMode.split;
   bool _isBusy = false;
   String? _errorMessage;
 
@@ -39,7 +39,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void newDocument() {
     _document = MarkdownDocument.untitled();
-    _mode = WorkspaceMode.edit;
+    _mode = WorkspaceMode.split;
     _errorMessage = null;
     notifyListeners();
   }

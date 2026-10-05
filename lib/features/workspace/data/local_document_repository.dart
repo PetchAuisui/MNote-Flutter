@@ -18,11 +18,15 @@ class LocalDocumentRepository implements DocumentRepository {
 
     try {
       final content = utf8.decode(_withoutByteOrderMark(file.bytes));
-      return MarkdownDocument.opened(
+      final doc = MarkdownDocument.opened(
         name: file.name,
         content: content,
         uri: file.uri,
       );
+
+      await _registerToMetadata(doc);
+
+      return doc;
     } on FormatException {
       throw const DocumentReadException(
         'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ',
@@ -40,7 +44,9 @@ class LocalDocumentRepository implements DocumentRepository {
     }
 
     await _storage.write(uri, _encode(document.content));
-    return document.markSaved(name: document.name, uri: uri);
+    final savedDoc = document.markSaved(name: document.name, uri: uri);
+    await _registerToMetadata(savedDoc);
+    return savedDoc;
   }
 
   @override
@@ -51,16 +57,46 @@ class LocalDocumentRepository implements DocumentRepository {
     );
     if (uri == null) return null;
 
-    return document.markSaved(name: _nameFrom(uri, document.name), uri: uri);
+    final savedDoc = document.markSaved(
+      name: _nameFrom(uri, document.name),
+      uri: uri,
+    );
+    await _registerToMetadata(savedDoc);
+    return savedDoc;
   }
 
-@override
+  @override
   Future<List<MarkdownDocument>> listDocuments() async {
     try {
-      final files = await _storage.listDocuments();
+      final metadata = await loadMetadata();
       final documents = <MarkdownDocument>[];
+      final seenUris = <String>{};
 
+      if (metadata != null) {
+        for (final item in metadata.items) {
+          if (item.isDeleted) continue;
+
+          final uri = Uri.tryParse(item.uri);
+          if (uri != null) {
+            seenUris.add(uri.toString());
+            final content = await readDocument(uri);
+            if (content != null) {
+              documents.add(
+                MarkdownDocument.opened(
+                  name: item.name,
+                  content: content,
+                  uri: uri,
+                ),
+              );
+            }
+          }
+        }
+      }
+
+      final files = await _storage.listDocuments();
       for (final file in files) {
+        if (seenUris.contains(file.uri.toString())) continue;
+
         try {
           final content = utf8.decode(_withoutByteOrderMark(file.bytes));
           documents.add(
@@ -71,7 +107,6 @@ class LocalDocumentRepository implements DocumentRepository {
             ),
           );
         } on FormatException {
-          // หากมีไฟล์ใด decode utf-8 ไม่ผ่าน ให้ข้ามไฟล์นั้นไป ไม่ให้แอปแครช
           continue;
         }
       }
@@ -94,7 +129,17 @@ class LocalDocumentRepository implements DocumentRepository {
   }
 
   @override
-  Future<void> delete(Uri uri) => _storage.delete(uri);
+  Future<void> delete(Uri uri) async {
+    await _storage.delete(uri);
+
+    final metadata = await loadMetadata();
+    if (metadata != null) {
+      final updatedItems = metadata.items
+          .where((item) => item.uri != uri.toString())
+          .toList();
+      await saveMetadata(metadata.copyWith(items: updatedItems));
+    }
+  }
 
   @override
   Future<LibraryMetadata?> loadMetadata() async {
@@ -110,6 +155,35 @@ class LocalDocumentRepository implements DocumentRepository {
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
     await _storage.writeMetadata(jsonEncode(metadata.toJson()));
+  }
+
+  Future<void> _registerToMetadata(MarkdownDocument doc) async {
+    if (doc.uri == null) return;
+    final metadata = await loadMetadata() ?? const LibraryMetadata(items: []);
+    final uriStr = doc.uri.toString();
+
+    final existingIndex = metadata.items.indexWhere((e) => e.uri == uriStr);
+    final updatedItems = List<NoteItemMetadata>.from(metadata.items);
+
+    if (existingIndex >= 0) {
+      updatedItems[existingIndex] = updatedItems[existingIndex].copyWith(
+        name: doc.name,
+        updatedAt: DateTime.now(),
+      );
+    } else {
+      updatedItems.add(
+        NoteItemMetadata(
+          id: uriStr,
+          uri: uriStr,
+          name: doc.name,
+          updatedAt: DateTime.now(),
+          isDeleted: false,
+          isStarred: false,
+        ),
+      );
+    }
+
+    await saveMetadata(metadata.copyWith(items: updatedItems));
   }
 
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));

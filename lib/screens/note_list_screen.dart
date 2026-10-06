@@ -918,34 +918,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
               // Toolbar: Filter & Actions Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: constraints.maxWidth < 420
-                    ? SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFilterMenu(theme),
-                            const SizedBox(width: 8),
-                            if (isTrashView)
-                              _buildEmptyTrashButton(context)
-                            else
-                              _buildNewButton(context),
-                            const SizedBox(width: 4),
-                            _buildViewModeButton(),
-                          ],
-                        ),
-                      )
-                    : Row(
-                        children: [
-                          _buildFilterMenu(theme),
-                          const Spacer(),
-                          if (isTrashView)
-                            _buildEmptyTrashButton(context)
-                          else
-                            _buildNewButton(context),
-                          const SizedBox(width: 8),
-                          _buildViewModeButton(),
-                        ],
-                      ),
+                child: Row(
+                  children: [
+                    _buildFilterMenu(theme),
+                    const Spacer(),
+                    if (isTrashView)
+                      _buildEmptyTrashButton(context)
+                    else
+                      _buildNewButton(context),
+                    const SizedBox(width: 6),
+                    _buildViewModeButton(),
+                  ],
+                ),
               ),
 
               const Divider(height: 1),

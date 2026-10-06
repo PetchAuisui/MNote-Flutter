@@ -32,6 +32,36 @@ Widget _buildApp({DocumentRepository? repository}) {
 }
 
 void main() {
+  testWidgets('workspace touch writing switch updates canvas gestures', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('เขียน'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+          .panEnabled,
+      isTrue,
+    );
+    await tester.tap(find.byKey(const Key('ink-touch')));
+    await tester.pumpAndSettle();
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    expect(viewer.panEnabled, isFalse);
+    expect(viewer.scaleEnabled, isFalse);
+    await tester.tap(find.byKey(const Key('ink-touch')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+          .panEnabled,
+      isTrue,
+    );
+  });
+
   testWidgets('undo and redo survive switching workspace modes', (
     tester,
   ) async {

@@ -74,11 +74,28 @@ class _ReferenceContextSyntax extends md.InlineSyntax {
 
 /// Source ranges used by both the preview and the editable document.
 ///
-/// Returns discrete ranges for each non-empty line, while preserving fenced
-/// code blocks (``` or ~~~) and tables as unified multi-line blocks.
+/// Keeps paragraphs, setext headings, fenced code and tables together so
+/// their Markdown syntax is parsed with its surrounding lines.
 /// Blank lines are excluded from ranges so they remain untouched.
 List<TextRange> markdownBlockRanges(String source) {
   final ranges = <TextRange>[];
+  final lines = source.split('\n');
+  final lineOffsets = <int>[];
+  var lineOffset = 0;
+  for (final line in lines) {
+    lineOffsets.add(lineOffset);
+    lineOffset += line.length + 1;
+  }
+  final parser = md.BlockParser(
+    lines.map(md.Line.new).toList(),
+    md.Document(extensionSet: md.ExtensionSet.gitHubFlavored),
+  );
+  var parserLine = 0;
+  void advanceParser() {
+    parser.advance();
+    parserLine++;
+  }
+
   var offset = 0;
   while (offset < source.length) {
     final newline = source.indexOf('\n', offset);
@@ -145,7 +162,44 @@ List<TextRange> markdownBlockRanges(String source) {
       }
     }
 
-    // Single line block
+    // Use the renderer's block rules to identify paragraph boundaries. Inline
+    // emphasis and setext underlines need the complete paragraph to parse.
+    while (!parser.isDone && lineOffsets[parserLine] < offset) {
+      advanceParser();
+    }
+    final syntax = parser.blockSyntaxes.firstWhere(
+      (syntax) => syntax.canParse(parser),
+    );
+    if (syntax is md.ParagraphSyntax) {
+      advanceParser();
+      while (!parser.isDone) {
+        // We only inspect syntax rules here, so BlockParser.currentSyntax is
+        // unset. Recognize the underline before the horizontal-rule rule.
+        if (const md.SetextHeaderSyntax().pattern.hasMatch(
+          parser.current.content,
+        )) {
+          advanceParser();
+          break;
+        }
+        final interruption = syntax.interruptedBy(parser);
+        if (interruption != null) {
+          if (interruption is md.SetextHeaderSyntax) advanceParser();
+          break;
+        }
+        advanceParser();
+      }
+      final lastLine = parserLine - 1;
+      ranges.add(
+        TextRange(
+          start: offset,
+          end: lineOffsets[lastLine] + lines[lastLine].length,
+        ),
+      );
+      offset = parser.isDone ? source.length : lineOffsets[parserLine];
+      continue;
+    }
+
+    // Other standalone lines (including independently editable list items).
     ranges.add(TextRange(start: offset, end: lineEnd));
     offset = newline < 0 ? source.length : newline + 1;
   }
@@ -177,7 +231,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     // Each list line is rendered independently, so retain its source nesting
     // before the Markdown parser normalizes leading whitespace.
-    final list = RegExp(r'^( *)(?:[-*+]|\d+\.)\s+').firstMatch(markdown);
+    final list = RegExp(r'^( *)(?:[-*+]|\d+[.)])\s+').firstMatch(markdown);
     final indent = list?.group(1)?.length ?? 0;
     final depth = (indent / 2).ceil();
     return Padding(

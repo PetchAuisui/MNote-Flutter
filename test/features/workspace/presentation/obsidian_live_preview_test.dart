@@ -752,7 +752,7 @@ void main() {
   });
 
   testWidgets(
-    'focuses lines line-by-line without bundling blank lines and keeps code box unified',
+    'edits paragraphs together without bundling blank lines and keeps code unified',
     (tester) async {
       const doc =
           '# Header\n\nLine Alpha\nLine Beta\n\n```dart\nline 1\n\nline 2\n```\n\nFooter';
@@ -767,28 +767,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap Line Alpha - only Line Alpha is focused, Line Beta remains rendered
+      // A soft line break belongs to the same Markdown paragraph.
       await tester.tap(
-        find.text('Line Alpha', findRichText: true),
+        find.text('Line Alpha Line Beta', findRichText: true),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
       );
-      expect(field.controller!.text, 'Line Alpha');
-      expect(find.text('Line Beta', findRichText: true), findsOneWidget);
-
-      // Tap Line Beta - switches focus to Line Beta alone
-      await tester.tap(
-        find.text('Line Beta', findRichText: true),
-        warnIfMissed: false,
-      );
-      await tester.pumpAndSettle();
-      final betaField = tester.widget<TextField>(
-        find.byKey(const Key('markdown-live-block-editor')),
-      );
-      expect(betaField.controller!.text, 'Line Beta');
+      expect(field.controller!.text, 'Line Alpha\nLine Beta');
 
       // Tap code box - code box is unified with internal blank lines
       await tester.tap(

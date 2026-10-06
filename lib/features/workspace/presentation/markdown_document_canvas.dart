@@ -89,7 +89,7 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
   double _viewportWidth = 0;
 
   void _fit() {
-    final scale = (_viewportWidth / DocumentPageMetrics.width).clamp(0.1, 4.0);
+    final scale = (_viewportWidth / DocumentPageMetrics.width).clamp(0.1, 1.0);
     final dx = _viewportWidth > DocumentPageMetrics.width
         ? (_viewportWidth - DocumentPageMetrics.width) / 2
         : 0.0;

@@ -108,19 +108,27 @@ List<TextRange> markdownBlockRanges(String source) {
       continue;
     }
 
-    final trimmed = line.trimLeft();
-    final match = RegExp(r'^(`{3,}|~{3,})').firstMatch(trimmed);
+    final fencePattern = const md.FencedCodeBlockSyntax().pattern;
+    final match = fencePattern.firstMatch(line);
     if (match != null) {
       // Fenced code block: keep entire block together as one range
-      final fence = match.group(1)!;
+      final fence = match.namedGroup('backtick') ?? match.namedGroup('tilde')!;
       final start = offset;
       var fenceOffset = newline < 0 ? source.length : newline + 1;
       while (fenceOffset < source.length) {
         final nextNewline = source.indexOf('\n', fenceOffset);
         final nextLineEnd = nextNewline < 0 ? source.length : nextNewline;
-        final nextLine = source.substring(fenceOffset, nextLineEnd).trimLeft();
+        final nextLine = source.substring(fenceOffset, nextLineEnd);
         fenceOffset = nextNewline < 0 ? source.length : nextNewline + 1;
-        if (nextLine.startsWith(fence)) {
+        final closing = fencePattern.firstMatch(nextLine);
+        final marker =
+            closing?.namedGroup('backtick') ?? closing?.namedGroup('tilde');
+        final info =
+            closing?.namedGroup('backtickInfo') ??
+            closing?.namedGroup('tildeInfo');
+        if (marker != null &&
+            marker.startsWith(fence) &&
+            info!.trim().isEmpty) {
           break;
         }
       }
@@ -170,6 +178,35 @@ List<TextRange> markdownBlockRanges(String source) {
     final syntax = parser.blockSyntaxes.firstWhere(
       (syntax) => syntax.canParse(parser),
     );
+    if (syntax is md.ListSyntax) {
+      // Keep each item independently editable, but retain its paragraph's
+      // continuation lines so inline formatting can span them.
+      advanceParser();
+      while (!parser.isDone && !parser.current.isBlankLine) {
+        if (RegExp(
+          r'^\s*(?:[-*+]|\d+[.)])\s+',
+        ).hasMatch(parser.current.content)) {
+          break;
+        }
+        final continuation = parser.blockSyntaxes.firstWhere(
+          (syntax) => syntax.canParse(parser),
+        );
+        if (continuation is! md.ParagraphSyntax &&
+            continuation is! md.CodeBlockSyntax) {
+          break;
+        }
+        advanceParser();
+      }
+      final lastLine = parserLine - 1;
+      ranges.add(
+        TextRange(
+          start: offset,
+          end: lineOffsets[lastLine] + lines[lastLine].length,
+        ),
+      );
+      offset = parser.isDone ? source.length : lineOffsets[parserLine];
+      continue;
+    }
     if (syntax is md.ParagraphSyntax) {
       advanceParser();
       while (!parser.isDone) {

@@ -45,6 +45,45 @@ void main() {
   }
 
   for (final live in [true, false]) {
+    testWidgets(
+      'list continuation renders and edits as one item (live: $live)',
+      (tester) async {
+        const source = '- **first\n  second**\n- Next';
+        if (live) {
+          await show(tester, source);
+        } else {
+          await tester.pumpWidget(
+            const MaterialApp(
+              home: Scaffold(
+                body: MarkdownDocumentSurface(
+                  markdown: source,
+                  height: 300,
+                  selectable: false,
+                ),
+              ),
+            ),
+          );
+        }
+        expect(find.text('first second', findRichText: true), findsOneWidget);
+        expect(find.text('**first', findRichText: true), findsNothing);
+        if (live) {
+          await tester.tap(find.text('first second', findRichText: true));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const Key('markdown-live-block-editor')),
+            '- **changed\n  item**',
+          );
+          expect(
+            tester
+                .widget<MarkdownLiveEditor>(find.byType(MarkdownLiveEditor))
+                .controller
+                .text,
+            '- **changed\n  item**\n- Next',
+          );
+        }
+      },
+    );
+
     testWidgets('multiline Markdown renders correctly (live: $live)', (
       tester,
     ) async {
@@ -102,6 +141,35 @@ void main() {
       ],
     );
   });
+
+  test('list continuations preserve separate items and block boundaries', () {
+    const source = '5. **first\n   second**\n  1. Child\n1. Next\n# Heading';
+    final ranges = markdownBlockRanges(source);
+    expect(ranges.map((range) => range.textInside(source)), [
+      '5. **first\n   second**',
+      '  1. Child',
+      '1. Next',
+      '# Heading',
+    ]);
+    expect(MarkdownBlockContext(source, ranges).orderedNumbers.values, [
+      5,
+      1,
+      6,
+    ]);
+  });
+
+  for (final fence in ['```', '~~~']) {
+    test('closing $fence rejects info, shorter fences and excess indent', () {
+      final code =
+          '$fence\nfirst\n${fence}not-a-close\n'
+          '${fence.substring(1)}\n    $fence\n**still code**\n$fence${fence[0]}  ';
+      final source = '$code\n\nAfter';
+      expect(
+        markdownBlockRanges(source).map((range) => range.textInside(source)),
+        [code, 'After'],
+      );
+    });
+  }
 
   testWidgets('parenthesis list preserves indentation and numbering', (
     tester,

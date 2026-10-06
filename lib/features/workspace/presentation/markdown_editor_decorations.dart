@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'obsidian_markdown_controller.dart';
+import 'live_markdown_controller.dart';
 
 /// Paints block decorations over their original, hidden source characters.
 /// Keeping the source in EditableText preserves selection and clipboard offsets.
@@ -11,7 +11,7 @@ class MarkdownEditorDecorations extends StatefulWidget {
     required this.scrollController,
     required this.child,
   });
-  final ObsidianMarkdownEditingController controller;
+  final LiveMarkdownEditingController controller;
   final ScrollController scrollController;
   final Widget child;
   @override
@@ -35,7 +35,7 @@ class _MarkdownEditorDecorationsState extends State<MarkdownEditorDecorations> {
 class _DecorationsPainter extends CustomPainter {
   _DecorationsPainter(this.controller, ScrollController scroll, this.editorKey)
     : super(repaint: Listenable.merge([controller, scroll]));
-  final ObsidianMarkdownEditingController controller;
+  final LiveMarkdownEditingController controller;
   final GlobalKey editorKey;
 
   RenderEditable? _editable(RenderObject object) {

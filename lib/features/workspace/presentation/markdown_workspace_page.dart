@@ -8,7 +8,7 @@ import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
-import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
+import 'package:mnote/features/workspace/presentation/live_markdown_controller.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:scribble/scribble.dart';
@@ -43,7 +43,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   );
 
   late final WorkspaceController _workspace;
-  late final ObsidianMarkdownEditingController _textController;
+  late final LiveMarkdownEditingController _textController;
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
@@ -70,7 +70,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       widget.repository,
       initialDocument: widget.initialDocument,
     )..addListener(_onWorkspaceChanged);
-    _textController = ObsidianMarkdownEditingController(
+    _textController = LiveMarkdownEditingController(
       text: _workspace.document.content,
       showRawSource: true,
     );
@@ -1327,8 +1327,8 @@ class _LineNumberPainter extends CustomPainter {
 
     for (var index = 0; index < lines.length; index++) {
       final lineStyle =
-          (textController is ObsidianMarkdownEditingController &&
-              (textController as ObsidianMarkdownEditingController)
+          (textController is LiveMarkdownEditingController &&
+              (textController as LiveMarkdownEditingController)
                   .showRawSource)
           ? editorStyle
           : _headingStyleForLine(lines[index], editorStyle);

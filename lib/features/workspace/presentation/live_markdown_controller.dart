@@ -5,8 +5,8 @@ import 'markdown_document_style.dart';
 /// directly inside the editor. Headings, bold, italics, inline code, blockquotes,
 /// lists, links, and code blocks are rendered with live rich typography, while
 /// syntax is revealed on selected lines and hidden elsewhere when enabled.
-class ObsidianMarkdownEditingController extends TextEditingController {
-  ObsidianMarkdownEditingController({
+class LiveMarkdownEditingController extends TextEditingController {
+  LiveMarkdownEditingController({
     super.text,
     this.primaryColor = const Color(0xFF1E88E5),
     this.onSurfaceColor = const Color(0xFF202124),
@@ -48,7 +48,7 @@ class ObsidianMarkdownEditingController extends TextEditingController {
     r'|(\*\*[^\*\n]+?\*\*)'
     r'|(~~[^~\n]+?~~)'
     r'|(\*[^\*\n]+?\*)'
-    r'|(_[^_\n]+?_)'
+    r'|((?<![A-Za-z0-9_])_[^_\n]+?_(?![A-Za-z0-9_]))'
     r'|(<br\s*/?>)',
   );
 
@@ -73,6 +73,7 @@ class ObsidianMarkdownEditingController extends TextEditingController {
     final spans = <InlineSpan>[];
     final lines = text.split('\n');
     bool inCodeBlock = false;
+    String? openFence;
     var lineOffset = 0;
 
     for (var i = 0; i < lines.length; i++) {
@@ -96,8 +97,23 @@ class ObsidianMarkdownEditingController extends TextEditingController {
 
       // Code block boundary: ``` or ~~~
       final trimmed = line.trimLeft();
-      if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-        inCodeBlock = !inCodeBlock;
+      final fenceMatch = RegExp(r'^(`{3,}|~{3,})(.*)$').firstMatch(trimmed);
+      var isFence = false;
+      if (fenceMatch != null) {
+        final fence = fenceMatch.group(1)!;
+        if (!inCodeBlock) {
+          isFence = true;
+          inCodeBlock = true;
+          openFence = fence;
+        } else if (fence[0] == openFence![0] &&
+            fence.length >= openFence.length &&
+            fenceMatch.group(2)!.trim().isEmpty) {
+          isFence = true;
+          inCodeBlock = false;
+          openFence = null;
+        }
+      }
+      if (isFence) {
         spans.add(
           TextSpan(
             text: line,

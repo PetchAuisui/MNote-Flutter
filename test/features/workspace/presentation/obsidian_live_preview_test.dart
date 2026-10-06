@@ -14,7 +14,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_editor_decorations.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
-import 'package:mnote/features/workspace/presentation/obsidian_markdown_controller.dart';
+import 'package:mnote/features/workspace/presentation/live_markdown_controller.dart';
 
 import '../../../helpers/fakes.dart';
 
@@ -313,11 +313,11 @@ void main() {
     },
   );
 
-  group('ObsidianMarkdownEditingController tests', () {
-    late ObsidianMarkdownEditingController controller;
+  group('LiveMarkdownEditingController tests', () {
+    late LiveMarkdownEditingController controller;
 
     setUp(() {
-      controller = ObsidianMarkdownEditingController();
+      controller = LiveMarkdownEditingController();
     });
 
     tearDown(() {
@@ -462,7 +462,7 @@ void main() {
     'rules and list decorations retain source and reveal markers on the selected line',
     (tester) async {
       const source = '- item\n  + nested\n\n---\n* * *\n___';
-      final controller = ObsidianMarkdownEditingController(
+      final controller = LiveMarkdownEditingController(
         text: source,
         hideInactiveSyntax: true,
       );
@@ -516,7 +516,7 @@ void main() {
     (tester) async {
       const source =
           '# Heading\n**bold** and [link](https://example.com)\nPlain text';
-      final controller = ObsidianMarkdownEditingController(
+      final controller = LiveMarkdownEditingController(
         text: source,
         hideInactiveSyntax: true,
       );

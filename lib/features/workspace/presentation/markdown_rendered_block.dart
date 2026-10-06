@@ -4,7 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'markdown_document_style.dart';
 
 class _LineBreakSyntax extends md.InlineSyntax {
-  _LineBreakSyntax() : super(r'<[bB][rR]\s*/?>');
+  _LineBreakSyntax() : super(r'[ \t]*<[bB][rR]\s*/?>[ \t]*\n?');
 
   @override
   bool onMatch(md.InlineParser parser, Match match) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 
 class MarkdownFormattingToolbar extends StatefulWidget {
@@ -21,6 +22,8 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onLink,
     required this.onImage,
     required this.onTable,
+    this.onDiagramTemplate,
+    this.onImportDiagram,
   });
 
   final VoidCallback? onUndo;
@@ -40,6 +43,8 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final VoidCallback onLink;
   final VoidCallback onImage;
   final VoidCallback onTable;
+  final ValueChanged<MermaidTemplate>? onDiagramTemplate;
+  final VoidCallback? onImportDiagram;
 
   @override
   State<MarkdownFormattingToolbar> createState() =>
@@ -53,6 +58,8 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final onDiagramTemplate = widget.onDiagramTemplate;
+    final onImportDiagram = widget.onImportDiagram;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -212,6 +219,49 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                         ),
                       ],
                     ),
+                    if (onDiagramTemplate != null || onImportDiagram != null)
+                      _ToolbarMenuButton<_DiagramMenuAction>(
+                        buttonKey: const Key('toolbar-diagram'),
+                        icon: Icons.account_tree_outlined,
+                        label: 'ไดอะแกรม',
+                        showLabel: showLabels,
+                        onSelected: (action) {
+                          switch (action) {
+                            case _InsertDiagramTemplate(:final template):
+                              onDiagramTemplate?.call(template);
+                            case _ImportDiagramFile():
+                              onImportDiagram?.call();
+                          }
+                        },
+                        items: [
+                          if (onDiagramTemplate != null)
+                            for (final template in mermaidTemplates)
+                              PopupMenuItem(
+                                key: Key('toolbar-diagram-${template.id}'),
+                                value: _InsertDiagramTemplate(template),
+                                child: ListTile(
+                                  leading: Icon(
+                                    _diagramTemplateIcon(template.id),
+                                  ),
+                                  title: Text(template.label),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                          if (onDiagramTemplate != null &&
+                              onImportDiagram != null)
+                            const PopupMenuDivider(),
+                          if (onImportDiagram != null)
+                            const PopupMenuItem(
+                              key: Key('toolbar-diagram-import'),
+                              value: _ImportDiagramFile(),
+                              child: ListTile(
+                                leading: Icon(Icons.file_open_outlined),
+                                title: Text('นำเข้าจากไฟล์ .mmd…'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                        ],
+                      ),
                     const _ToolbarDivider(),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-link'),
@@ -389,6 +439,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
     for (final item in items)
       if (item is PopupMenuItem<T>)
         PopupMenuItem<VoidCallback>(
+          key: item.key,
           value: () => onSelected(item.value as T),
           child: item.child,
         ),
@@ -476,3 +527,22 @@ class _ToolbarDivider extends StatelessWidget {
 }
 
 enum _CodeStyle { inline, block }
+
+sealed class _DiagramMenuAction {
+  const _DiagramMenuAction();
+}
+
+final class _InsertDiagramTemplate extends _DiagramMenuAction {
+  const _InsertDiagramTemplate(this.template);
+  final MermaidTemplate template;
+}
+
+final class _ImportDiagramFile extends _DiagramMenuAction {
+  const _ImportDiagramFile();
+}
+
+IconData _diagramTemplateIcon(String id) => switch (id) {
+  'sequence' => Icons.swap_horiz_rounded,
+  'class' => Icons.schema_outlined,
+  _ => Icons.account_tree_outlined,
+};

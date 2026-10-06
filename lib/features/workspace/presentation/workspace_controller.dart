@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 
-enum WorkspaceMode { edit, preview, ink }
+enum WorkspaceMode { edit, split, preview, ink }
 
 class WorkspaceController extends ChangeNotifier {
   WorkspaceController(this._repository, {MarkdownDocument? initialDocument})
@@ -10,7 +10,7 @@ class WorkspaceController extends ChangeNotifier {
 
   final DocumentRepository _repository;
   MarkdownDocument _document;
-  WorkspaceMode _mode = WorkspaceMode.edit;
+  WorkspaceMode _mode = WorkspaceMode.split;
   bool _isBusy = false;
   String? _errorMessage;
 
@@ -39,7 +39,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void newDocument() {
     _document = MarkdownDocument.untitled();
-    _mode = WorkspaceMode.edit;
+    _mode = WorkspaceMode.split;
     _errorMessage = null;
     notifyListeners();
   }
@@ -52,6 +52,18 @@ class WorkspaceController extends ChangeNotifier {
     }
     _document = MarkdownDocument.example(content);
     _errorMessage = null;
+    notifyListeners();
+    return true;
+  }
+
+  bool upgradeExample(String previous, String current) {
+    if (_document.name != 'Welcome.md' ||
+        _document.uri != null ||
+        _document.isDirty ||
+        _document.content != previous) {
+      return false;
+    }
+    _document = MarkdownDocument.example(current);
     notifyListeners();
     return true;
   }

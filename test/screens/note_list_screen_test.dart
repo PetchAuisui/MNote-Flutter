@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/models/note_item.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
@@ -597,10 +598,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // The editor should contain the fresh content from repo.readDocument
-    final editor = tester.widget<TextField>(
-      find.byKey(const Key('markdown-editor')),
-    );
-    expect(editor.controller?.text, 'Brand new external content');
+    final editor = tester.widget<MarkdownLiveEditor>(find.byType(MarkdownLiveEditor));
+    expect(editor.controller.text, 'Brand new external content');
   });
 }
 

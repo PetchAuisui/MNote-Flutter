@@ -29,6 +29,8 @@ class MarkdownDocumentSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final documentTheme = MarkdownDocumentStyle.theme(context);
+    final ranges = markdownBlockRanges(markdown);
+    final blockContext = MarkdownBlockContext(markdown, ranges);
     final surface = ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),
       child: ColoredBox(
@@ -44,9 +46,11 @@ class MarkdownDocumentSurface extends StatelessWidget {
                 key: selectable ? const Key('markdown-preview') : null,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final range in markdownBlockRanges(markdown))
+                  for (final range in ranges)
                     MarkdownRenderedBlock(
                       markdown: range.textInside(markdown),
+                      references: blockContext.references,
+                      orderedNumber: blockContext.orderedNumbers[range.start],
                       theme: documentTheme,
                       imageDirectory: imageDirectory,
                       selectable: selectable,

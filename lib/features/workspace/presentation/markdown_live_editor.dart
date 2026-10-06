@@ -286,6 +286,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     final documentTheme = MarkdownDocumentStyle.theme(context);
     final children = <Widget>[];
     final ranges = markdownBlockRanges(source);
+    final blockContext = MarkdownBlockContext(source, ranges);
 
     var editorAdded = false;
 
@@ -302,6 +303,8 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
               ).hasMatch(range.textInside(source)),
               child: MarkdownRenderedBlock(
                 markdown: range.textInside(source),
+                references: blockContext.references,
+                orderedNumber: blockContext.orderedNumbers[range.start],
                 theme: documentTheme,
                 imageDirectory: widget.imageDirectory,
                 builders: widget.builders,
@@ -333,6 +336,8 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
             ).hasMatch(range.textInside(source)),
             child: MarkdownRenderedBlock(
               markdown: range.textInside(source),
+              references: blockContext.references,
+              orderedNumber: blockContext.orderedNumbers[range.start],
               theme: documentTheme,
               imageDirectory: widget.imageDirectory,
               builders: widget.builders,

@@ -13,6 +13,65 @@ class _LineBreakSyntax extends md.InlineSyntax {
   }
 }
 
+/// Shared parser context for blocks that are edited independently.
+class MarkdownBlockContext {
+  MarkdownBlockContext(String source, List<TextRange> ranges) {
+    final document = md.Document(
+      extensionSet: md.ExtensionSet.gitHubFlavored,
+      encodeHtml: false,
+    )..parseLines(source.split('\n'));
+    references = document.linkReferences;
+
+    final counters = <int, int>{};
+    for (final range in ranges) {
+      final text = range.textInside(source);
+      final item = RegExp(r'^( *)(?:(\d+)[.)]|[-*+])\s+').firstMatch(text);
+      if (item == null) {
+        counters.clear();
+        continue;
+      }
+      final indent = item.group(1)!.length;
+      counters.removeWhere((depth, _) => depth > indent);
+      final number = item.group(2);
+      if (number == null) {
+        counters.remove(indent);
+      } else {
+        final next = counters.containsKey(indent)
+            ? counters[indent]! + 1
+            : int.parse(number);
+        counters[indent] = next;
+        orderedNumbers[range.start] = next;
+      }
+    }
+  }
+
+  late final Map<String, md.LinkReference> references;
+  final orderedNumbers = <int, int>{};
+}
+
+class _ReferenceContextSyntax extends md.InlineSyntax {
+  _ReferenceContextSyntax(this.references) : super(r'!?\[');
+
+  final Map<String, md.LinkReference> references;
+  md.Document? _document;
+
+  @override
+  bool tryMatch(md.InlineParser parser, [int? startMatchPos]) {
+    if (!identical(_document, parser.document)) {
+      parser.document.linkReferences.addAll(references);
+      _document = parser.document;
+    }
+    return false;
+  }
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    // Let the standard link/image syntax consume the text with the shared
+    // definitions, retaining its normal label formatting and escaping rules.
+    return false;
+  }
+}
+
 /// Source ranges used by both the preview and the editable document.
 ///
 /// Returns discrete ranges for each non-empty line, while preserving fenced
@@ -102,8 +161,12 @@ class MarkdownRenderedBlock extends StatelessWidget {
     this.builders = const {},
     this.selectable = false,
     this.onTapLink,
+    this.references = const {},
+    this.orderedNumber,
   });
   final String markdown;
+  final Map<String, md.LinkReference> references;
+  final int? orderedNumber;
   final ThemeData theme;
   final String? imageDirectory;
   final Map<String, MarkdownElementBuilder> builders;
@@ -121,7 +184,10 @@ class MarkdownRenderedBlock extends StatelessWidget {
       padding: EdgeInsets.only(top: 8, bottom: 8, left: depth * 32.0),
       child: MarkdownBody(
         data: list == null ? markdown : markdown.substring(indent),
-        inlineSyntaxes: [_LineBreakSyntax()],
+        inlineSyntaxes: [
+          if (references.isNotEmpty) _ReferenceContextSyntax(references),
+          _LineBreakSyntax(),
+        ],
         imageDirectory: imageDirectory,
         builders: builders,
         selectable: selectable,
@@ -131,7 +197,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
         bulletBuilder: (parameters) {
           if (parameters.style == BulletStyle.orderedList) {
             return Text(
-              '${parameters.index + 1}.',
+              '${orderedNumber ?? parameters.index + 1}.',
               style: MarkdownDocumentStyle.sheet(theme).listBullet,
             );
           }

@@ -37,14 +37,39 @@ class LocalDocumentRepository implements DocumentRepository {
 
   @override
   Future<MarkdownDocument?> save(MarkdownDocument document) async {
-    final uri = document.uri;
-    if (uri == null ||
-        uri.scheme != 'file' ||
-        document.name != _nameFrom(uri, document.name)) {
+    var uri = document.uri;
+    if (uri == null || uri.scheme.isEmpty) {
+      final targetName = _ensureMarkdownExtension(document.name);
+      uri = await _storage.createDocument(
+        name: targetName,
+        bytes: _encode(document.content),
+      );
+      if (uri == null) return saveAs(document);
+      final savedDoc = document.markSaved(name: document.name, uri: uri);
+      await _registerToMetadata(savedDoc);
+      return savedDoc;
+    }
+
+    final currentFileName = _nameFrom(uri, document.name);
+    final targetFileName = _ensureMarkdownExtension(document.name);
+
+    if (uri.scheme != 'file' ||
+        targetFileName != _ensureMarkdownExtension(currentFileName)) {
       return saveAs(document);
     }
 
-    await _storage.write(uri, _encode(document.content));
+    try {
+      await _storage.write(uri, _encode(document.content));
+    } catch (_) {
+      final newUri = await _storage.createDocument(
+        name: targetFileName,
+        bytes: _encode(document.content),
+      );
+      if (newUri != null) {
+        uri = newUri;
+      }
+    }
+
     final savedDoc = document.markSaved(name: document.name, uri: uri);
     await _registerToMetadata(savedDoc);
     return savedDoc;

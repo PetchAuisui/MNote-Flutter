@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -38,16 +39,57 @@ class _InkPageState extends State<InkPage> {
   bool _touch = false;
   bool _busy = false;
   double _viewportWidth = 0;
+  Timer? _autoSaveInkTimer;
 
   @override
   void initState() {
     super.initState();
     _touch =
         widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
+    widget.session.pen.addListener(_onPenChanged);
+    _autoLoadInkIfAvailable();
+  }
+
+  void _onPenChanged() {
+    if (widget.session.isDirty) {
+      _autoSaveInkTimer?.cancel();
+      _autoSaveInkTimer = Timer(const Duration(milliseconds: 600), () async {
+        if (!mounted) return;
+        final snapshot = widget.session.encode();
+        final saved = await widget.fileStorage.autoSave(
+          name: widget.name,
+          bytes: Uint8List.fromList(utf8.encode(snapshot)),
+        );
+        if (saved && mounted) {
+          widget.session.markSaved(snapshot);
+        }
+      });
+    }
+  }
+
+  Future<void> _autoLoadInkIfAvailable() async {
+    if (widget.session.pen.currentSketch.lines.isEmpty) {
+      final bytes = await widget.fileStorage.autoLoad(name: widget.name);
+      if (bytes != null && mounted) {
+        try {
+          widget.session.load(utf8.decode(bytes));
+        } catch (_) {}
+      }
+    }
   }
 
   @override
   void dispose() {
+    _autoSaveInkTimer?.cancel();
+    if (widget.session.isDirty) {
+      final snapshot = widget.session.encode();
+      widget.fileStorage.autoSave(
+        name: widget.name,
+        bytes: Uint8List.fromList(utf8.encode(snapshot)),
+      );
+      widget.session.markSaved(snapshot);
+    }
+    widget.session.pen.removeListener(_onPenChanged);
     _transform.dispose();
     super.dispose();
   }

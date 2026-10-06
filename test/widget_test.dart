@@ -386,7 +386,7 @@ void main() {
 
     expect(find.byKey(const Key('markdown-preview')), findsOneWidget);
     expect(find.text('Hello Mnote'), findsOneWidget);
-    expect(find.text('ยังไม่ได้บันทึก'), findsOneWidget);
+    expect(find.text('บันทึกแล้ว'), findsOneWidget);
   });
 
   testWidgets('fits the editor on a compact phone screen', (tester) async {

@@ -39,6 +39,14 @@ class DeviceDocumentStorage implements DocumentStorage {
   }
 
   @override
+  Future<Uri?> createDocument({required String name, required Uint8List bytes}) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final file = File('${appDir.path}/$name');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.uri;
+  }
+
+  @override
   Future<void> write(Uri uri, Uint8List bytes) {
     if (uri.scheme != 'file') {
       throw const FileSystemException('The selected URI is not writable.');

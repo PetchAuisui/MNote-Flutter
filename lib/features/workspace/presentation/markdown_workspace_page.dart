@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -72,8 +73,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     }
   }
 
+  Timer? _autoSaveTimer;
+
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _ink.dispose();
     _workspace
       ..removeListener(_onWorkspaceChanged)
@@ -88,6 +92,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     super.dispose();
   }
 
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 600), () {
+      _performAutoSave();
+    });
+  }
+
+  Future<void> _performAutoSave() async {
+    if (!mounted) return;
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+      if (mounted) setState(() {});
+    }
+  }
+
   void _onWorkspaceChanged() {
     final content = _workspace.document.content;
     if (_textController.text != content) {
@@ -98,6 +117,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     }
     if (!_isEditingTitle && _titleController.text != _workspace.document.name) {
       _titleController.text = _workspace.document.name;
+    }
+    if (_workspace.document.isDirty) {
+      _scheduleAutoSave();
     }
     if (mounted) setState(() {});
   }
@@ -130,6 +152,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace.updateName(name);
     _titleController.text = _workspace.document.name;
     _titleFocusNode.unfocus();
+    if (_workspace.document.isDirty) {
+      _scheduleAutoSave();
+    }
   }
 
   String _normalizedDocumentName(String value) {
@@ -144,31 +169,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return '$name.md';
   }
 
-  Future<bool> _confirmDiscardChanges() async {
-    if (!_workspace.document.isDirty && !_ink.isDirty) return true;
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            icon: const Icon(Icons.warning_amber_rounded),
-            title: const Text('ละทิ้งการแก้ไข?'),
-            content: const Text('การเปลี่ยนแปลงที่ยังไม่ได้บันทึกจะหายไป'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('ยกเลิก'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('ละทิ้ง'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   Future<void> _openDocument() async {
-    if (!await _confirmDiscardChanges()) return;
+    _autoSaveTimer?.cancel();
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+    }
     final opened = await _runFileAction(
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
@@ -180,7 +185,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<void> _newDocument() async {
-    if (!await _confirmDiscardChanges()) return;
+    _autoSaveTimer?.cancel();
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+    }
     _workspace.newDocument();
     _resetInk();
     _resetUndoHistory();
@@ -531,11 +539,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final shouldPop = await _confirmDiscardChanges();
-        if (shouldPop && context.mounted) {
-          Navigator.of(context).pop(
-            _workspace.document.isDirty ? null : _workspace.document,
-          );
+        _autoSaveTimer?.cancel();
+        if (_workspace.document.isDirty) {
+          await _workspace.save();
+        }
+        if (context.mounted) {
+          Navigator.of(context).pop(_workspace.document);
         }
       },
       child: Scaffold(

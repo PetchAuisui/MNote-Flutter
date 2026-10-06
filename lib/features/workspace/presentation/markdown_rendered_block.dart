@@ -37,7 +37,8 @@ List<TextRange> markdownBlockRanges(String source) {
           break;
         }
       }
-      final end = fenceOffset > 0 &&
+      final end =
+          fenceOffset > 0 &&
               fenceOffset <= source.length &&
               source[fenceOffset - 1] == '\n'
           ? fenceOffset - 1
@@ -72,16 +73,41 @@ class MarkdownRenderedBlock extends StatelessWidget {
   final void Function(String, String?, String?)? onTapLink;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: MarkdownBody(
-      data: markdown,
-      imageDirectory: imageDirectory,
-      builders: builders,
-      selectable: selectable,
-      onTapLink: onTapLink,
-      fitContent: false,
-      styleSheet: MarkdownDocumentStyle.sheet(theme),
-    ),
-  );
+  Widget build(BuildContext context) {
+    // Each list line is rendered independently, so retain its source nesting
+    // before the Markdown parser normalizes leading whitespace.
+    final list = RegExp(r'^( *)(?:[-*+]|\d+\.)\s+').firstMatch(markdown);
+    final indent = list?.group(1)?.length ?? 0;
+    final depth = (indent / 2).ceil();
+    return Padding(
+      padding: EdgeInsets.only(top: 8, bottom: 8, left: depth * 32.0),
+      child: MarkdownBody(
+        data: list == null ? markdown : markdown.substring(indent),
+        imageDirectory: imageDirectory,
+        builders: builders,
+        selectable: selectable,
+        onTapLink: onTapLink,
+        fitContent: false,
+        styleSheet: MarkdownDocumentStyle.sheet(theme),
+        bulletBuilder: (parameters) => Text(
+          parameters.style == BulletStyle.orderedList
+              ? '${parameters.index + 1}.'
+              : depth == 0
+              ? '•'
+              : '◦',
+          style: MarkdownDocumentStyle.sheet(theme).listBullet!.copyWith(
+            fontSize:
+                parameters.style == BulletStyle.unorderedList && depth == 0
+                ? 26
+                : MarkdownDocumentStyle.bodySize,
+            height: parameters.style == BulletStyle.unorderedList && depth == 0
+                ? MarkdownDocumentStyle.bodySize *
+                      MarkdownDocumentStyle.lineHeight /
+                      26
+                : MarkdownDocumentStyle.lineHeight,
+          ),
+        ),
+      ),
+    );
+  }
 }

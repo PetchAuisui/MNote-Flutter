@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 
-class MarkdownFormattingToolbar extends StatelessWidget {
+class MarkdownFormattingToolbar extends StatefulWidget {
   const MarkdownFormattingToolbar({
     super.key,
     required this.onUndo,
@@ -40,6 +40,14 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onImage;
 
   @override
+  State<MarkdownFormattingToolbar> createState() =>
+      _MarkdownFormattingToolbarState();
+}
+
+class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
+  int _headingLevel = 1;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -68,22 +76,26 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       icon: Icons.undo_rounded,
                       label: 'เลิกทำ',
                       showLabel: false,
-                      onPressed: onUndo,
+                      onPressed: widget.onUndo,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-redo'),
                       icon: Icons.redo_rounded,
                       label: 'ทำซ้ำ',
                       showLabel: false,
-                      onPressed: onRedo,
+                      onPressed: widget.onRedo,
                     ),
                     const _ToolbarDivider(),
                     _ToolbarMenuButton<int>(
                       buttonKey: const Key('toolbar-heading'),
                       icon: Icons.title_rounded,
-                      label: 'หัวข้อ',
-                      showLabel: showLabels,
-                      onSelected: onHeading,
+                      showIcon: false,
+                      label: 'หัวข้อ $_headingLevel',
+                      showLabel: true,
+                      onSelected: (level) {
+                        setState(() => _headingLevel = level);
+                        widget.onHeading(level);
+                      },
                       items: const [
                         PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
                         PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
@@ -96,47 +108,29 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       icon: Icons.format_bold_rounded,
                       label: 'ตัวหนา',
                       showLabel: showLabels,
-                      onPressed: onBold,
+                      onPressed: widget.onBold,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-italic'),
                       icon: Icons.format_italic_rounded,
                       label: 'ตัวเอียง',
                       showLabel: showLabels,
-                      onPressed: onItalic,
+                      onPressed: widget.onItalic,
                     ),
                     const _ToolbarDivider(),
-                    _ToolbarMenuButton<_ListStyle>(
+                    _ToolbarActionButton(
                       buttonKey: const Key('toolbar-list'),
                       icon: Icons.format_list_bulleted_rounded,
-                      label: 'รายการ',
+                      label: 'รายการหัวข้อ',
                       showLabel: showLabels,
-                      onSelected: (style) {
-                        switch (style) {
-                          case _ListStyle.bulleted:
-                            onList();
-                          case _ListStyle.ordered:
-                            onOrderedList();
-                        }
-                      },
-                      items: const [
-                        PopupMenuItem(
-                          value: _ListStyle.bulleted,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_bulleted_rounded),
-                            title: Text('รายการหัวข้อ'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: _ListStyle.ordered,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_numbered_rounded),
-                            title: Text('รายการตัวเลข'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
+                      onPressed: widget.onList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-ordered-list'),
+                      icon: Icons.format_list_numbered_rounded,
+                      label: 'รายการตัวเลข',
+                      showLabel: showLabels,
+                      onPressed: widget.onOrderedList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),
@@ -144,7 +138,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'ทำเป็นรายการย่อย',
                       tooltip: 'ทำเป็นรายการย่อย',
                       showLabel: false,
-                      onPressed: onIndentList,
+                      onPressed: widget.onIndentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-outdent-list'),
@@ -152,14 +146,14 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'กลับสู่รายการหลัก',
                       tooltip: 'กลับสู่รายการหลัก',
                       showLabel: false,
-                      onPressed: onOutdentList,
+                      onPressed: widget.onOutdentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-quote'),
                       icon: Icons.format_quote_rounded,
                       label: 'อ้างอิง',
                       showLabel: showLabels,
-                      onPressed: onQuote,
+                      onPressed: widget.onQuote,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-line-break'),
@@ -167,7 +161,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'ขึ้นบรรทัด',
                       tooltip: 'ขึ้นบรรทัดใหม่ด้วย <br>',
                       showLabel: showLabels,
-                      onPressed: onLineBreak,
+                      onPressed: widget.onLineBreak,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-horizontal-rule'),
@@ -175,7 +169,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'เส้นคั่น',
                       tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
                       showLabel: showLabels,
-                      onPressed: onHorizontalRule,
+                      onPressed: widget.onHorizontalRule,
                     ),
                     _ToolbarMenuButton<_CodeStyle>(
                       buttonKey: const Key('toolbar-code'),
@@ -185,9 +179,9 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       onSelected: (style) {
                         switch (style) {
                           case _CodeStyle.inline:
-                            onInlineCode();
+                            widget.onInlineCode();
                           case _CodeStyle.block:
-                            onCodeBlock();
+                            widget.onCodeBlock();
                         }
                       },
                       items: const [
@@ -215,14 +209,14 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       icon: Icons.link_rounded,
                       label: 'ลิงก์',
                       showLabel: showLabels,
-                      onPressed: onLink,
+                      onPressed: widget.onLink,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-image'),
                       icon: Icons.image_outlined,
                       label: 'รูปภาพ',
                       showLabel: showLabels,
-                      onPressed: onImage,
+                      onPressed: widget.onImage,
                     ),
                   ]),
                 ),
@@ -358,6 +352,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
   const _ToolbarMenuButton({
     required this.buttonKey,
     required this.icon,
+    this.showIcon = true,
     required this.label,
     required this.showLabel,
     required this.onSelected,
@@ -366,6 +361,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
 
   final Key buttonKey;
   final IconData icon;
+  final bool showIcon;
   final String label;
   final bool showLabel;
   final ValueChanged<T> onSelected;
@@ -403,13 +399,14 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: workspaceToolbarIconSize,
-                color: colorScheme.onSurfaceVariant,
-              ),
+              if (showIcon)
+                Icon(
+                  icon,
+                  size: workspaceToolbarIconSize,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               if (showLabel) ...[
-                const SizedBox(width: 8),
+                if (showIcon) const SizedBox(width: 8),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
@@ -451,5 +448,3 @@ class _ToolbarDivider extends StatelessWidget {
 }
 
 enum _CodeStyle { inline, block }
-
-enum _ListStyle { bulleted, ordered }

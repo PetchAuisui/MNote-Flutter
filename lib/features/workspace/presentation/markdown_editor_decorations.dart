@@ -97,7 +97,17 @@ class _DecorationsPainter extends CustomPainter {
         );
       } else {
         paint.color = const Color(0xFF5F6368);
-        canvas.drawCircle(Offset(caret.left + 4, caret.center.dy), 2.5, paint);
+        paint.style = bullet!.group(1)!.isEmpty
+            ? PaintingStyle.fill
+            : PaintingStyle.stroke;
+        paint.strokeWidth = 1.3;
+        canvas.drawCircle(
+          Offset(caret.left + 4, caret.center.dy),
+          bullet.group(1)!.isEmpty ? 3.8 : 2.5,
+          paint,
+        );
+        paint.style = PaintingStyle.fill;
+        paint.strokeWidth = 1;
         paint.color = const Color(0xFF9AA0A6);
       }
     }

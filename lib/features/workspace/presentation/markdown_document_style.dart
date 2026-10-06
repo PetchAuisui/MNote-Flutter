@@ -37,9 +37,9 @@ abstract final class MarkdownDocumentStyle {
       h5: heading(5),
       h6: heading(6),
       blockSpacing: 16,
-      listIndent: 28,
+      listIndent: 20,
       listBullet: body,
-      listBulletPadding: const EdgeInsets.only(right: 8),
+      listBulletPadding: const EdgeInsets.only(right: 4),
       blockquote: body,
       blockquotePadding: const EdgeInsets.symmetric(
         horizontal: 12,

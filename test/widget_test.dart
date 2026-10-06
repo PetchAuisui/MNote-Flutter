@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
@@ -490,6 +491,60 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(NoteListScreen), findsOneWidget);
+  });
+
+  testWidgets(
+      'header add button opens menu with insert image and open file options',
+      (tester) async {
+    final repo = FakeDocumentRepository();
+    final imagePicker = FakeDeviceImagePicker(
+      MarkdownImageReference(alt: 'photo', uri: Uri.parse('photo.png')),
+    );
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          imagePicker: imagePicker,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify the add button exists with note_add icon
+    final addButton = find.byKey(const Key('toolbar-add-button'));
+    expect(addButton, findsOneWidget);
+    expect(
+      find.descendant(
+        of: addButton,
+        matching: find.byIcon(Icons.note_add_rounded),
+      ),
+      findsOneWidget,
+    );
+
+    // Tap to open popup menu
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('toolbar-add-image')), findsOneWidget);
+    expect(find.text('เพิ่มรูปภาพ'), findsOneWidget);
+    expect(find.byKey(const Key('toolbar-add-file')), findsOneWidget);
+    expect(find.text('เลือกไฟล์'), findsOneWidget);
+
+    // Tap "เพิ่มรูปภาพ"
+    await tester.tap(find.byKey(const Key('toolbar-add-image')));
+    await tester.pumpAndSettle();
+
+    expect(imagePicker.pickCount, 1);
+    expect(find.textContaining('![photo](photo.png)'), findsOneWidget);
+
+    // Tap add button again and select "เลือกไฟล์"
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-add-file')));
+    await tester.pumpAndSettle();
+
+    expect(repo.openCalls, 1);
   });
 }
 

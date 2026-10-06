@@ -6,21 +6,32 @@ import 'package:mnote/features/workspace/presentation/workspace_controller.dart'
 import '../../../helpers/fakes.dart';
 
 void main() {
-  test('upgrades only untouched bundled Welcome and preserves edits and files', () {
-    final controller = WorkspaceController(FakeDocumentRepository(), initialDocument: MarkdownDocument.example('old'));
-    addTearDown(controller.dispose);
-    expect(controller.upgradeExample('old', 'new'), isTrue);
-    expect(controller.document.content, 'new');
-    expect(controller.document.isDirty, isFalse);
-    controller.updateContent('my edits');
-    expect(controller.upgradeExample('my edits', 'replacement'), isFalse);
-    expect(controller.document.content, 'my edits');
-    final fileController = WorkspaceController(FakeDocumentRepository(), initialDocument: MarkdownDocument.opened(
-      name: 'Welcome.md', content: 'old', uri: Uri.file('/tmp/Welcome.md'),
-    ));
-    addTearDown(fileController.dispose);
-    expect(fileController.upgradeExample('old', 'new'), isFalse);
-  });
+  test(
+    'upgrades only untouched bundled Welcome and preserves edits and files',
+    () {
+      final controller = WorkspaceController(
+        FakeDocumentRepository(),
+        initialDocument: MarkdownDocument.example('old'),
+      );
+      addTearDown(controller.dispose);
+      expect(controller.upgradeExample('old', 'new'), isTrue);
+      expect(controller.document.content, 'new');
+      expect(controller.document.isDirty, isFalse);
+      controller.updateContent('my edits');
+      expect(controller.upgradeExample('my edits', 'replacement'), isFalse);
+      expect(controller.document.content, 'my edits');
+      final fileController = WorkspaceController(
+        FakeDocumentRepository(),
+        initialDocument: MarkdownDocument.opened(
+          name: 'Welcome.md',
+          content: 'old',
+          uri: Uri.file('/tmp/Welcome.md'),
+        ),
+      );
+      addTearDown(fileController.dispose);
+      expect(fileController.upgradeExample('old', 'new'), isFalse);
+    },
+  );
   test('opens a document and changes mode', () async {
     final repository = FakeDocumentRepository()
       ..openResult = MarkdownDocument.opened(

@@ -3,6 +3,17 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'markdown_document_style.dart';
 import 'markdown_rendered_block.dart';
 
+/// History belongs to the workspace so switching views does not discard it.
+class MarkdownEditHistory {
+  final past = <TextEditingValue>[];
+  final future = <TextEditingValue>[];
+
+  void clear() {
+    past.clear();
+    future.clear();
+  }
+}
+
 /// Renders a document in place, exposing Markdown only in the active block.
 class MarkdownLiveEditor extends StatefulWidget {
   const MarkdownLiveEditor({
@@ -13,8 +24,10 @@ class MarkdownLiveEditor extends StatefulWidget {
     this.builders = const {},
     this.undoController,
     this.onTapLink,
+    this.history,
   });
   final TextEditingController controller;
+  final MarkdownEditHistory? history;
   final UndoHistoryController? undoController;
   final ValueChanged<String> onChanged;
   final void Function(String, String?, String?)? onTapLink;
@@ -33,14 +46,17 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   int _end = 0;
   bool _updating = false;
   late String _source;
-  final _past = <TextEditingValue>[];
-  final _future = <TextEditingValue>[];
+  final _localHistory = MarkdownEditHistory();
+  List<TextEditingValue> get _past => (widget.history ?? _localHistory).past;
+  List<TextEditingValue> get _future =>
+      (widget.history ?? _localHistory).future;
   bool _restoring = false;
 
   @override
   void initState() {
     super.initState();
     _source = widget.controller.text;
+    _updateHistory();
     if (widget.controller.text.isEmpty) _start = 0;
     widget.controller.addListener(_sync);
     widget.undoController?.onUndo.addListener(_undo);

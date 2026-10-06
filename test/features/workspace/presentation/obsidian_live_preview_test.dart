@@ -32,6 +32,29 @@ Widget _buildApp({DocumentRepository? repository}) {
 }
 
 void main() {
+  testWidgets('undo and redo survive switching workspace modes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('markdown-block-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('markdown-live-block-editor')),
+      '# Changed',
+    );
+    await tester.tap(find.byTooltip('เขียน'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Markdown'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-undo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Live heading', findRichText: true), findsOneWidget);
+    await tester.tap(find.byKey(const Key('toolbar-redo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Changed', findRichText: true), findsOneWidget);
+  });
+
   testWidgets('live preview opens links and still edits ordinary text', (
     tester,
   ) async {

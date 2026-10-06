@@ -46,6 +46,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final FocusNode _titleFocusNode;
   late final FocusNode _markdownFocusNode;
   late UndoHistoryController _undoController;
+  final _markdownHistory = MarkdownEditHistory();
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
@@ -252,6 +253,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _resetUndoHistory() {
+    _markdownHistory.clear();
     final previousController = _undoController;
     _undoController = UndoHistoryController();
     _editorHistoryRevision += 1;
@@ -602,6 +604,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildSplitView() => MarkdownLiveEditor(
+    history: _markdownHistory,
     onTapLink: (text, href, title) => _openLink(href),
     undoController: _undoController,
     controller: _textController,
@@ -777,7 +780,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ],
       selected: {_workspace.mode},
       onSelectionChanged: (selection) {
-        _resetUndoHistory();
         _workspace.setMode(selection.first);
         if (selection.first == WorkspaceMode.ink) {
           WidgetsBinding.instance.addPostFrameCallback((_) {

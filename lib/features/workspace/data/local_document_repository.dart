@@ -24,6 +24,7 @@ class LocalDocumentRepository implements DocumentRepository {
         uri: file.uri,
       );
 
+      // บันทึกเข้า Metadata ป้องกันไฟล์หาย
       await _registerToMetadata(doc);
 
       return doc;
@@ -72,18 +73,19 @@ class LocalDocumentRepository implements DocumentRepository {
       final documents = <MarkdownDocument>[];
       final seenUris = <String>{};
 
+      // 1. อ่านไฟล์จาก Metadata (ข้ามไฟล์ที่อยู่ในถังขยะ isTrash)
       if (metadata != null) {
-        for (final item in metadata.items) {
-          if (item.isDeleted) continue;
+        for (final docItem in metadata.documents) {
+          if (docItem.isTrash) continue;
 
-          final uri = Uri.tryParse(item.uri);
+          final uri = docItem.uri;
           if (uri != null) {
             seenUris.add(uri.toString());
             final content = await readDocument(uri);
             if (content != null) {
               documents.add(
                 MarkdownDocument.opened(
-                  name: item.name,
+                  name: docItem.name,
                   content: content,
                   uri: uri,
                 ),
@@ -93,6 +95,7 @@ class LocalDocumentRepository implements DocumentRepository {
         }
       }
 
+      // 2. สแกนไฟล์ตกค้างใน App Documents Directory
       final files = await _storage.listDocuments();
       for (final file in files) {
         if (seenUris.contains(file.uri.toString())) continue;
@@ -130,14 +133,21 @@ class LocalDocumentRepository implements DocumentRepository {
 
   @override
   Future<void> delete(Uri uri) async {
+    // 1. ลบ physical file จริงออกจากเครื่อง
     await _storage.delete(uri);
 
+    // 2. ลบออกจาก Metadata JSON
     final metadata = await loadMetadata();
     if (metadata != null) {
-      final updatedItems = metadata.items
-          .where((item) => item.uri != uri.toString())
+      final updatedDocs = metadata.documents
+          .where((doc) => doc.uri?.toString() != uri.toString())
           .toList();
-      await saveMetadata(metadata.copyWith(items: updatedItems));
+      await saveMetadata(
+        LibraryMetadata(
+          folders: metadata.folders,
+          documents: updatedDocs,
+        ),
+      );
     }
   }
 
@@ -158,32 +168,44 @@ class LocalDocumentRepository implements DocumentRepository {
   }
 
   Future<void> _registerToMetadata(MarkdownDocument doc) async {
-    if (doc.uri == null) return;
-    final metadata = await loadMetadata() ?? const LibraryMetadata(items: []);
-    final uriStr = doc.uri.toString();
+    final uri = doc.uri;
+    if (uri == null) return;
 
-    final existingIndex = metadata.items.indexWhere((e) => e.uri == uriStr);
-    final updatedItems = List<NoteItemMetadata>.from(metadata.items);
+    final metadata = await loadMetadata() ?? const LibraryMetadata();
+    final uriStr = uri.toString();
+
+    final existingIndex = metadata.documents.indexWhere(
+      (d) => d.uri?.toString() == uriStr,
+    );
+    final updatedDocs = List<DocumentItem>.from(metadata.documents);
 
     if (existingIndex >= 0) {
-      updatedItems[existingIndex] = updatedItems[existingIndex].copyWith(
+      final old = updatedDocs[existingIndex];
+      updatedDocs[existingIndex] = old.copyWith(
         name: doc.name,
+        content: doc.content,
         updatedAt: DateTime.now(),
       );
     } else {
-      updatedItems.add(
-        NoteItemMetadata(
+      updatedDocs.add(
+        DocumentItem(
           id: uriStr,
-          uri: uriStr,
           name: doc.name,
+          content: doc.content,
           updatedAt: DateTime.now(),
-          isDeleted: false,
+          uri: uri,
+          isTrash: false,
           isStarred: false,
         ),
       );
     }
 
-    await saveMetadata(metadata.copyWith(items: updatedItems));
+    await saveMetadata(
+      LibraryMetadata(
+        folders: metadata.folders,
+        documents: updatedDocs,
+      ),
+    );
   }
 
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));

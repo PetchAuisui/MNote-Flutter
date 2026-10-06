@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
-import 'package:mnote/core/theme/app_theme.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
   const NoteListSettingsDialog({super.key});
@@ -75,78 +74,6 @@ class NoteListSettingsDialog extends StatelessWidget {
                       currentMode == ThemeMode.system
                           ? 'ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง'
                           : (currentMode == ThemeMode.dark ? 'เปิดใช้งานโหมดมืด' : 'เปิดใช้งานโหมดสว่าง'),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'ฟอนต์ตัวอักษร (Typography)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ValueListenableBuilder<AppFontFamily>(
-                    valueListenable: MnoteApp.fontNotifier,
-                    builder: (context, currentFont, _) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<AppFontFamily>(
-                            isExpanded: true,
-                            value: currentFont,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                            items: AppFontFamily.values.map((f) {
-                              return DropdownMenuItem<AppFontFamily>(
-                                value: f,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.font_download_rounded,
-                                      size: 18,
-                                      color: f == currentFont
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      f.label,
-                                      style: TextStyle(
-                                        fontFamily: f.familyName,
-                                        fontWeight: f == currentFont ? FontWeight.bold : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (newFont) {
-                              if (newFont != null) {
-                                MnoteApp.fontNotifier.value = newFont;
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Center(
-                    child: Text(
-                      'เลือกฟอนต์โมเดิร์นที่เหมาะสมกับการอ่านและเขียนโน้ตภาษาไทย',
                       style: TextStyle(
                         fontSize: 11.5,
                         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),

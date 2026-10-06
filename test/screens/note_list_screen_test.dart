@@ -207,8 +207,7 @@ void main() {
     expect(find.text('การตั้งค่า'), findsOneWidget);
     expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
     expect(find.text('ตามเครื่อง'), findsOneWidget);
-    expect(find.text('ฟอนต์ตัวอักษร (Typography)'), findsOneWidget);
-    expect(find.text('Prompt (โมเดิร์น)'), findsOneWidget);
+    expect(find.text('ฟอนต์ตัวอักษร (Typography)'), findsNothing);
   });
 
   testWidgets('MarkdownWorkspacePage does not show settings icon', (tester) async {

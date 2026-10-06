@@ -463,6 +463,76 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  Future<void> _insertTable() async {
+    var rows = 2;
+    var columns = 2;
+    final size = await showDialog<(int, int)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: const Text('แทรกตาราง'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                key: const Key('table-columns'),
+                initialValue: columns,
+                decoration: const InputDecoration(labelText: 'จำนวนคอลัมน์'),
+                items: [
+                  for (var count = 1; count <= 8; count++)
+                    DropdownMenuItem(value: count, child: Text('$count')),
+                ],
+                onChanged: (value) => update(() => columns = value!),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                key: const Key('table-rows'),
+                initialValue: rows,
+                decoration: const InputDecoration(labelText: 'จำนวนแถวข้อมูล'),
+                items: [
+                  for (var count = 1; count <= 10; count++)
+                    DropdownMenuItem(value: count, child: Text('$count')),
+                ],
+                onChanged: (value) => update(() => rows = value!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            FilledButton(
+              key: const Key('insert-table-confirm'),
+              onPressed: () => Navigator.pop(context, (rows, columns)),
+              child: const Text('แทรก'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (size == null || !mounted) return;
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    String row(List<String> cells) => '| ${cells.join(' | ')} |';
+    final table = [
+      row(List.generate(size.$2, (index) => 'หัวข้อ ${index + 1}')),
+      row(List.filled(size.$2, '---')),
+      for (var index = 0; index < size.$1; index++)
+        row(List.filled(size.$2, 'ข้อมูล')),
+    ].join('\n');
+    final leading = selection.start > 0 ? '\n\n' : '';
+    final replacement = '$leading$table\n\n';
+    _applyTextEdit(
+      value.text.replaceRange(selection.start, selection.end, replacement),
+      TextSelection.collapsed(
+        offset: selection.start + leading.length + table.length,
+      ),
+    );
+  }
+
   void _insertLineBreak() {
     _insertAtSelectionEnd('<br>\n');
   }
@@ -879,6 +949,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onLink: () =>
             _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
         onImage: _insertImage,
+        onTable: _insertTable,
       ),
     );
   }

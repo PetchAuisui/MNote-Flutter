@@ -20,6 +20,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onCodeBlock,
     required this.onLink,
     required this.onImage,
+    required this.onTable,
   });
 
   final VoidCallback? onUndo;
@@ -38,6 +39,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final VoidCallback onCodeBlock;
   final VoidCallback onLink;
   final VoidCallback onImage;
+  final VoidCallback onTable;
 
   @override
   State<MarkdownFormattingToolbar> createState() =>
@@ -131,6 +133,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       label: 'รายการตัวเลข',
                       showLabel: showLabels,
                       onPressed: widget.onOrderedList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-table'),
+                      icon: Icons.table_chart_outlined,
+                      label: 'ตาราง',
+                      showLabel: showLabels,
+                      onPressed: widget.onTable,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),
@@ -242,7 +251,7 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
           ? tool.label
           : (tool as _ToolbarMenuButton).label;
       if (!showLabel) {
-        return tool is _ToolbarActionButton ? 52 : 67;
+        return tool is _ToolbarActionButton ? 52 : 70;
       }
       final text = TextPainter(
         text: TextSpan(
@@ -258,8 +267,12 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
     }
 
     final widths = tools.map(toolWidth).toList();
+    Widget sizedTool(int index) =>
+        SizedBox(width: widths[index], child: tools[index]);
     if (widths.fold<double>(0, (sum, value) => sum + value) <= width) {
-      return tools;
+      return [
+        for (var index = 0; index < tools.length; index++) sizedTool(index),
+      ];
     }
     var used = 0.0;
     var count = 0;
@@ -289,13 +302,16 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
       }
     }
     return [
-      ...tools.take(count),
-      PopupMenuButton<VoidCallback>(
-        key: const Key('toolbar-more'),
-        tooltip: 'เครื่องมือเพิ่มเติม',
-        icon: const Icon(Icons.more_horiz_rounded),
-        onSelected: (action) => action(),
-        itemBuilder: (_) => entries,
+      for (var index = 0; index < count; index++) sizedTool(index),
+      SizedBox(
+        width: 48,
+        child: PopupMenuButton<VoidCallback>(
+          key: const Key('toolbar-more'),
+          tooltip: 'เครื่องมือเพิ่มเติม',
+          icon: const Icon(Icons.more_horiz_rounded),
+          onSelected: (action) => action(),
+          itemBuilder: (_) => entries,
+        ),
       ),
     ];
   }
@@ -407,10 +423,14 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
                 ),
               if (showLabel) ...[
                 if (showIcon) const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],

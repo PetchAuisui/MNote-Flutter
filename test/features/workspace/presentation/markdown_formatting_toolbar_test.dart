@@ -34,6 +34,7 @@ void main() {
             onCodeBlock: noop,
             onLink: noop,
             onImage: noop,
+            onTable: noop,
           ),
         ),
       ),

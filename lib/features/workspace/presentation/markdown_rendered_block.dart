@@ -5,7 +5,7 @@ import 'markdown_document_style.dart';
 /// Source ranges used by both the preview and the editable document.
 ///
 /// Returns discrete ranges for each non-empty line, while preserving fenced
-/// code blocks (``` or ~~~) as unified multi-line blocks.
+/// code blocks (``` or ~~~) and tables as unified multi-line blocks.
 /// Blank lines are excluded from ranges so they remain untouched.
 List<TextRange> markdownBlockRanges(String source) {
   final ranges = <TextRange>[];
@@ -46,6 +46,33 @@ List<TextRange> markdownBlockRanges(String source) {
       ranges.add(TextRange(start: start, end: end));
       offset = fenceOffset;
       continue;
+    }
+
+    // A table needs its header, separator and rows in the same parser call.
+    if (line.contains('|') && newline >= 0) {
+      final separatorStart = newline + 1;
+      final separatorNewline = source.indexOf('\n', separatorStart);
+      final separatorEnd = separatorNewline < 0
+          ? source.length
+          : separatorNewline;
+      final separator = source.substring(separatorStart, separatorEnd);
+      if (RegExp(
+        r'^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$',
+      ).hasMatch(separator)) {
+        var end = separatorEnd;
+        var next = separatorNewline < 0 ? source.length : separatorNewline + 1;
+        while (next < source.length) {
+          final rowNewline = source.indexOf('\n', next);
+          final rowEnd = rowNewline < 0 ? source.length : rowNewline;
+          final row = source.substring(next, rowEnd);
+          if (row.trim().isEmpty || !row.contains('|')) break;
+          end = rowEnd;
+          next = rowNewline < 0 ? source.length : rowNewline + 1;
+        }
+        ranges.add(TextRange(start: offset, end: end));
+        offset = next;
+        continue;
+      }
     }
 
     // Single line block

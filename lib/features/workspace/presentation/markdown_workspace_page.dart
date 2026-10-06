@@ -1328,8 +1328,7 @@ class _LineNumberPainter extends CustomPainter {
     for (var index = 0; index < lines.length; index++) {
       final lineStyle =
           (textController is LiveMarkdownEditingController &&
-              (textController as LiveMarkdownEditingController)
-                  .showRawSource)
+              (textController as LiveMarkdownEditingController).showRawSource)
           ? editorStyle
           : _headingStyleForLine(lines[index], editorStyle);
       final editorPainter = _textPainter(

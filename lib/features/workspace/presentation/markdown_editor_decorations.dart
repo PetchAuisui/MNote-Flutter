@@ -103,7 +103,7 @@ class _DecorationsPainter extends CustomPainter {
         paint.strokeWidth = 1.3;
         canvas.drawCircle(
           Offset(caret.left + 4, caret.center.dy),
-          bullet.group(1)!.isEmpty ? 3.8 : 2.5,
+          bullet.group(1)!.isEmpty ? 4 : 3,
           paint,
         );
         paint.style = PaintingStyle.fill;

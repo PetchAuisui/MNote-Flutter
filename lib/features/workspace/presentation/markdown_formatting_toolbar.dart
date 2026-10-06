@@ -135,13 +135,6 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       onPressed: widget.onOrderedList,
                     ),
                     _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-table'),
-                      icon: Icons.table_chart_outlined,
-                      label: 'ตาราง',
-                      showLabel: showLabels,
-                      onPressed: widget.onTable,
-                    ),
-                    _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),
                       icon: Icons.format_indent_increase_rounded,
                       label: 'ทำเป็นรายการย่อย',
@@ -179,6 +172,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
                       showLabel: showLabels,
                       onPressed: widget.onHorizontalRule,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-table'),
+                      icon: Icons.table_chart_outlined,
+                      label: 'ตาราง',
+                      showLabel: showLabels,
+                      onPressed: widget.onTable,
                     ),
                     _ToolbarMenuButton<_CodeStyle>(
                       buttonKey: const Key('toolbar-code'),
@@ -261,7 +261,9 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
       )..layout();
-      final result = text.width + 72;
+      // Label-only heading controls have no icon or icon-to-label gap.
+      final result =
+          text.width + (tool is _ToolbarMenuButton && !tool.showIcon ? 42 : 72);
       text.dispose();
       return result;
     }
@@ -400,14 +402,20 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: PopupMenuButton<T>(
         key: buttonKey,
-        tooltip: label,
+        tooltip: showLabel ? '' : label,
         onSelected: onSelected,
         itemBuilder: (_) => items,
         borderRadius: BorderRadius.circular(20),
         color: colorScheme.surfaceContainer,
         child: Container(
           height: workspaceToolbarControlSize,
-          padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: !showIcon
+                ? 10
+                : showLabel
+                ? 14
+                : 12,
+          ),
           decoration: ShapeDecoration(
             color: Colors.transparent,
             shape: const StadiumBorder(),

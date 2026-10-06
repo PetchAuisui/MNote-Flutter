@@ -40,6 +40,7 @@ abstract final class MarkdownDocumentStyle {
       listIndent: 20,
       listBullet: body,
       listBulletPadding: const EdgeInsets.only(right: 4),
+      tableBorder: TableBorder.all(color: const Color(0xFFB0B3B8), width: 1.5),
       blockquote: body,
       blockquotePadding: const EdgeInsets.symmetric(
         horizontal: 12,

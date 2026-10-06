@@ -52,7 +52,7 @@ void main() {
     await tester.pumpWidget(_buildWorkspaceApp(welcome: true));
     await tester.pumpAndSettle();
     if (_editor.evaluate().isNotEmpty) {
-      await tester.tap(_editor);
+      await tester.tapAt(tester.getTopLeft(_editor) + const Offset(20, 20));
       await tester.pumpAndSettle();
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
@@ -60,6 +60,7 @@ void main() {
     expect(find.text('Welcome.md'), findsOneWidget);
     expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
     expect(find.byType(MermaidDiagramView), findsOneWidget);
+    expect(find.byType(Table), findsOneWidget);
     expect(find.text('หัวข้อระดับ H4', findRichText: true), findsOneWidget);
     expect(
       tester.getCenter(find.byKey(const Key('workspace-mode-switcher'))).dx,

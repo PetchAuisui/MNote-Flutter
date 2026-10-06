@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
@@ -8,6 +10,28 @@ import 'package:mnote/screens/note_list_screen.dart';
 import '../helpers/fakes.dart';
 
 void main() {
+  for (final edited in [false, true]) {
+    testWidgets('existing Welcome migration preserves edits: $edited', (tester) async {
+      final oldContent = File('assets/examples/welcome_v1.md').readAsStringSync();
+      final content = edited ? '$oldContent\nMy notes' : oldContent;
+      final repo = FakeDocumentRepository()..storedMetadata = LibraryMetadata(folders: [], documents: [
+        DocumentItem(id: 'welcome_initial_doc', name: 'Welcome.md', content: content,
+          updatedAt: DateTime(2026), isStarred: true),
+      ]);
+      await tester.pumpWidget(MaterialApp(home: NoteListScreen(repository: repo)));
+      await tester.pumpAndSettle();
+      final result = (await repo.loadMetadata())!.documents.single;
+      expect(result.isStarred, isTrue);
+      if (edited) {
+        expect(result.content, content);
+      } else {
+        expect(result.content, contains('## ตาราง'));
+        await tester.tap(find.text('Welcome'));
+        await tester.pumpAndSettle();
+        expect(find.byType(Table), findsOneWidget);
+      }
+    });
+  }
   final sampleFolders = [
     FolderItem(
       id: 'f1',
@@ -46,6 +70,12 @@ void main() {
   ];
 
   testWidgets('seeds Welcome.md on initial launch when library is uninitialized', (tester) async {
+    rootBundle.evict('assets/examples/welcome.md');
+    rootBundle.evict('assets/examples/welcome_v1.md');
+    await tester.runAsync(() async {
+      await rootBundle.loadString('assets/examples/welcome.md');
+      await rootBundle.loadString('assets/examples/welcome_v1.md');
+    });
     final fakeRepo = FakeDocumentRepository();
     await tester.pumpWidget(
       MaterialApp(
@@ -54,10 +84,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+    await tester.pumpAndSettle();
     expect(find.text('Welcome'), findsOneWidget);
     final savedMeta = await fakeRepo.loadMetadata();
     expect(savedMeta, isNotNull);
     expect(savedMeta!.documents.any((d) => d.name == 'Welcome.md'), isTrue);
+    final welcome = savedMeta.documents.singleWhere((d) => d.name == 'Welcome.md');
+    expect(welcome.content, contains('## ตาราง'));
+    expect(welcome.content, contains('| สิ่งที่ต้องทำ | สถานะ | หมายเหตุ |'));
+    await tester.tap(find.text('Welcome'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Table), findsOneWidget);
   });
 
   testWidgets('renders empty state when there are no folders or documents', (tester) async {
@@ -602,4 +640,3 @@ void main() {
     expect(editor.controller.text, 'Brand new external content');
   });
 }
-

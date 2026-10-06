@@ -88,8 +88,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _loadBundledExample() async {
     try {
       final content = await rootBundle.loadString('assets/examples/welcome.md');
+      final previous = await rootBundle.loadString(
+        'assets/examples/welcome_v1.md',
+      );
       if (!mounted) return;
-      _workspace.loadExample(content);
+      if (!_workspace.upgradeExample(previous, content)) {
+        _workspace.loadExample(content);
+      }
     } catch (_) {
       // The editor remains usable as an empty document if the asset is missing.
     }

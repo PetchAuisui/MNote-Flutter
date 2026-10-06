@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'markdown_document_style.dart';
+
+class _LineBreakSyntax extends md.InlineSyntax {
+  _LineBreakSyntax() : super(r'<[bB][rR]\s*/?>');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.empty('br'));
+    return true;
+  }
+}
 
 /// Source ranges used by both the preview and the editable document.
 ///
@@ -110,30 +121,43 @@ class MarkdownRenderedBlock extends StatelessWidget {
       padding: EdgeInsets.only(top: 8, bottom: 8, left: depth * 32.0),
       child: MarkdownBody(
         data: list == null ? markdown : markdown.substring(indent),
+        inlineSyntaxes: [_LineBreakSyntax()],
         imageDirectory: imageDirectory,
         builders: builders,
         selectable: selectable,
         onTapLink: onTapLink,
         fitContent: false,
         styleSheet: MarkdownDocumentStyle.sheet(theme),
-        bulletBuilder: (parameters) => Text(
-          parameters.style == BulletStyle.orderedList
-              ? '${parameters.index + 1}.'
-              : depth == 0
-              ? '•'
-              : '◦',
-          style: MarkdownDocumentStyle.sheet(theme).listBullet!.copyWith(
-            fontSize:
-                parameters.style == BulletStyle.unorderedList && depth == 0
-                ? 26
-                : MarkdownDocumentStyle.bodySize,
-            height: parameters.style == BulletStyle.unorderedList && depth == 0
-                ? MarkdownDocumentStyle.bodySize *
-                      MarkdownDocumentStyle.lineHeight /
-                      26
-                : MarkdownDocumentStyle.lineHeight,
-          ),
-        ),
+        bulletBuilder: (parameters) {
+          if (parameters.style == BulletStyle.orderedList) {
+            return Text(
+              '${parameters.index + 1}.',
+              style: MarkdownDocumentStyle.sheet(theme).listBullet,
+            );
+          }
+          final diameter = depth == 0 ? 8.0 : 6.0;
+          return SizedBox(
+            height:
+                MarkdownDocumentStyle.bodySize *
+                MarkdownDocumentStyle.lineHeight,
+            child: Center(
+              child: Container(
+                width: diameter,
+                height: diameter,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: depth == 0 ? MarkdownDocumentStyle.textColor : null,
+                  border: depth == 0
+                      ? null
+                      : Border.all(
+                          color: MarkdownDocumentStyle.textColor,
+                          width: 1.2,
+                        ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

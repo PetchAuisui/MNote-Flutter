@@ -135,6 +135,22 @@ class _NoteListScreenState extends State<NoteListScreen> {
         } catch (_) {}
       }
 
+      // Upgrade only the untouched bundled document; preserve user edits/files.
+      if (_documents.any((doc) => doc.id == 'welcome_initial_doc' &&
+          doc.name == 'Welcome.md' && doc.uri == null && !doc.isTrash)) {
+        final previous = await rootBundle.loadString('assets/examples/welcome_v1.md');
+        final current = await rootBundle.loadString('assets/examples/welcome.md');
+        if (!mounted) return;
+        setState(() {
+          for (var index = 0; index < _documents.length; index++) {
+            final doc = _documents[index];
+            if (doc.id == 'welcome_initial_doc' && doc.name == 'Welcome.md' &&
+                doc.uri == null && !doc.isTrash && doc.content == previous) {
+              _documents[index] = doc.copyWith(content: current);
+            }
+          }
+        });
+      }
       await _persistLibrary();
     } catch (_) {
       // หากยังไม่มีไฟล์ในเครื่องหรือระบบไฟล์ยังไม่พร้อม ให้ใช้ไฟล์เริ่มต้น

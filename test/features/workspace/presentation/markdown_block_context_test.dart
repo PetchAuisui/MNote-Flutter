@@ -5,6 +5,19 @@ import 'package:mnote/features/workspace/presentation/markdown_rendered_block.da
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 
 void main() {
+  test('keeps multiline emphasis and fenced code inside quote blocks', () {
+    for (final quote in [
+      '> **hello\n> world**',
+      '> ```dart\n> print("hello");\n> ```',
+      '> first\nlazy continuation',
+      '> outer\n> > nested\n>\n> final paragraph',
+    ]) {
+      final source = '$quote\n\nAfter';
+      final ranges = markdownBlockRanges(source);
+      expect(ranges.map((range) => range.textInside(source)), [quote, 'After']);
+    }
+  });
+
   test('ordered counters preserve nesting, starts and separate lists', () {
     const source =
         '5. First\n  1. Nested\n  1. Nested again\n1. Second\n\nParagraph\n\n3. Restart';

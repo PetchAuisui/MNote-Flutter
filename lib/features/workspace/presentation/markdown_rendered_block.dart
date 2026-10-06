@@ -178,6 +178,20 @@ List<TextRange> markdownBlockRanges(String source) {
     final syntax = parser.blockSyntaxes.firstWhere(
       (syntax) => syntax.canParse(parser),
     );
+    if (syntax is md.BlockquoteSyntax) {
+      // Preserve quote boundaries, lazy continuations and nested fenced code.
+      final childLines = syntax.parseChildLines(parser);
+      parserLine += childLines.length;
+      final lastLine = parserLine - 1;
+      ranges.add(
+        TextRange(
+          start: offset,
+          end: lineOffsets[lastLine] + lines[lastLine].length,
+        ),
+      );
+      offset = parser.isDone ? source.length : lineOffsets[parserLine];
+      continue;
+    }
     if (syntax is md.ListSyntax) {
       // Keep each item independently editable, but retain its paragraph's
       // continuation lines so inline formatting can span them.

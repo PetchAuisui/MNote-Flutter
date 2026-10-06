@@ -12,10 +12,12 @@ class MarkdownLiveEditor extends StatefulWidget {
     this.imageDirectory,
     this.builders = const {},
     this.undoController,
+    this.onTapLink,
   });
   final TextEditingController controller;
   final UndoHistoryController? undoController;
   final ValueChanged<String> onChanged;
+  final void Function(String, String?, String?)? onTapLink;
   final String? imageDirectory;
   final Map<String, MarkdownElementBuilder> builders;
 
@@ -279,11 +281,15 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
             behavior: HitTestBehavior.opaque,
             onTap: () => _activate(range.start, range.end),
             child: IgnorePointer(
+              ignoring: RegExp(
+                r'^\s*(`{3,}|~{3,})',
+              ).hasMatch(range.textInside(source)),
               child: MarkdownRenderedBlock(
                 markdown: range.textInside(source),
                 theme: documentTheme,
                 imageDirectory: widget.imageDirectory,
                 builders: widget.builders,
+                onTapLink: widget.onTapLink,
               ),
             ),
           ),
@@ -306,11 +312,15 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
           behavior: HitTestBehavior.opaque,
           onTap: () => _activate(range.start, range.end),
           child: IgnorePointer(
+            ignoring: RegExp(
+              r'^\s*(`{3,}|~{3,})',
+            ).hasMatch(range.textInside(source)),
             child: MarkdownRenderedBlock(
               markdown: range.textInside(source),
               theme: documentTheme,
               imageDirectory: widget.imageDirectory,
               builders: widget.builders,
+              onTapLink: widget.onTapLink,
             ),
           ),
         ),

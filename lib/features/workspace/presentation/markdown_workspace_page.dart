@@ -602,6 +602,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Widget _buildSplitView() => MarkdownLiveEditor(
+    onTapLink: (text, href, title) => _openLink(href),
     undoController: _undoController,
     controller: _textController,
     onChanged: _workspace.updateContent,

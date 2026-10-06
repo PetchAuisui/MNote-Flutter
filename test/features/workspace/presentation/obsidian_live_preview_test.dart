@@ -32,6 +32,34 @@ Widget _buildApp({DocumentRepository? repository}) {
 }
 
 void main() {
+  testWidgets('live preview opens links and still edits ordinary text', (
+    tester,
+  ) async {
+    final controller = TextEditingController(
+      text: '[Open site](https://example.com)\n\nOrdinary paragraph',
+    );
+    addTearDown(controller.dispose);
+    String? opened;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarkdownLiveEditor(
+            controller: controller,
+            onChanged: (_) {},
+            onTapLink: (_, href, _) => opened = href,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open site', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(opened, 'https://example.com');
+    expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+    await tester.tap(find.text('Ordinary paragraph', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('markdown-live-block-editor')), findsOneWidget);
+  });
+
   testWidgets(
     'writing mode draws ink and preserves it across Markdown switches',
     (tester) async {
@@ -153,7 +181,10 @@ void main() {
       );
       expect(field.focusNode!.hasFocus, isTrue);
       expect(field.controller!.text, contains('- Nested'));
-      expect(find.byKey(const Key('markdown-live-active-block')), findsOneWidget);
+      expect(
+        find.byKey(const Key('markdown-live-active-block')),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.byKey(const Key('markdown-live-block-editor')),
         '  - Changed',
@@ -670,7 +701,8 @@ void main() {
   testWidgets(
     'focuses lines line-by-line without bundling blank lines and keeps code box unified',
     (tester) async {
-      const doc = '# Header\n\nLine Alpha\nLine Beta\n\n```dart\nline 1\n\nline 2\n```\n\nFooter';
+      const doc =
+          '# Header\n\nLine Alpha\nLine Beta\n\n```dart\nline 1\n\nline 2\n```\n\nFooter';
       final controller = TextEditingController(text: doc);
       addTearDown(controller.dispose);
       await tester.pumpWidget(
@@ -749,7 +781,10 @@ void main() {
       final editor = tester.widget<TextField>(
         find.byKey(const Key('markdown-live-block-editor')),
       );
-      expect(editor.controller!.text, '```mermaid\nflowchart LR\n  A --> B\n```');
+      expect(
+        editor.controller!.text,
+        '```mermaid\nflowchart LR\n  A --> B\n```',
+      );
 
       // Unfocus restores Mermaid view
       editor.focusNode!.unfocus();

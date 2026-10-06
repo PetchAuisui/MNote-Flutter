@@ -72,11 +72,7 @@ class DeviceDocumentStorage implements DocumentStorage {
         final filename = file.uri.pathSegments.last;
         final bytes = await file.readAsBytes();
         result.add(
-          SelectedDocumentFile(
-            name: filename,
-            uri: file.uri,
-            bytes: bytes,
-          ),
+          SelectedDocumentFile(name: filename, uri: file.uri, bytes: bytes),
         );
       }
     }
@@ -110,4 +106,3 @@ class DeviceDocumentStorage implements DocumentStorage {
     await file.writeAsString(content, flush: true);
   }
 }
-

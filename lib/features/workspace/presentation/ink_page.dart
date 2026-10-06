@@ -36,7 +36,7 @@ class InkPage extends StatefulWidget {
 }
 
 class _InkPageState extends State<InkPage> {
-  late final TransformationController _transform;
+  late TransformationController _transform;
   bool _ownsTransform = false;
   final _pageKey = GlobalKey();
   InkTool _tool = InkTool.pen;
@@ -50,11 +50,24 @@ class _InkPageState extends State<InkPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.transformationController != null) {
-      _transform = widget.transformationController!;
-    } else {
-      _transform = TransformationController();
-      _ownsTransform = true;
+    _attachTransform();
+  }
+
+  void _attachTransform() {
+    final external = widget.transformationController;
+    _ownsTransform = external == null;
+    _transform = external ?? TransformationController();
+  }
+
+  @override
+  void didUpdateWidget(InkPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.transformationController != widget.transformationController) {
+      if (_ownsTransform) _transform.dispose();
+      _attachTransform();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fit();
+      });
     }
   }
 

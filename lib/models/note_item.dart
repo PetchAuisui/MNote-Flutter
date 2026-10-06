@@ -2,29 +2,34 @@ class LibraryMetadata {
   final List<FolderItem> folders;
   final List<DocumentItem> documents;
 
-  const LibraryMetadata({
-    this.folders = const [],
-    this.documents = const [],
-  });
+  const LibraryMetadata({this.folders = const [], this.documents = const []});
 
   Map<String, dynamic> toJson() => {
-    'folders': folders.map((f) => {
-      'id': f.id,
-      'name': f.name,
-      'updatedAt': f.updatedAt.toIso8601String(),
-      'isStarred': f.isStarred,
-      'isTrash': f.isTrash,
-    }).toList(),
-    'documents': documents.map((d) => {
-      'id': d.id,
-      'name': d.name,
-      'content': d.content,
-      'updatedAt': d.updatedAt.toIso8601String(),
-      'folderId': d.folderId,
-      'isStarred': d.isStarred,
-      'uri': d.uri?.toString(),
-      'isTrash': d.isTrash,
-    }).toList(),
+    'folders': folders
+        .map(
+          (f) => {
+            'id': f.id,
+            'name': f.name,
+            'updatedAt': f.updatedAt.toIso8601String(),
+            'isStarred': f.isStarred,
+            'isTrash': f.isTrash,
+          },
+        )
+        .toList(),
+    'documents': documents
+        .map(
+          (d) => {
+            'id': d.id,
+            'name': d.name,
+            'content': d.content,
+            'updatedAt': d.updatedAt.toIso8601String(),
+            'folderId': d.folderId,
+            'isStarred': d.isStarred,
+            'uri': d.uri?.toString(),
+            'isTrash': d.isTrash,
+          },
+        )
+        .toList(),
   };
 
   factory LibraryMetadata.fromJson(Map<String, dynamic> json) {
@@ -36,7 +41,9 @@ class LibraryMetadata {
         return FolderItem(
           id: map['id'] as String,
           name: map['name'] as String,
-          updatedAt: DateTime.tryParse(map['updatedAt'] as String? ?? '') ?? DateTime.now(),
+          updatedAt:
+              DateTime.tryParse(map['updatedAt'] as String? ?? '') ??
+              DateTime.now(),
           isStarred: map['isStarred'] as bool? ?? false,
           isTrash: map['isTrash'] as bool? ?? false,
         );
@@ -47,7 +54,9 @@ class LibraryMetadata {
           id: map['id'] as String,
           name: map['name'] as String,
           content: map['content'] as String? ?? '',
-          updatedAt: DateTime.tryParse(map['updatedAt'] as String? ?? '') ?? DateTime.now(),
+          updatedAt:
+              DateTime.tryParse(map['updatedAt'] as String? ?? '') ??
+              DateTime.now(),
           folderId: map['folderId'] as String?,
           isStarred: map['isStarred'] as bool? ?? false,
           uri: map['uri'] != null ? Uri.tryParse(map['uri'] as String) : null,

@@ -247,10 +247,15 @@ class _AccountDialogState extends State<AccountDialog> {
               ),
               const SizedBox(height: 14),
               Chip(
-                avatar: Icon(
-                  _user.usesGoogle ? Icons.g_mobiledata : Icons.mail_outline,
-                  size: 20,
-                ),
+                avatar: _user.usesGoogle
+                    ? Image.asset(
+                        'assets/images/google_logo.png',
+                        width: 18,
+                        height: 18,
+                        errorBuilder: (_, _, _) =>
+                            const Icon(Icons.account_circle, size: 18),
+                      )
+                    : const Icon(Icons.mail_outline, size: 18),
                 label: Text(_providerLabel),
                 visualDensity: VisualDensity.compact,
               ),

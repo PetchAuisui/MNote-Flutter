@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/auth/presentation/login_page.dart';
+import 'package:mnote/features/auth/presentation/register_page.dart';
+import 'package:mnote/features/auth/presentation/widgets/auth_primary_button.dart';
 import 'package:mnote/features/auth/presentation/widgets/google_sign_in_button.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
@@ -11,11 +15,15 @@ class AuthPage extends StatefulWidget {
     this.repository,
     this.animateEntrance = true,
     this.nextPage,
+    this.authRepository,
   });
 
   final DocumentRepository? repository;
   final bool animateEntrance;
   final Widget? nextPage;
+
+  /// Email login/register buttons are shown only when this is provided.
+  final AuthRepository? authRepository;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -159,6 +167,33 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
+  void _showGoogleComingSoon() {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('การเข้าสู่ระบบด้วย Google เร็วๆ นี้'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _openEmailFlow(bool register) {
+    final auth = widget.authRepository!;
+    final next = widget.nextPage ??
+        MarkdownWorkspacePage(
+          repository: widget.repository ??
+              const LocalDocumentRepository(DeviceDocumentStorage()),
+        );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => register
+            ? RegisterPage(authRepository: auth, nextPage: next)
+            : LoginPage(authRepository: auth, nextPage: next),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,8 +252,10 @@ class _AuthPageState extends State<AuthPage>
                     opacity: _subtitleFade,
                     child: SlideTransition(
                       position: _subtitleSlide,
-                      child: const Text(
-                        'Log in or create a new account\nusing your Google account.',
+                      child: Text(
+                        widget.authRepository == null
+                            ? 'Log in or create a new account\nusing your Google account.'
+                            : 'Log in or create an account\nto start using Mnote.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -230,17 +267,43 @@ class _AuthPageState extends State<AuthPage>
                     ),
                   ),
                   const SizedBox(height: 38),
-                  // Continue with Google Button with fade & slide entrance
-                  FadeTransition(
-                    opacity: _buttonFade,
-                    child: SlideTransition(
-                      position: _buttonSlide,
-                      child: GoogleSignInButton(
-                        onPressed: _handleGoogleSignIn,
-                        isLoading: _isLoading,
+                  if (widget.authRepository == null)
+                    // Offline/dev fallback only; main() never reaches this
+                    // when Firebase is unavailable.
+                    FadeTransition(
+                      opacity: _buttonFade,
+                      child: SlideTransition(
+                        position: _buttonSlide,
+                        child: GoogleSignInButton(
+                          onPressed: _handleGoogleSignIn,
+                          isLoading: _isLoading,
+                        ),
+                      ),
+                    )
+                  else
+                    FadeTransition(
+                      opacity: _buttonFade,
+                      child: SlideTransition(
+                        position: _buttonSlide,
+                        child: Column(
+                          children: [
+                            GoogleSignInButton(
+                              onPressed: _showGoogleComingSoon,
+                            ),
+                            const SizedBox(height: 16),
+                            AuthPrimaryButton(
+                              label: 'เข้าสู่ระบบ',
+                              onPressed: () => _openEmailFlow(false),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => _openEmailFlow(true),
+                              child: const Text('สมัครสมาชิกใหม่'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 20),
                 ],
               ),

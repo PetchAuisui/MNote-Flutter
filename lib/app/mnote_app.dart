@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
@@ -13,11 +14,15 @@ class MnoteApp extends StatelessWidget {
     this.documentRepository,
     this.skipAuth,
     this.home,
+    this.authRepository,
   });
 
   final DocumentRepository? documentRepository;
   final bool? skipAuth;
   final Widget? home;
+
+  /// When null, only the offline flow is available (no email login/register).
+  final AuthRepository? authRepository;
 
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
@@ -33,7 +38,10 @@ class MnoteApp extends StatelessWidget {
         documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
-    final destination = NoteListScreen(repository: effectiveRepository);
+    final destination = NoteListScreen(
+      repository: effectiveRepository,
+      authRepository: authRepository,
+    );
     final shouldSkipAuth = skipAuth ?? (documentRepository != null);
 
     final guidePage = AppGuidePage(
@@ -46,6 +54,8 @@ class MnoteApp extends StatelessWidget {
         : SplashPage(
             repository: effectiveRepository,
             nextPage: guidePage,
+            authRepository: authRepository,
+            signedInPage: destination,
           );
 
     return ValueListenableBuilder<ThemeMode>(

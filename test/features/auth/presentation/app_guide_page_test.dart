@@ -11,9 +11,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: AppGuidePage(repository: FakeDocumentRepository()),
-        ),
+        MaterialApp(home: AppGuidePage(repository: FakeDocumentRepository())),
       );
       await tester.pumpAndSettle();
 
@@ -57,54 +55,53 @@ void main() {
       expect(find.byType(NoteListScreen), findsOneWidget);
     });
 
-    testWidgets('can navigate forward through all 3 slides and then enter Mnote', (
-      tester,
-    ) async {
-      final repo = FakeDocumentRepository();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: AppGuidePage(
-            repository: repo,
-            nextPage: NoteListScreen(repository: repo),
+    testWidgets(
+      'can navigate forward through all 3 slides and then enter Mnote',
+      (tester) async {
+        final repo = FakeDocumentRepository();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: AppGuidePage(
+              repository: repo,
+              nextPage: NoteListScreen(repository: repo),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Slide 1
-      expect(find.text('เขียนและจัดรูปแบบ Markdown'), findsOneWidget);
+        // Slide 1
+        expect(find.text('เขียนและจัดรูปแบบ Markdown'), findsOneWidget);
 
-      // Tap Next to Slide 2
-      await tester.tap(find.byKey(const Key('app-guide-next-button')));
-      await tester.pumpAndSettle();
-      expect(find.text('วาดเขียน & จดโน้ตด้วยปากกา'), findsOneWidget);
-      expect(find.text('ขั้นตอน 02 / 03'), findsOneWidget);
+        // Tap Next to Slide 2
+        await tester.tap(find.byKey(const Key('app-guide-next-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('วาดเขียน & จดโน้ตด้วยปากกา'), findsOneWidget);
+        expect(find.text('ขั้นตอน 02 / 03'), findsOneWidget);
 
-      // Tap Next to Slide 3 (Last slide)
-      await tester.tap(find.byKey(const Key('app-guide-next-button')));
-      await tester.pumpAndSettle();
-      expect(find.text('สร้างไดอะแกรม Mermaid ทันใจ'), findsOneWidget);
-      expect(find.text('ขั้นตอน 03 / 03'), findsOneWidget);
+        // Tap Next to Slide 3 (Last slide)
+        await tester.tap(find.byKey(const Key('app-guide-next-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('สร้างไดอะแกรม Mermaid ทันใจ'), findsOneWidget);
+        expect(find.text('ขั้นตอน 03 / 03'), findsOneWidget);
 
-      // On last slide: "เข้าสู่ Mnote" button is shown
-      expect(find.byKey(const Key('app-guide-enter-button')), findsOneWidget);
-      expect(find.text('เข้าสู่ Mnote'), findsOneWidget);
+        // On last slide: "เข้าสู่ Mnote" button is shown
+        expect(find.byKey(const Key('app-guide-enter-button')), findsOneWidget);
+        expect(find.text('เข้าสู่ Mnote'), findsOneWidget);
 
-      // Tap "เข้าสู่ Mnote"
-      await tester.tap(find.byKey(const Key('app-guide-enter-button')));
-      await tester.pumpAndSettle();
+        // Tap "เข้าสู่ Mnote"
+        await tester.tap(find.byKey(const Key('app-guide-enter-button')));
+        await tester.pumpAndSettle();
 
-      // Navigated to NoteListScreen
-      expect(find.byType(NoteListScreen), findsOneWidget);
-    });
+        // Navigated to NoteListScreen
+        expect(find.byType(NoteListScreen), findsOneWidget);
+      },
+    );
 
     testWidgets('can navigate backwards using previous arrow button', (
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: AppGuidePage(repository: FakeDocumentRepository()),
-        ),
+        MaterialApp(home: AppGuidePage(repository: FakeDocumentRepository())),
       );
       await tester.pumpAndSettle();
 

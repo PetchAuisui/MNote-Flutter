@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 
@@ -9,11 +10,17 @@ class SplashPage extends StatefulWidget {
     this.repository,
     this.duration = const Duration(milliseconds: 1800),
     this.nextPage,
+    this.authRepository,
+    this.signedInPage,
   });
 
   final DocumentRepository? repository;
   final Duration duration;
   final Widget? nextPage;
+  final AuthRepository? authRepository;
+
+  /// Shown instead of [AuthPage] when a previous session is restored.
+  final Widget? signedInPage;
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -60,11 +67,17 @@ class _SplashPageState extends State<SplashPage>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 850),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            AuthPage(
-              repository: widget.repository,
-              nextPage: widget.nextPage,
-            ),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final restored = widget.signedInPage;
+          if (restored != null && widget.authRepository?.currentUser != null) {
+            return restored;
+          }
+          return AuthPage(
+            repository: widget.repository,
+            nextPage: widget.nextPage,
+            authRepository: widget.authRepository,
+          );
+        },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(

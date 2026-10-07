@@ -187,6 +187,7 @@ class _AuthPageState extends State<AuthPage>
         (_) => false,
       );
     } catch (error) {
+      debugPrint('Google sign-in failed: $error');
       if (!mounted) return;
       setState(() => _isLoading = false);
       final e = error is AuthException

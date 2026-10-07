@@ -79,6 +79,7 @@ class _RegisterPageState extends State<RegisterPage> {
         (_) => false,
       );
     } catch (error) {
+      debugPrint('Google sign-in failed: $error');
       if (!mounted) return;
       final e = error is AuthException
           ? error

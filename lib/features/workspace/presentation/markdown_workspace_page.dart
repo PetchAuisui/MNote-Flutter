@@ -1,13 +1,20 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
+import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
-import 'package:mnote/features/workspace/presentation/mermaid/mermaid_element_builder.dart';
+import 'package:mnote/features/workspace/presentation/live_markdown_controller.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
+import 'package:scribble/scribble.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'markdown_live_editor.dart';
+import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
 
@@ -17,11 +24,13 @@ class MarkdownWorkspacePage extends StatefulWidget {
     required this.repository,
     this.initialDocument,
     this.imagePicker = const DeviceImagePicker(),
+    this.mermaidFileSource = const DeviceMermaidFileSource(),
   });
 
   final DocumentRepository repository;
   final MarkdownDocument? initialDocument;
   final DeviceImagePicker imagePicker;
+  final MermaidFileSource mermaidFileSource;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -29,29 +38,43 @@ class MarkdownWorkspacePage extends StatefulWidget {
 
 class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   static const _editorTextStyle = TextStyle(
-    fontFamily: 'monospace',
-    fontSize: 15,
+    fontSize: MarkdownDocumentStyle.bodySize,
     height: 1.55,
   );
 
   late final WorkspaceController _workspace;
-  late final TextEditingController _textController;
+  late final LiveMarkdownEditingController _textController;
   late final TextEditingController _titleController;
   late final ScrollController _editorScrollController;
   late final FocusNode _titleFocusNode;
+  late final FocusNode _markdownFocusNode;
   late UndoHistoryController _undoController;
+  final _markdownHistory = MarkdownEditHistory();
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
+  late final TransformationController _inkTransform;
+  InkTool _inkTool = InkTool.pen;
+  Color _inkPenColor = const Color(0xFF202124);
+  double _inkPenWidth = 3;
+  bool _inkTouch = false;
+  bool _inkBusy = false;
+  double _inkViewportWidth = 0;
+  final DeviceInkFileStorage _inkStorage = const DeviceInkFileStorage();
 
   @override
   void initState() {
     super.initState();
+    _inkTransform = TransformationController();
     _workspace = WorkspaceController(
       widget.repository,
       initialDocument: widget.initialDocument,
     )..addListener(_onWorkspaceChanged);
-    _textController = TextEditingController(text: _workspace.document.content);
+    _textController = LiveMarkdownEditingController(
+      text: _workspace.document.content,
+      showRawSource: true,
+    );
+    _markdownFocusNode = FocusNode()..addListener(_onMarkdownFocusChanged);
     _titleController = TextEditingController(text: _workspace.document.name);
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
@@ -59,11 +82,22 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _loadBundledExample();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _textController.primaryColor = Theme.of(context).colorScheme.primary;
+  }
+
   Future<void> _loadBundledExample() async {
     try {
       final content = await rootBundle.loadString('assets/examples/welcome.md');
+      final previous = await rootBundle.loadString(
+        'assets/examples/welcome_v1.md',
+      );
       if (!mounted) return;
-      _workspace.loadExample(content);
+      if (!_workspace.upgradeExample(previous, content)) {
+        _workspace.loadExample(content);
+      }
     } catch (_) {
       // The editor remains usable as an empty document if the asset is missing.
     }
@@ -71,9 +105,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   @override
   void dispose() {
+    _inkTransform.dispose();
     _ink.dispose();
     _workspace
       ..removeListener(_onWorkspaceChanged)
+      ..dispose();
+    _markdownFocusNode
+      ..removeListener(_onMarkdownFocusChanged)
       ..dispose();
     _textController.dispose();
     _titleController.dispose();
@@ -97,6 +135,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _titleController.text = _workspace.document.name;
     }
     if (mounted) setState(() {});
+  }
+
+  void _onMarkdownFocusChanged() {
+    _textController.editorHasFocus = _markdownFocusNode.hasFocus;
   }
 
   void _onTitleFocusChanged() {
@@ -187,7 +229,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
       successMessage: _ink.isDirty
-          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดจด'
+          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดเขียน'
           : 'บันทึกเอกสารแล้ว',
     );
   }
@@ -219,6 +261,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _resetUndoHistory() {
+    _markdownHistory.clear();
     final previousController = _undoController;
     _undoController = UndoHistoryController();
     _editorHistoryRevision += 1;
@@ -428,6 +471,76 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  Future<void> _insertTable() async {
+    var rows = 2;
+    var columns = 2;
+    final size = await showDialog<(int, int)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: const Text('แทรกตาราง'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                key: const Key('table-columns'),
+                initialValue: columns,
+                decoration: const InputDecoration(labelText: 'จำนวนคอลัมน์'),
+                items: [
+                  for (var count = 1; count <= 8; count++)
+                    DropdownMenuItem(value: count, child: Text('$count')),
+                ],
+                onChanged: (value) => update(() => columns = value!),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                key: const Key('table-rows'),
+                initialValue: rows,
+                decoration: const InputDecoration(labelText: 'จำนวนแถวข้อมูล'),
+                items: [
+                  for (var count = 1; count <= 10; count++)
+                    DropdownMenuItem(value: count, child: Text('$count')),
+                ],
+                onChanged: (value) => update(() => rows = value!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            FilledButton(
+              key: const Key('insert-table-confirm'),
+              onPressed: () => Navigator.pop(context, (rows, columns)),
+              child: const Text('แทรก'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (size == null || !mounted) return;
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    String row(List<String> cells) => '| ${cells.join(' | ')} |';
+    final table = [
+      row(List.generate(size.$2, (index) => 'หัวข้อ ${index + 1}')),
+      row(List.filled(size.$2, '---')),
+      for (var index = 0; index < size.$1; index++)
+        row(List.filled(size.$2, 'ข้อมูล')),
+    ].join('\n');
+    final leading = selection.start > 0 ? '\n\n' : '';
+    final replacement = '$leading$table\n\n';
+    _applyTextEdit(
+      value.text.replaceRange(selection.start, selection.end, replacement),
+      TextSelection.collapsed(
+        offset: selection.start + leading.length + table.length,
+      ),
+    );
+  }
+
   void _insertLineBreak() {
     _insertAtSelectionEnd('<br>\n');
   }
@@ -444,6 +557,47 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final trailingBreak =
         offset < value.text.length && value.text[offset] != '\n' ? '\n' : '';
     _insertAtSelectionEnd('$leadingBreak---\n$trailingBreak');
+  }
+
+  void _insertDiagramTemplate(MermaidTemplate template) {
+    final value = _textController.value;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: value.text.length);
+    final offset = selection.end;
+    final leadingBreak = offset > 0 && value.text[offset - 1] != '\n'
+        ? '\n'
+        : '';
+    final trailingBreak =
+        offset < value.text.length && value.text[offset] != '\n' ? '\n' : '';
+    _insertAtSelectionEnd(
+      '$leadingBreak${buildMermaidFencedBlock(template.source)}\n'
+      '$trailingBreak',
+    );
+  }
+
+  Future<void> _importDiagramFile() async {
+    final PickedMermaidFile? picked;
+    try {
+      picked = await widget.mermaidFileSource.pick(
+        maxBytes: mermaidImportMaxBytes,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่')),
+      );
+      return;
+    }
+    if (picked == null || !mounted) return;
+    switch (parseMermaidImport(name: picked.name, bytes: picked.bytes)) {
+      case MermaidImportFailure(:final message):
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      case MermaidImportSuccess(:final name, :final source):
+        await showMermaidImportDialog(context, fileName: name, source: source);
+    }
   }
 
   void _insertAtSelectionEnd(String token) {
@@ -489,53 +643,64 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         if (didPop) return;
         final shouldPop = await _confirmDiscardChanges();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop(
-            _workspace.document.isDirty ? null : _workspace.document,
-          );
+          Navigator.of(
+            context,
+          ).pop(_workspace.document.isDirty ? null : _workspace.document);
         }
       },
       child: Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (_workspace.isBusy) const LinearProgressIndicator(minHeight: 2),
-            _buildWorkspaceHeader(document),
-            if (_workspace.mode == WorkspaceMode.edit)
-              _buildFormattingToolbar(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Card(
-                  key: const Key('document-surface'),
-                  margin: EdgeInsets.zero,
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _workspace.mode == WorkspaceMode.edit
-                            ? _buildEditor()
-                            : _workspace.mode == WorkspaceMode.ink
-                            ? InkPage(
-                                key: ObjectKey(_ink),
-                                session: _ink,
-                                markdown: document.content,
-                                name: document.name,
-                                imageDirectory: _imageDirectory,
-                              )
-                            : _buildPreview(),
-                      ),
-                      if (_workspace.mode != WorkspaceMode.ink)
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (_workspace.isBusy)
+                const LinearProgressIndicator(minHeight: 2),
+              _buildWorkspaceHeader(document),
+              if (_workspace.mode == WorkspaceMode.edit ||
+                  _workspace.mode == WorkspaceMode.split)
+                _buildFormattingToolbar()
+              else if (_workspace.mode == WorkspaceMode.ink)
+                _buildInkToolbar(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Card(
+                    key: const Key('document-surface'),
+                    margin: EdgeInsets.zero,
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: _workspace.mode == WorkspaceMode.edit
+                              ? _buildEditor()
+                              : _workspace.mode == WorkspaceMode.split
+                              ? _buildSplitView()
+                              : _workspace.mode == WorkspaceMode.ink
+                              ? InkPage(
+                                  key: ObjectKey(_ink),
+                                  session: _ink,
+                                  markdown: document.content,
+                                  name: document.name,
+                                  imageDirectory: _imageDirectory,
+                                  transformationController: _inkTransform,
+                                  showToolbar: false,
+                                  onViewportWidthChanged: (w) =>
+                                      _inkViewportWidth = w,
+                                )
+                              : _buildPreview(),
+                        ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
-                              '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                              _workspace.mode == WorkspaceMode.split
+                                  ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                  : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
                               key: const Key('document-statistics'),
                               maxLines: 1,
                               textAlign: TextAlign.end,
@@ -545,17 +710,27 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                             ),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
+    );
+  }
+
+  Widget _buildSplitView() => MarkdownLiveEditor(
+    history: _markdownHistory,
+    onTapLink: (text, href, title) => _openLink(href),
+    undoController: _undoController,
+    controller: _textController,
+    onChanged: _workspace.updateContent,
+    imageDirectory: _imageDirectory,
+    builders: {'code': MermaidElementBuilder()},
   );
-}
 
   Widget _buildWorkspaceHeader(MarkdownDocument document) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -592,6 +767,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               ),
             );
           }
+          final centerGap = constraints.maxWidth >= 960 ? 430.0 : 380.0;
           return SizedBox(
             height: 68,
             child: Stack(
@@ -613,7 +789,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           child: title,
                         ),
                       ),
-                      const SizedBox(width: 340),
+                      SizedBox(width: centerGap),
                       Expanded(
                         child: Align(
                           alignment: Alignment.centerRight,
@@ -703,28 +879,33 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return SegmentedButton<WorkspaceMode>(
       key: const Key('workspace-mode-switcher'),
       showSelectedIcon: false,
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10)),
+      ),
       segments: [
         ButtonSegment(
-          value: WorkspaceMode.edit,
-          icon: const Icon(Icons.edit_outlined),
-          label: compact ? null : const Text('แก้ไข'),
-          tooltip: 'แก้ไข Markdown',
-        ),
-        ButtonSegment(
-          value: WorkspaceMode.preview,
-          icon: const Icon(Icons.visibility_outlined),
-          label: compact ? null : const Text('แสดงผล'),
-          tooltip: 'แสดงผล Markdown',
+          value: WorkspaceMode.split,
+          icon: const Icon(Icons.edit_document),
+          label: compact ? null : const Text('Markdown'),
+          tooltip: 'Markdown',
         ),
         ButtonSegment(
           value: WorkspaceMode.ink,
           icon: const Icon(Icons.draw_outlined),
-          label: compact ? null : const Text('จด'),
-          tooltip: 'จดด้วยปากกา',
+          label: compact ? null : const Text('เขียน'),
+          tooltip: 'เขียน',
         ),
       ],
       selected: {_workspace.mode},
-      onSelectionChanged: (selection) => _workspace.setMode(selection.first),
+      onSelectionChanged: (selection) {
+        _workspace.setMode(selection.first);
+        if (selection.first == WorkspaceMode.ink) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _fitInk();
+          });
+        }
+      },
     );
   }
 
@@ -814,9 +995,166 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onHorizontalRule: _insertHorizontalRule,
         onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
         onCodeBlock: _insertCodeBlock,
+        onDiagramTemplate: _insertDiagramTemplate,
+        onImportDiagram: _importDiagramFile,
         onLink: () =>
             _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
         onImage: _insertImage,
+        onTable: _insertTable,
+      ),
+    );
+  }
+
+  void _fitInk() {
+    final scale = (_inkViewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
+    final dx = _inkViewportWidth > InkSession.pageWidth
+        ? (_inkViewportWidth - InkSession.pageWidth) / 2
+        : 0.0;
+    _inkTransform.value = Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(dx, 0, 0);
+  }
+
+  void _selectInkTool(InkTool tool) {
+    setState(() => _inkTool = tool);
+    final pen = _ink.pen;
+    switch (tool) {
+      case InkTool.pen:
+        pen
+          ..setColor(_inkPenColor)
+          ..setStrokeWidth(_inkPenWidth);
+      case InkTool.highlighter:
+        pen
+          ..setColor(const Color(0x66FFD54F))
+          ..setStrokeWidth(18);
+      case InkTool.eraser:
+        pen
+          ..setEraser()
+          ..setStrokeWidth(28);
+    }
+  }
+
+  void _selectInkColor(Color color) {
+    setState(() {
+      _inkPenColor = color;
+      _inkTool = InkTool.pen;
+    });
+    _ink.pen
+      ..setColor(color)
+      ..setStrokeWidth(_inkPenWidth);
+  }
+
+  void _selectInkWidth(double width) {
+    setState(() {
+      _inkPenWidth = width;
+      _inkTool = InkTool.pen;
+    });
+    _ink.pen
+      ..setColor(_inkPenColor)
+      ..setStrokeWidth(width);
+  }
+
+  void _toggleInkTouch() {
+    setState(() => _inkTouch = !_inkTouch);
+    _ink.pen.setAllowedPointersMode(
+      _inkTouch ? ScribblePointerMode.all : ScribblePointerMode.penOnly,
+    );
+  }
+
+  Future<void> _clearInk() async {
+    if (_ink.pen.currentSketch.lines.isEmpty) return;
+    final clear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.delete_outline),
+        title: const Text('ล้างหมึกทั้งหมด?'),
+        content: const Text('สามารถกดย้อนกลับได้หลังจากล้าง'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ล้างทั้งหมด'),
+          ),
+        ],
+      ),
+    );
+    if (clear == true) _ink.pen.clear();
+  }
+
+  Future<void> _inkFileAction(bool save) async {
+    if (_inkBusy) return;
+    setState(() => _inkBusy = true);
+    try {
+      if (save) {
+        final snapshot = _ink.encode();
+        final saved = await _inkStorage.save(
+          name: '${_workspace.document.name}.ink.json',
+          bytes: Uint8List.fromList(utf8.encode(snapshot)),
+        );
+        if (saved && mounted) _ink.markSaved(snapshot);
+      } else {
+        if (_ink.isDirty) {
+          final discard = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('แทนที่หมึกที่ยังไม่บันทึก?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('ยกเลิก'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('เปิดหมึก'),
+                ),
+              ],
+            ),
+          );
+          if (discard != true || !mounted) return;
+        }
+        final bytes = await _inkStorage.open();
+        if (bytes == null) return;
+        if (!mounted) return;
+        _ink.load(utf8.decode(bytes));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'เปิดหรือบันทึกหมึกไม่สำเร็จ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _inkBusy = false);
+    }
+  }
+
+  Widget _buildInkToolbar() {
+    return ListenableBuilder(
+      listenable: _ink,
+      builder: (context, _) => InkToolbar(
+        selectedTool: _inkTool,
+        penColor: _inkPenColor,
+        penWidth: _inkPenWidth,
+        touchEnabled: _inkTouch,
+        busy: _inkBusy,
+        onToolSelected: _selectInkTool,
+        onColorSelected: _selectInkColor,
+        onWidthSelected: _selectInkWidth,
+        onUndo: _ink.pen.canUndo ? _ink.pen.undo : null,
+        onRedo: _ink.pen.canRedo ? _ink.pen.redo : null,
+        onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
+        onTouchChanged: _toggleInkTouch,
+        onFit: _fitInk,
+        onGrow: () => _ink.grow(_ink.height + 1000),
+        onOpen: () => _inkFileAction(false),
+        onSave: () => _inkFileAction(true),
+        isDirty: _ink.isDirty,
       ),
     );
   }
@@ -856,6 +1194,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     bottom: 16,
                     child: TextField(
                       key: const Key('markdown-editor'),
+                      focusNode: _markdownFocusNode,
                       controller: _textController,
                       undoController: _undoController,
                       scrollController: _editorScrollController,
@@ -987,9 +1326,14 @@ class _LineNumberPainter extends CustomPainter {
     var lineTop = _topPadding - _scrollOffset;
 
     for (var index = 0; index < lines.length; index++) {
+      final lineStyle =
+          (textController is LiveMarkdownEditingController &&
+              (textController as LiveMarkdownEditingController).showRawSource)
+          ? editorStyle
+          : _headingStyleForLine(lines[index], editorStyle);
       final editorPainter = _textPainter(
         lines[index].isEmpty ? ' ' : lines[index],
-        editorStyle,
+        lineStyle,
       )..layout(maxWidth: textWidth);
       final editorMetrics = editorPainter.computeLineMetrics();
       final editorBaseline = editorMetrics.isEmpty
@@ -1042,8 +1386,40 @@ class _LineNumberPainter extends CustomPainter {
   }
 
   double get _scrollOffset {
-    if (!scrollController.hasClients) return 0;
+    if (!scrollController.hasClients ||
+        scrollController.positions.length != 1) {
+      return 0;
+    }
     return scrollController.offset;
+  }
+
+  static TextStyle _headingStyleForLine(String line, TextStyle baseStyle) {
+    if (line.startsWith('#')) {
+      final match = RegExp(r'^(#{1,6})\s+').firstMatch(line);
+      if (match != null) {
+        final level = match.group(1)!.length;
+        final double factor;
+        switch (level) {
+          case 1:
+            factor = 28 / 17;
+            break;
+          case 2:
+            factor = 24 / 17;
+            break;
+          case 3:
+            factor = 20 / 17;
+            break;
+          default:
+            factor = MarkdownDocumentStyle.headingSizes[level - 1] / 17;
+            break;
+        }
+        return baseStyle.copyWith(
+          fontSize: (baseStyle.fontSize ?? 15) * factor,
+          fontWeight: FontWeight.bold,
+        );
+      }
+    }
+    return baseStyle;
   }
 
   @override

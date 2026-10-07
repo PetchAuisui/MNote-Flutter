@@ -12,7 +12,9 @@ class NoteListSettingsDialog extends StatelessWidget {
       builder: (context, currentMode, _) {
         final theme = Theme.of(context);
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Row(
             children: [
               Container(
@@ -21,10 +23,17 @@ class NoteListSettingsDialog extends StatelessWidget {
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.settings_rounded, color: theme.colorScheme.primary, size: 24),
+                child: Icon(
+                  Icons.settings_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
-              const Text('การตั้งค่า', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              const Text(
+                'การตั้งค่า',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
             ],
           ),
           content: ConstrainedBox(
@@ -49,17 +58,29 @@ class NoteListSettingsDialog extends StatelessWidget {
                       segments: const [
                         ButtonSegment(
                           value: ThemeMode.system,
-                          icon: Icon(Icons.brightness_auto_rounded, color: Colors.teal, size: 18),
+                          icon: Icon(
+                            Icons.brightness_auto_rounded,
+                            color: Colors.teal,
+                            size: 18,
+                          ),
                           label: Text('ตามเครื่อง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.light,
-                          icon: Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 18),
+                          icon: Icon(
+                            Icons.wb_sunny_rounded,
+                            color: Colors.orange,
+                            size: 18,
+                          ),
                           label: Text('สว่าง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.dark,
-                          icon: Icon(Icons.dark_mode_rounded, color: Colors.indigoAccent, size: 18),
+                          icon: Icon(
+                            Icons.dark_mode_rounded,
+                            color: Colors.indigoAccent,
+                            size: 18,
+                          ),
                           label: Text('มืด'),
                         ),
                       ],
@@ -74,10 +95,14 @@ class NoteListSettingsDialog extends StatelessWidget {
                     child: Text(
                       currentMode == ThemeMode.system
                           ? 'ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง'
-                          : (currentMode == ThemeMode.dark ? 'เปิดใช้งานโหมดมืด' : 'เปิดใช้งานโหมดสว่าง'),
+                          : (currentMode == ThemeMode.dark
+                                ? 'เปิดใช้งานโหมดมืด'
+                                : 'เปิดใช้งานโหมดสว่าง'),
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -97,13 +122,19 @@ class NoteListSettingsDialog extends StatelessWidget {
                     builder: (context, currentFont, _) {
                       return Container(
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<AppFontFamily>(
                             isExpanded: true,
@@ -126,7 +157,9 @@ class NoteListSettingsDialog extends StatelessWidget {
                                       f.label,
                                       style: TextStyle(
                                         fontFamily: f.familyName,
-                                        fontWeight: f == currentFont ? FontWeight.bold : FontWeight.normal,
+                                        fontWeight: f == currentFont
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                       ),
                                     ),
                                   ],
@@ -149,7 +182,9 @@ class NoteListSettingsDialog extends StatelessWidget {
                       'เลือกฟอนต์โมเดิร์นที่เหมาะสมกับการอ่านและเขียนโน้ตภาษาไทย',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -157,14 +192,19 @@ class NoteListSettingsDialog extends StatelessWidget {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'MNote v1.0.0 • Local-First Markdown Workspace',
                           style: TextStyle(
                             fontSize: 11,
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.8),
                           ),
                         ),
                       ),

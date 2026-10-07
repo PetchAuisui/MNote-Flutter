@@ -1,12 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/models/note_item.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
 import '../helpers/fakes.dart';
 
 void main() {
+  for (final edited in [false, true]) {
+    testWidgets('existing Welcome migration preserves edits: $edited', (
+      tester,
+    ) async {
+      final oldContent = File(
+        'assets/examples/welcome_v1.md',
+      ).readAsStringSync();
+      final content = edited ? '$oldContent\nMy notes' : oldContent;
+      final repo = FakeDocumentRepository()
+        ..storedMetadata = LibraryMetadata(
+          folders: [],
+          documents: [
+            DocumentItem(
+              id: 'welcome_initial_doc',
+              name: 'Welcome.md',
+              content: content,
+              updatedAt: DateTime(2026),
+              isStarred: true,
+            ),
+          ],
+        );
+      await tester.pumpWidget(
+        MaterialApp(home: NoteListScreen(repository: repo)),
+      );
+      await tester.pumpAndSettle();
+      final result = (await repo.loadMetadata())!.documents.single;
+      expect(result.isStarred, isTrue);
+      if (edited) {
+        expect(result.content, content);
+      } else {
+        expect(result.content, contains('## ตาราง'));
+        await tester.tap(find.text('Welcome'));
+        await tester.pumpAndSettle();
+        expect(find.byType(Table), findsOneWidget);
+      }
+    });
+  }
   final sampleFolders = [
     FolderItem(
       id: 'f1',
@@ -44,50 +84,94 @@ void main() {
     ),
   ];
 
-  testWidgets('renders empty state when there are no folders or documents', (tester) async {
+  testWidgets(
+    'seeds Welcome.md on initial launch when library is uninitialized',
+    (tester) async {
+      rootBundle.evict('assets/examples/welcome.md');
+      rootBundle.evict('assets/examples/welcome_v1.md');
+      await tester.runAsync(() async {
+        await rootBundle.loadString('assets/examples/welcome.md');
+        await rootBundle.loadString('assets/examples/welcome_v1.md');
+      });
+      final fakeRepo = FakeDocumentRepository();
+      await tester.pumpWidget(
+        MaterialApp(home: NoteListScreen(repository: fakeRepo)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 30)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Welcome'), findsOneWidget);
+      final savedMeta = await fakeRepo.loadMetadata();
+      expect(savedMeta, isNotNull);
+      expect(savedMeta!.documents.any((d) => d.name == 'Welcome.md'), isTrue);
+      final welcome = savedMeta.documents.singleWhere(
+        (d) => d.name == 'Welcome.md',
+      );
+      expect(welcome.content, contains('## ตาราง'));
+      expect(welcome.content, contains('| สิ่งที่ต้องทำ | สถานะ | หมายเหตุ |'));
+      await tester.tap(find.text('Welcome'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Table), findsOneWidget);
+    },
+  );
+
+  testWidgets('renders empty state when there are no folders or documents', (
+    tester,
+  ) async {
+    final fakeRepo = FakeDocumentRepository()
+      ..storedMetadata = LibraryMetadata(folders: [], documents: []);
     await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(repository: FakeDocumentRepository()),
-      ),
+      MaterialApp(home: NoteListScreen(repository: fakeRepo)),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('ยังไม่มีไฟล์หรือโฟลเดอร์'), findsOneWidget);
-    expect(find.text('กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์'), findsOneWidget);
-  });
-
-  testWidgets('renders Document and Folder Library with folders and files (.md, .txt)', (tester) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(
-          repository: FakeDocumentRepository(),
-          initialFolders: sampleFolders,
-          initialDocuments: sampleDocuments,
-        ),
+    expect(
+      find.text(
+        'กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์',
       ),
+      findsOneWidget,
     );
-    await tester.pumpAndSettle();
-
-    // Title checks
-    expect(find.text('เอกสาร'), findsOneWidget);
-
-    // Initial Folders
-    expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
-    expect(find.text('ปี 1'), findsOneWidget);
-
-    // Initial Documents (.md and .txt)
-    expect(find.text('2569-01-CT05-report02'), findsOneWidget);
-    expect(find.text('2569-01-CT05-report03'), findsOneWidget);
-
-    // Filter and "+ ใหม่" Button
-    expect(find.text('ทั้งหมด'), findsOneWidget);
-    expect(find.text('ใหม่'), findsOneWidget);
   });
+
+  testWidgets(
+    'renders Document and Folder Library with folders and files (.md, .txt)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: FakeDocumentRepository(),
+            initialFolders: sampleFolders,
+            initialDocuments: sampleDocuments,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Title checks
+      expect(find.text('เอกสาร'), findsOneWidget);
+
+      // Initial Folders
+      expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
+      expect(find.text('ปี 1'), findsOneWidget);
+
+      // Initial Documents (.md and .txt)
+      expect(find.text('2569-01-CT05-report02'), findsOneWidget);
+      expect(find.text('2569-01-CT05-report03'), findsOneWidget);
+
+      // Filter and "+ ใหม่" Button
+      expect(find.text('ทั้งหมด'), findsOneWidget);
+      expect(find.text('ใหม่'), findsOneWidget);
+    },
+  );
 
   testWidgets('enters folder and navigates back to root', (tester) async {
     tester.view.physicalSize = const Size(1200, 1600);
@@ -174,32 +258,31 @@ void main() {
     expect(find.byType(ListView), findsOneWidget);
   });
 
-  testWidgets('tapping settings icon opens settings dialog with system theme default', (tester) async {
+  testWidgets(
+    'tapping settings icon opens settings dialog with system theme default',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: NoteListScreen(repository: FakeDocumentRepository())),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.text('การตั้งค่า'), findsOneWidget);
+      expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
+      expect(find.text('ตามเครื่อง'), findsOneWidget);
+      expect(find.text('ฟอนต์ตัวอักษร (Typography)'), findsOneWidget);
+      expect(find.text('Prompt (โมเดิร์น)'), findsOneWidget);
+    },
+  );
+
+  testWidgets('MarkdownWorkspacePage does not show settings icon', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: NoteListScreen(
-          repository: FakeDocumentRepository(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.settings_outlined));
-    await tester.pumpAndSettle();
-
-    expect(find.text('การตั้งค่า'), findsOneWidget);
-    expect(find.text('โหมดการแสดงผล (Theme)'), findsOneWidget);
-    expect(find.text('ตามเครื่อง'), findsOneWidget);
-    expect(find.text('ฟอนต์ตัวอักษร (Typography)'), findsOneWidget);
-    expect(find.text('Prompt (โมเดิร์น)'), findsOneWidget);
-  });
-
-  testWidgets('MarkdownWorkspacePage does not show settings icon', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MarkdownWorkspacePage(
-          repository: FakeDocumentRepository(),
-        ),
+        home: MarkdownWorkspacePage(repository: FakeDocumentRepository()),
       ),
     );
     await tester.pumpAndSettle();
@@ -270,7 +353,9 @@ void main() {
     expect(find.text('2569-01-CT05-report02'), findsOneWidget);
   });
 
-  testWidgets('emptying trash clears all trashed items permanently', (tester) async {
+  testWidgets('emptying trash clears all trashed items permanently', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -324,7 +409,9 @@ void main() {
     expect(find.text('ขยะ'), findsNothing);
   });
 
-  testWidgets('renders symmetrical folder cards and moves folder to trash', (tester) async {
+  testWidgets('renders symmetrical folder cards and moves folder to trash', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -395,116 +482,130 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
+    final textWidgets = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data)
+        .toList();
     final zIndex = textWidgets.indexOf('z_starred');
     final aIndex = textWidgets.indexOf('a_unstarred');
     expect(zIndex != -1 && aIndex != -1 && zIndex < aIndex, isTrue);
   });
 
-  testWidgets('starred document moves ahead of unstarred folders to the very front', (tester) async {
-    final sampleFolders = [
-      FolderItem(
-        id: 'f1',
-        name: 'โฟลเดอร์_ปกติ',
-        updatedAt: DateTime(2026, 9, 20),
-        isStarred: false,
-      ),
-    ];
-    final sampleDocuments = [
-      DocumentItem(
-        id: 'd1',
-        name: 'บันทึก_โปรด.txt',
-        content: 'content',
+  testWidgets(
+    'starred document moves ahead of unstarred folders to the very front',
+    (tester) async {
+      final sampleFolders = [
+        FolderItem(
+          id: 'f1',
+          name: 'โฟลเดอร์_ปกติ',
+          updatedAt: DateTime(2026, 9, 20),
+          isStarred: false,
+        ),
+      ];
+      final sampleDocuments = [
+        DocumentItem(
+          id: 'd1',
+          name: 'บันทึก_โปรด.txt',
+          content: 'content',
+          updatedAt: DateTime(2026, 9, 21),
+          isStarred: true,
+        ),
+        DocumentItem(
+          id: 'd2',
+          name: 'เอกสาร_ปกติ.md',
+          content: 'content',
+          updatedAt: DateTime(2026, 9, 22),
+          isStarred: false,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: FakeDocumentRepository(),
+            initialFolders: sampleFolders,
+            initialDocuments: sampleDocuments,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textWidgets = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data)
+          .toList();
+      final txtIndex = textWidgets.indexOf('บันทึก_โปรด');
+      final folderIndex = textWidgets.indexOf('โฟลเดอร์_ปกติ');
+      final mdIndex = textWidgets.indexOf('เอกสาร_ปกติ');
+
+      // Starred txt must come before unstarred folder and md!
+      expect(txtIndex != -1 && folderIndex != -1 && mdIndex != -1, isTrue);
+      expect(txtIndex < folderIndex, isTrue);
+      expect(folderIndex < mdIndex, isTrue);
+    },
+  );
+
+  testWidgets(
+    'permanently deleting document deletes backing file via repository and persists metadata',
+    (tester) async {
+      final fakeRepo = FakeDocumentRepository();
+      final fileUri = Uri.parse('file:///data/docs/delete_me.md');
+
+      final testDoc = DocumentItem(
+        id: 'd_delete',
+        name: 'delete_me.md',
+        content: 'sample content',
         updatedAt: DateTime(2026, 9, 21),
-        isStarred: true,
-      ),
-      DocumentItem(
-        id: 'd2',
-        name: 'เอกสาร_ปกติ.md',
-        content: 'content',
-        updatedAt: DateTime(2026, 9, 22),
-        isStarred: false,
-      ),
-    ];
+        uri: fileUri,
+        isTrash: true,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(
-          repository: FakeDocumentRepository(),
-          initialFolders: sampleFolders,
-          initialDocuments: sampleDocuments,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: fakeRepo,
+            initialFolders: [],
+            initialDocuments: [testDoc],
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    final textWidgets = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList();
-    final txtIndex = textWidgets.indexOf('บันทึก_โปรด');
-    final folderIndex = textWidgets.indexOf('โฟลเดอร์_ปกติ');
-    final mdIndex = textWidgets.indexOf('เอกสาร_ปกติ');
+      // Switch to trash filter
+      await tester.tap(find.text('ทั้งหมด'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ถังขยะ'));
+      await tester.pumpAndSettle();
 
-    // Starred txt must come before unstarred folder and md!
-    expect(txtIndex != -1 && folderIndex != -1 && mdIndex != -1, isTrue);
-    expect(txtIndex < folderIndex, isTrue);
-    expect(folderIndex < mdIndex, isTrue);
-  });
+      // Verify document is in trash view
+      expect(find.text('delete_me'), findsOneWidget);
 
-  testWidgets('permanently deleting document deletes backing file via repository and persists metadata', (tester) async {
-    final fakeRepo = FakeDocumentRepository();
-    final fileUri = Uri.parse('file:///data/docs/delete_me.md');
+      // Long press on the document card to open options
+      await tester.longPress(find.text('delete_me'));
+      await tester.pumpAndSettle();
 
-    final testDoc = DocumentItem(
-      id: 'd_delete',
-      name: 'delete_me.md',
-      content: 'sample content',
-      updatedAt: DateTime(2026, 9, 21),
-      uri: fileUri,
-      isTrash: true,
-    );
+      // Tap 'ลบถาวร'
+      await tester.tap(find.text('ลบถาวร'));
+      await tester.pumpAndSettle();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(
-          repository: fakeRepo,
-          initialFolders: [],
-          initialDocuments: [testDoc],
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      // Confirm dialog
+      expect(find.text('ลบไฟล์ถาวร?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'ลบถาวร'));
+      await tester.pumpAndSettle();
 
-    // Switch to trash filter
-    await tester.tap(find.text('ทั้งหมด'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('ถังขยะ'));
-    await tester.pumpAndSettle();
+      // Backing file should be deleted in repo
+      expect(fakeRepo.deletedUris, contains(fileUri));
 
-    // Verify document is in trash view
-    expect(find.text('delete_me'), findsOneWidget);
+      // Metadata should have been persisted without the deleted doc
+      final savedMeta = await fakeRepo.loadMetadata();
+      expect(savedMeta, isNotNull);
+      expect(savedMeta!.documents.any((d) => d.id == 'd_delete'), isFalse);
+    },
+  );
 
-    // Long press on the document card to open options
-    await tester.longPress(find.text('delete_me'));
-    await tester.pumpAndSettle();
-
-    // Tap 'ลบถาวร'
-    await tester.tap(find.text('ลบถาวร'));
-    await tester.pumpAndSettle();
-
-    // Confirm dialog
-    expect(find.text('ลบไฟล์ถาวร?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'ลบถาวร'));
-    await tester.pumpAndSettle();
-
-    // Backing file should be deleted in repo
-    expect(fakeRepo.deletedUris, contains(fileUri));
-
-    // Metadata should have been persisted without the deleted doc
-    final savedMeta = await fakeRepo.loadMetadata();
-    expect(savedMeta, isNotNull);
-    expect(savedMeta!.documents.any((d) => d.id == 'd_delete'), isFalse);
-  });
-
-  testWidgets('persists starred and trash states across screen reloads', (tester) async {
+  testWidgets('persists starred and trash states across screen reloads', (
+    tester,
+  ) async {
     final fakeRepo = FakeDocumentRepository();
     final docUri = Uri.parse('file:///data/docs/note1.md');
 
@@ -535,15 +636,14 @@ void main() {
     // Verify metadata was saved with starred status
     final meta = await fakeRepo.loadMetadata();
     expect(meta, isNotNull);
-    expect(meta!.documents.firstWhere((d) => d.id == 'doc_1').isStarred, isTrue);
+    expect(
+      meta!.documents.firstWhere((d) => d.id == 'doc_1').isStarred,
+      isTrue,
+    );
 
     // Second session: create a new NoteListScreen without initialDocuments, it loads from metadata
     await tester.pumpWidget(
-      MaterialApp(
-        home: NoteListScreen(
-          repository: fakeRepo,
-        ),
-      ),
+      MaterialApp(home: NoteListScreen(repository: fakeRepo)),
     );
     await tester.pumpAndSettle();
 
@@ -551,7 +651,9 @@ void main() {
     expect(find.byIcon(Icons.star_rounded), findsOneWidget);
   });
 
-  testWidgets('reloads fresh content from backing file when opening document', (tester) async {
+  testWidgets('reloads fresh content from backing file when opening document', (
+    tester,
+  ) async {
     final fakeRepo = FakeDocumentRepository();
     final docUri = Uri.parse('file:///data/docs/live.md');
     fakeRepo.documentContents[docUri] = 'Brand new external content';
@@ -580,10 +682,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // The editor should contain the fresh content from repo.readDocument
-    final editor = tester.widget<TextField>(
-      find.byKey(const Key('markdown-editor')),
+    final editor = tester.widget<MarkdownLiveEditor>(
+      find.byType(MarkdownLiveEditor),
     );
-    expect(editor.controller?.text, 'Brand new external content');
+    expect(editor.controller.text, 'Brand new external content');
   });
 }
-

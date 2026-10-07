@@ -29,7 +29,8 @@ class MnoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveRepository = documentRepository ??
+    final effectiveRepository =
+        documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
     final destination = NoteListScreen(repository: effectiveRepository);

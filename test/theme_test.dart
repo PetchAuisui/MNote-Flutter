@@ -24,9 +24,15 @@ void main() {
       expect(theme.useMaterial3, isTrue);
       expect(theme.brightness, Brightness.light);
       expect(theme.colorScheme.brightness, Brightness.light);
-      expect(theme.scaffoldBackgroundColor, theme.colorScheme.surfaceContainerLowest);
+      expect(
+        theme.scaffoldBackgroundColor,
+        theme.colorScheme.surfaceContainerLowest,
+      );
       expect(theme.cardTheme.color, theme.colorScheme.surfaceContainerLow);
-      expect(theme.inputDecorationTheme.fillColor, theme.colorScheme.surfaceContainerLowest);
+      expect(
+        theme.inputDecorationTheme.fillColor,
+        theme.colorScheme.surfaceContainerLowest,
+      );
     });
 
     test('builds dark ThemeData with Material 3 and custom colors', () {
@@ -34,9 +40,15 @@ void main() {
       expect(theme.useMaterial3, isTrue);
       expect(theme.brightness, Brightness.dark);
       expect(theme.colorScheme.brightness, Brightness.dark);
-      expect(theme.scaffoldBackgroundColor, theme.colorScheme.surfaceContainerLowest);
+      expect(
+        theme.scaffoldBackgroundColor,
+        theme.colorScheme.surfaceContainerLowest,
+      );
       expect(theme.cardTheme.color, theme.colorScheme.surfaceContainerLow);
-      expect(theme.inputDecorationTheme.fillColor, theme.colorScheme.surfaceContainerLowest);
+      expect(
+        theme.inputDecorationTheme.fillColor,
+        theme.colorScheme.surfaceContainerLowest,
+      );
     });
   });
 }

@@ -1,26 +1,32 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
-import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
+
 import 'helpers/fakes.dart';
 
 Widget _buildWorkspaceApp([DocumentRepository? repository]) {
   final repo = repository ?? FakeDocumentRepository();
   return MnoteApp(
     documentRepository: repo,
-    home: MarkdownWorkspacePage(repository: repo),
+    home: MarkdownWorkspacePage(
+      repository: repo,
+      initialDocument: MarkdownDocument.example('# Hello'),
+    ),
   );
 }
 
@@ -47,46 +53,16 @@ void main() {
     final editorCard = tester.widget<Card>(
       find.byKey(const Key('document-surface')),
     );
-    final editorPage = tester.widget<DecoratedBox>(
-      find.byKey(const Key('markdown-editor-page')),
-    );
     expect(editorCard.color, Colors.white);
-    expect((editorPage.decoration as BoxDecoration).color, Colors.white);
-
-    await tester.tap(find.text('แสดงผล'));
-    await tester.pumpAndSettle();
-    final preview = tester.widget<MarkdownDocumentSurface>(
-      find.byType(MarkdownDocumentSurface),
+    final preview = tester.widget<MarkdownLiveEditor>(
+      find.byType(MarkdownLiveEditor),
     );
-    final previewPage = tester.widget<ColoredBox>(
-      find.byKey(const Key('markdown-document-page')),
-    );
-    expect(previewPage.color, Colors.white);
-    expect(
-      tester.widget<MarkdownBody>(find.byType(MarkdownBody)).fitContent,
-      isFalse,
-    );
+    final previewSource = preview.controller.text;
     final previewStyle = tester
-        .widget<MarkdownBody>(find.byType(MarkdownBody))
+        .widget<MarkdownBody>(find.byType(MarkdownBody).first)
         .styleSheet!;
-    final colors = AppTheme.light.colorScheme;
-    expect(
-      (previewStyle.blockquoteDecoration as BoxDecoration).color,
-      colors.primaryContainer,
-    );
-    expect(
-      (previewStyle.codeblockDecoration as BoxDecoration).color,
-      colors.surfaceContainerLow,
-    );
-    expect(
-      ((previewStyle.horizontalRuleDecoration as BoxDecoration).border
-              as Border)
-          .top
-          .color,
-      colors.outlineVariant,
-    );
 
-    await tester.tap(find.text('จด'));
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
     final ink = tester.widget<MarkdownDocumentSurface>(
       find.byType(MarkdownDocumentSurface),
@@ -96,12 +72,17 @@ void main() {
     );
     expect(inkPage.color, Colors.white);
     expect(
-      tester.widget<MarkdownBody>(find.byType(MarkdownBody)).fitContent,
+      tester.widget<MarkdownBody>(find.byType(MarkdownBody).first).fitContent,
       isFalse,
     );
-    expect(ink.markdown, preview.markdown);
-    expect(ink.height, preview.height);
-    expect(DocumentPageMetrics.width, 1000);
+    expect(ink.markdown, previewSource);
+    final inkStyle = tester
+        .widget<MarkdownBody>(find.byType(MarkdownBody).first)
+        .styleSheet!;
+    expect(inkStyle.p, previewStyle.p);
+    expect(inkStyle.blockquoteDecoration, previewStyle.blockquoteDecoration);
+    expect(inkStyle.codeblockDecoration, previewStyle.codeblockDecoration);
+    expect(DocumentPageMetrics.width, 1008);
     expect(tester.takeException(), isNull);
   });
 
@@ -109,7 +90,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(_buildWorkspaceApp());
-    await tester.tap(find.text('จด'));
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
     final canvas = find.byType(Scribble);
     final start = tester.getTopLeft(canvas) + const Offset(80, 80);
@@ -128,6 +109,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('zoom scales ink only once with the document', (tester) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp());
+    await tester.tap(find.byTooltip('เขียน'));
+    await tester.pumpAndSettle();
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    final controller = viewer.transformationController!;
+    final initialScale = controller.value.getMaxScaleOnAxis();
+    final center = tester.getCenter(find.byType(InteractiveViewer));
+    final first = await tester.startGesture(
+      center - const Offset(50, 0),
+      kind: PointerDeviceKind.touch,
+    );
+    final second = await tester.startGesture(
+      center + const Offset(50, 0),
+      kind: PointerDeviceKind.touch,
+    );
+    await tester.pump();
+    await first.moveTo(center - const Offset(150, 0));
+    await second.moveTo(center + const Offset(150, 0));
+    await tester.pump();
+
+    final pen = tester.widget<Scribble>(find.byType(Scribble)).notifier;
+    expect(controller.value.getMaxScaleOnAxis(), greaterThan(initialScale));
+    expect(pen.value.scaleFactor, 1);
+
+    await first.up();
+    await second.up();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ink toolbar switches drawing tools and pen settings', (
     tester,
   ) async {
@@ -135,7 +152,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_buildWorkspaceApp());
-    await tester.tap(find.text('จด'));
+    final markdownToolbarHeight = tester
+        .getSize(find.byKey(const Key('markdown-toolbar-surface')))
+        .height;
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('ink-toolbar')), findsOneWidget);
@@ -143,7 +163,11 @@ void main() {
       tester.widget<IconButton>(find.byKey(const Key('ink-pen'))).isSelected,
       isTrue,
     );
-    expect(tester.getSize(find.byKey(const Key('ink-toolbar'))).height, 64);
+    expect(
+      tester.getSize(find.byKey(const Key('ink-toolbar'))).height,
+      workspaceToolbarHeight,
+    );
+    expect(markdownToolbarHeight, workspaceToolbarHeight);
     expect(find.byKey(const Key('ink-tools-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-style-group')), findsOneWidget);
     expect(find.byKey(const Key('ink-page-group')), findsOneWidget);
@@ -268,7 +292,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_buildWorkspaceApp());
-    await tester.tap(find.text('จด'));
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
     final pen =
         tester.widget<Scribble>(find.byType(Scribble)).notifier
@@ -375,18 +399,28 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_buildWorkspaceApp());
-    await tester.enterText(find.byKey(const Key('markdown-editor')), '# Hello');
-    await tester.tap(find.text('จด'));
+    await tester.tap(find.byKey(const Key('markdown-block-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('markdown-live-block-editor')),
+      '# Hello',
+    );
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
     final pen =
         tester.widget<Scribble>(find.byType(Scribble)).notifier
             as ScribbleNotifier;
     pen.setSketch(sketch: sketch);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('แก้ไข'));
+    await tester.tap(find.byTooltip('Markdown'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('markdown-editor')), '');
-    await tester.tap(find.text('จด'));
+    await tester.tap(find.byKey(const Key('markdown-block-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('markdown-live-block-editor')),
+      '',
+    );
+    await tester.tap(find.byTooltip('เขียน'));
     await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(500, 900);
     await tester.pumpAndSettle();

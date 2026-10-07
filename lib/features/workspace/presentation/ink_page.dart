@@ -223,7 +223,7 @@ class _InkPageState extends State<InkPage> {
           return InteractiveViewer(
             transformationController: _transform,
             constrained: false,
-            alignment: Alignment.topCenter,
+            alignment: Alignment.topLeft,
             minScale: 0.1,
             maxScale: 4,
             panEnabled: !_touch,

@@ -13,10 +13,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MnoteApp(
-          documentRepository: FakeDocumentRepository(),
-          skipAuth: false,
-        ),
+        MnoteApp(documentRepository: FakeDocumentRepository(), skipAuth: false),
       );
 
       expect(find.byType(SplashPage), findsOneWidget);
@@ -65,16 +62,12 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: AuthPage(repository: FakeDocumentRepository()),
-        ),
+        MaterialApp(home: AuthPage(repository: FakeDocumentRepository())),
       );
 
       expect(find.text('Welcome to Mnote'), findsOneWidget);
       expect(
-        find.text(
-          'Log in or create a new account\nusing your Google account.',
-        ),
+        find.text('Log in or create a new account\nusing your Google account.'),
         findsOneWidget,
       );
       expect(find.text('Continue with Google'), findsOneWidget);
@@ -84,9 +77,7 @@ void main() {
       'Pressing Continue with Google shows "ล็อกอินสำเร็จ" and transitions to workspace',
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: AuthPage(repository: FakeDocumentRepository()),
-          ),
+          MaterialApp(home: AuthPage(repository: FakeDocumentRepository())),
         );
 
         final googleButtonFinder = find.text('Continue with Google');

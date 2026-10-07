@@ -29,14 +29,22 @@ void main() {
 
   group('FirebaseAuthRepository.mapErrorCode', () {
     test('maps known Firebase codes', () {
-      expect(FirebaseAuthRepository.mapErrorCode('email-already-in-use'),
-          AuthErrorCode.emailAlreadyInUse);
-      expect(FirebaseAuthRepository.mapErrorCode('invalid-credential'),
-          AuthErrorCode.wrongCredentials);
-      expect(FirebaseAuthRepository.mapErrorCode('weak-password'),
-          AuthErrorCode.weakPassword);
-      expect(FirebaseAuthRepository.mapErrorCode('whatever'),
-          AuthErrorCode.unknown);
+      expect(
+        FirebaseAuthRepository.mapErrorCode('email-already-in-use'),
+        AuthErrorCode.emailAlreadyInUse,
+      );
+      expect(
+        FirebaseAuthRepository.mapErrorCode('invalid-credential'),
+        AuthErrorCode.wrongCredentials,
+      );
+      expect(
+        FirebaseAuthRepository.mapErrorCode('weak-password'),
+        AuthErrorCode.weakPassword,
+      );
+      expect(
+        FirebaseAuthRepository.mapErrorCode('whatever'),
+        AuthErrorCode.unknown,
+      );
     });
   });
 }

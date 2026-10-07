@@ -37,7 +37,10 @@ class MnoteApp extends StatelessWidget {
     final effectiveRepository = documentRepository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
-    final destination = NoteListScreen(repository: effectiveRepository);
+    final destination = NoteListScreen(
+      repository: effectiveRepository,
+      authRepository: authRepository,
+    );
     final shouldSkipAuth = skipAuth ?? (documentRepository != null);
 
     final guidePage = AppGuidePage(

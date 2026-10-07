@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/auth/presentation/auth_page.dart';
+import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
@@ -12,11 +15,15 @@ class NoteListScreen extends StatefulWidget {
   const NoteListScreen({
     super.key,
     required this.repository,
+    this.authRepository,
     this.initialFolders = const [],
     this.initialDocuments = const [],
   });
 
   final DocumentRepository repository;
+
+  /// When provided, an account icon is shown in the app bar.
+  final AuthRepository? authRepository;
   final List<FolderItem> initialFolders;
   final List<DocumentItem> initialDocuments;
 
@@ -405,6 +412,25 @@ class _NoteListScreenState extends State<NoteListScreen> {
       }
     });
     _persistLibrary();
+  }
+
+  Future<void> _signOut() async {
+    final auth = widget.authRepository!;
+    await auth.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => AuthPage(
+          repository: widget.repository,
+          authRepository: auth,
+          nextPage: NoteListScreen(
+            repository: widget.repository,
+            authRepository: auth,
+          ),
+        ),
+      ),
+      (_) => false,
+    );
   }
 
   void _openSettings() {
@@ -885,6 +911,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
             tooltip: 'การตั้งค่า (Settings)',
             onPressed: _openSettings,
           ),
+          if (widget.authRepository?.currentUser != null)
+            AccountAvatarButton(
+              user: widget.authRepository!.currentUser!,
+              onSignOut: _signOut,
+            ),
           const SizedBox(width: 8),
         ],
       ),

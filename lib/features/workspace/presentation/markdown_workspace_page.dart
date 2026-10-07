@@ -915,15 +915,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       children: [
         IconButton(
           onPressed: _workspace.isBusy ? null : _openDocument,
+          visualDensity: VisualDensity.compact,
           tooltip: 'เปิดไฟล์',
           icon: const Icon(Icons.folder_open_rounded),
         ),
         IconButton.filledTonal(
           onPressed: _workspace.isBusy ? null : _saveDocument,
+          visualDensity: VisualDensity.compact,
           tooltip: 'บันทึก',
           icon: const Icon(Icons.save_rounded),
         ),
         PopupMenuButton<_DocumentAction>(
+          iconSize: 24,
+          padding: const EdgeInsets.all(8),
           tooltip: 'คำสั่งเพิ่มเติม',
           onSelected: (action) {
             switch (action) {

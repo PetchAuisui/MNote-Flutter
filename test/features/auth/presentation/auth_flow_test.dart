@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 
 import '../../../helpers/fakes.dart';
@@ -94,7 +95,7 @@ void main() {
 
         // ตรวจสอบว่านำทางมายังหน้า MarkdownWorkspacePage เรียบร้อยแล้ว
         expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
-        expect(find.byKey(const Key('markdown-editor')), findsOneWidget);
+        expect(find.byType(MarkdownLiveEditor), findsOneWidget);
       },
     );
   });

@@ -40,7 +40,7 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 
 ### Milestone 1 — Project foundation
 
-- Flutter project สำหรับ Android, iOS, macOS และ Web
+- Flutter project สำหรับ Android, iOS, macOS
 - Material 3 theme และโครง feature-first
 - เอกสาร architecture, roadmap และ Git workflow
 

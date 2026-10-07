@@ -54,7 +54,7 @@ class LocalDocumentRepository implements DocumentRepository {
     return document.markSaved(name: _nameFrom(uri, document.name), uri: uri);
   }
 
-@override
+  @override
   Future<List<MarkdownDocument>> listDocuments() async {
     try {
       final files = await _storage.listDocuments();

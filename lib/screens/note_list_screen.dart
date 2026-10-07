@@ -2,13 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import '../models/note_item.dart';
 
-enum ViewFilter { all, starred, foldersOnly, filesOnly, markdownOnly, txtOnly, trash }
+enum ViewFilter {
+  all,
+  starred,
+  foldersOnly,
+  filesOnly,
+  markdownOnly,
+  txtOnly,
+  trash,
+}
+
 enum SortMode { newest, oldest, nameAsc, nameDesc }
 
 class NoteListScreen extends StatefulWidget {
@@ -61,10 +71,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   Future<void> _persistLibrary() async {
     try {
       await widget.repository.saveMetadata(
-        LibraryMetadata(
-          folders: _folders,
-          documents: _documents,
-        ),
+        LibraryMetadata(folders: _folders, documents: _documents),
       );
     } catch (_) {}
   }
@@ -121,6 +128,56 @@ class _NoteListScreenState extends State<NoteListScreen> {
         });
       }
 
+      // หากเป็นการเปิดแอปครั้งแรก (ยังไม่มี metadata และไม่มีไฟล์ใดๆ)
+      // ให้โหลด welcome.md เป็นไฟล์เริ่มต้นในคลังเอกสาร
+      if (savedMetadata == null && docs.isEmpty && _documents.isEmpty) {
+        try {
+          final welcomeContent = await rootBundle.loadString(
+            'assets/examples/welcome.md',
+          );
+          if (mounted && _documents.isEmpty) {
+            setState(() {
+              _documents.add(
+                DocumentItem(
+                  id: 'welcome_initial_doc',
+                  name: 'Welcome.md',
+                  content: welcomeContent,
+                  updatedAt: DateTime.now(),
+                ),
+              );
+            });
+          }
+        } catch (_) {}
+      }
+
+      // Upgrade only the untouched bundled document; preserve user edits/files.
+      if (_documents.any(
+        (doc) =>
+            doc.id == 'welcome_initial_doc' &&
+            doc.name == 'Welcome.md' &&
+            doc.uri == null &&
+            !doc.isTrash,
+      )) {
+        final previous = await rootBundle.loadString(
+          'assets/examples/welcome_v1.md',
+        );
+        final current = await rootBundle.loadString(
+          'assets/examples/welcome.md',
+        );
+        if (!mounted) return;
+        setState(() {
+          for (var index = 0; index < _documents.length; index++) {
+            final doc = _documents[index];
+            if (doc.id == 'welcome_initial_doc' &&
+                doc.name == 'Welcome.md' &&
+                doc.uri == null &&
+                !doc.isTrash &&
+                doc.content == previous) {
+              _documents[index] = doc.copyWith(content: current);
+            }
+          }
+        });
+      }
       await _persistLibrary();
     } catch (_) {
       // หากยังไม่มีไฟล์ในเครื่องหรือระบบไฟล์ยังไม่พร้อม ให้ใช้ไฟล์เริ่มต้น
@@ -192,7 +249,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final fileName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isMarkdown ? 'สร้างไฟล์ Markdown ใหม่' : 'สร้างไฟล์ข้อความ (.txt) ใหม่'),
+        title: Text(
+          isMarkdown
+              ? 'สร้างไฟล์ Markdown ใหม่'
+              : 'สร้างไฟล์ข้อความ (.txt) ใหม่',
+        ),
         content: TextField(
           controller: textController,
           autofocus: true,
@@ -310,7 +371,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
       final shouldRestore = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+          icon: const Icon(
+            Icons.restore_from_trash_rounded,
+            color: Colors.blue,
+          ),
           title: const Text('เอกสารอยู่ในถังขยะ'),
           content: Text('คุณต้องการกู้คืน "${item.name}" เพื่อเปิดดูหรือไม่?'),
           actions: [
@@ -365,7 +429,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
     if (updatedDoc != null) {
       setState(() {
         final idx = _documents.indexWhere((d) => d.id == item.id);
-        final isDifferentUri = item.uri != null &&
+        final isDifferentUri =
+            item.uri != null &&
             updatedDoc.uri != null &&
             updatedDoc.uri != item.uri;
         if (isDifferentUri) {
@@ -587,7 +652,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
         title: const Text('ลบไฟล์ถาวร?'),
-        content: Text('คุณต้องการลบ "${doc.name}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้'),
+        content: Text(
+          'คุณต้องการลบ "${doc.name}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -632,7 +699,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
         title: const Text('ล้างถังขยะ?'),
-        content: const Text('รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้'),
+        content: const Text(
+          'รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -649,10 +718,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final trashedFolderIds = _folders.where((f) => f.isTrash).map((f) => f.id).toSet();
-    final trashedDocs = _documents.where(
-      (d) => d.isTrash || (d.folderId != null && trashedFolderIds.contains(d.folderId)),
-    ).toList();
+    final trashedFolderIds = _folders
+        .where((f) => f.isTrash)
+        .map((f) => f.id)
+        .toSet();
+    final trashedDocs = _documents
+        .where(
+          (d) =>
+              d.isTrash ||
+              (d.folderId != null && trashedFolderIds.contains(d.folderId)),
+        )
+        .toList();
 
     for (final doc in trashedDocs) {
       if (doc.uri != null) {
@@ -665,7 +741,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
     setState(() {
       _folders.removeWhere((f) => f.isTrash);
       _documents.removeWhere(
-        (d) => d.isTrash || (d.folderId != null && trashedFolderIds.contains(d.folderId)),
+        (d) =>
+            d.isTrash ||
+            (d.folderId != null && trashedFolderIds.contains(d.folderId)),
       );
     });
 
@@ -686,7 +764,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
       final shouldRestore = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+          icon: const Icon(
+            Icons.restore_from_trash_rounded,
+            color: Colors.blue,
+          ),
           title: const Text('โฟลเดอร์อยู่ในถังขยะ'),
           content: Text('คุณต้องการกู้คืนโฟลเดอร์ "${folder.name}" หรือไม่?'),
           actions: [
@@ -727,7 +808,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       'ก.ย.',
       'ต.ค.',
       'พ.ย.',
-      'ธ.ค.'
+      'ธ.ค.',
     ];
     final yearThai = dt.year + (dt.year < 2500 ? 543 : 0);
     final min = dt.minute.toString().padLeft(2, '0');
@@ -892,7 +973,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
               ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close_rounded : Icons.search_rounded),
+            icon: Icon(
+              _isSearching ? Icons.close_rounded : Icons.search_rounded,
+            ),
             tooltip: _isSearching ? 'ปิดการค้นหา' : 'ค้นหา',
             onPressed: () {
               setState(() {
@@ -927,7 +1010,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
             children: [
               // Toolbar: Filter & Actions Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: constraints.maxWidth < 420
                     ? SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -966,17 +1052,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   onRefresh: _loadDeviceDocuments,
                   child: allItems.isEmpty
                       ? LayoutBuilder(
-                          builder: (context, constraints) => SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                              child: _buildEmptyState(context),
-                            ),
-                          ),
+                          builder: (context, constraints) =>
+                              SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: constraints.maxHeight,
+                                  ),
+                                  child: _buildEmptyState(context),
+                                ),
+                              ),
                         )
                       : (_isGridView
-                          ? _buildGridView(allItems, columns)
-                          : _buildListView(allItems)),
+                            ? _buildGridView(allItems, columns)
+                            : _buildListView(allItems)),
                 ),
               ),
             ],
@@ -988,7 +1077,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // ปุ่มล้างถังขยะ
   Widget _buildEmptyTrashButton(BuildContext context) {
-    final hasTrash = _folders.any((f) => f.isTrash) || _documents.any((d) => d.isTrash);
+    final hasTrash =
+        _folders.any((f) => f.isTrash) || _documents.any((d) => d.isTrash);
     return FilledButton.icon(
       style: FilledButton.styleFrom(
         backgroundColor: Colors.red,
@@ -1007,7 +1097,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // เมนูตัวกรอง
   Widget _buildFilterMenu(ThemeData theme) {
-    final trashCount = _folders.where((f) => f.isTrash).length +
+    final trashCount =
+        _folders.where((f) => f.isTrash).length +
         _documents.where((d) => d.isTrash).length;
     final isTrash = _filter == ViewFilter.trash;
 
@@ -1026,7 +1117,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
         decoration: BoxDecoration(
           color: isTrash
               ? Colors.red.withValues(alpha: 0.15)
-              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              : theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -1056,10 +1149,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: ViewFilter.all,
-          child: Text('ทั้งหมด'),
-        ),
+        const PopupMenuItem(value: ViewFilter.all, child: Text('ทั้งหมด')),
         const PopupMenuItem(
           value: ViewFilter.starred,
           child: Text('⭐ ติดดาว (รายการโปรด)'),
@@ -1085,13 +1175,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: ViewFilter.trash,
           child: Row(
             children: [
-              const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+              const Icon(
+                Icons.delete_outline_rounded,
+                size: 18,
+                color: Colors.red,
+              ),
               const SizedBox(width: 8),
               const Text('ถังขยะ', style: TextStyle(color: Colors.red)),
               if (trashCount > 0) ...[
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -1142,7 +1239,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 const Divider(),
                 if (folder.isTrash) ...[
                   ListTile(
-                    leading: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+                    leading: const Icon(
+                      Icons.restore_from_trash_rounded,
+                      color: Colors.blue,
+                    ),
                     title: const Text('กู้คืน'),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -1150,8 +1250,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                    title: const Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                    leading: const Icon(
+                      Icons.delete_forever_rounded,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      'ลบถาวร',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _permanentlyDeleteFolder(folder);
@@ -1168,18 +1274,30 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: Icon(
-                      folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      folder.isStarred
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
                       color: folder.isStarred ? Colors.amber : null,
                     ),
-                    title: Text(folder.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'),
+                    title: Text(
+                      folder.isStarred
+                          ? 'ยกเลิกรายการโปรด'
+                          : 'เพิ่มในรายการโปรด',
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _toggleFolderStar(folder);
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                    title: const Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      'ย้ายไปถังขยะ',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _moveToTrashFolder(folder);
@@ -1210,7 +1328,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
               children: [
                 ListTile(
                   leading: Icon(
-                    doc.isTxt ? Icons.text_snippet_rounded : Icons.description_rounded,
+                    doc.isTxt
+                        ? Icons.text_snippet_rounded
+                        : Icons.description_rounded,
                     color: doc.isTxt ? Colors.teal : Colors.blue,
                     size: 28,
                   ),
@@ -1223,7 +1343,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 const Divider(),
                 if (doc.isTrash) ...[
                   ListTile(
-                    leading: const Icon(Icons.restore_from_trash_rounded, color: Colors.blue),
+                    leading: const Icon(
+                      Icons.restore_from_trash_rounded,
+                      color: Colors.blue,
+                    ),
                     title: const Text('กู้คืน'),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -1231,8 +1354,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                    title: const Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                    leading: const Icon(
+                      Icons.delete_forever_rounded,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      'ลบถาวร',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _permanentlyDeleteDocument(doc);
@@ -1249,18 +1378,28 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: Icon(
-                      doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      doc.isStarred
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
                       color: doc.isStarred ? Colors.amber : null,
                     ),
-                    title: Text(doc.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'),
+                    title: Text(
+                      doc.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด',
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _toggleDocumentStar(doc);
                     },
                   ),
                   ListTile(
-                    leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                    title: const Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red,
+                    ),
+                    title: const Text(
+                      'ย้ายไปถังขยะ',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _moveToTrashDocument(doc);
@@ -1381,10 +1520,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   // Grid View ที่ปรับคอลัมน์อัตโนมัติ (Responsive)
-  Widget _buildGridView(
-    List<dynamic> items,
-    int columns,
-  ) {
+  Widget _buildGridView(List<dynamic> items, int columns) {
     return GridView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -1409,7 +1545,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
   // การ์ดโฟลเดอร์ใน Grid View (จัดกึ่งกลาง สมมาตรตาม Reference ใน Image 1)
   Widget _buildFolderGridCard(FolderItem folder) {
     final theme = Theme.of(context);
-    final count = _documents.where((d) => d.folderId == folder.id && !d.isTrash).length;
+    final count = _documents
+        .where((d) => d.folderId == folder.id && !d.isTrash)
+        .length;
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
 
@@ -1431,22 +1569,22 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Icon(
-                        Icons.folder_rounded,
-                        size: 128,
-                        color: primary,
-                      ),
+                      Icon(Icons.folder_rounded, size: 128, color: primary),
                       Positioned(
                         bottom: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2.5,
+                          ),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? Colors.black.withValues(alpha: 0.55)
                                 : Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
@@ -1470,7 +1608,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             constraints: const BoxConstraints(),
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
-                              folder.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                              folder.isStarred
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
                               color: folder.isStarred
                                   ? Colors.amberAccent
                                   : (isDark ? Colors.white70 : Colors.black45),
@@ -1517,7 +1657,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     style: TextStyle(
                       fontSize: 11.5,
                       letterSpacing: 0.1,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.75,
+                      ),
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -1555,14 +1697,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   height: 175,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? theme.colorScheme.surfaceContainerLow : Colors.white,
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerLow
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.3 : 0.08,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -1575,9 +1723,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
                             decoration: BoxDecoration(
-                              color: (isTxt ? Colors.teal : Colors.blue).withValues(alpha: 0.15),
+                              color: (isTxt ? Colors.teal : Colors.blue)
+                                  .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
@@ -1598,7 +1750,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 fontSize: 11.5,
                                 height: 1.48,
                                 letterSpacing: 0.1,
-                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.85),
                               ),
                               overflow: TextOverflow.fade,
                             ),
@@ -1614,7 +1767,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           constraints: const BoxConstraints(),
                           visualDensity: VisualDensity.compact,
                           icon: Icon(
-                            doc.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                            doc.isStarred
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
                             color: doc.isStarred ? Colors.amber : Colors.grey,
                           ),
                           onPressed: () => _toggleDocumentStar(doc),
@@ -1659,7 +1814,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     style: TextStyle(
                       fontSize: 11.5,
                       letterSpacing: 0.1,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.75,
+                      ),
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
@@ -1686,13 +1843,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
         for (final item in items)
           if (item is FolderItem)
             ListTile(
-              leading: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 36),
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.2)),
+              leading: Icon(
+                Icons.folder_rounded,
+                color: theme.colorScheme.primary,
+                size: 36,
+              ),
+              title: Text(
+                item.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  letterSpacing: -0.2,
+                ),
+              ),
               subtitle: Text(
                 '${_documents.where((d) => d.folderId == item.id && !d.isTrash).length} ไฟล์ • ${_formatDate(item.updatedAt)}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
               trailing: Row(
@@ -1701,7 +1871,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(
-                        item.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        item.isStarred
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         color: item.isStarred ? Colors.amber : Colors.grey,
                       ),
                       onPressed: () => _toggleFolderStar(item),
@@ -1720,7 +1892,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'restore',
                               child: Row(
                                 children: [
-                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  Icon(
+                                    Icons.restore_from_trash_rounded,
+                                    size: 18,
+                                    color: Colors.blue,
+                                  ),
                                   SizedBox(width: 8),
                                   Text('กู้คืน'),
                                 ],
@@ -1730,9 +1906,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'delete_perm',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  Icon(
+                                    Icons.delete_forever_rounded,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                  Text(
+                                    'ลบถาวร',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1752,9 +1935,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'trash',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                  Text(
+                                    'ย้ายไปถังขยะ',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1767,16 +1957,27 @@ class _NoteListScreenState extends State<NoteListScreen> {
           else
             ListTile(
               leading: Icon(
-                (item as DocumentItem).isTxt ? Icons.text_snippet_rounded : Icons.description_rounded,
+                (item as DocumentItem).isTxt
+                    ? Icons.text_snippet_rounded
+                    : Icons.description_rounded,
                 color: item.isTxt ? Colors.teal : Colors.blue,
                 size: 32,
               ),
-              title: Text(item.displayName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.2)),
+              title: Text(
+                item.displayName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  letterSpacing: -0.2,
+                ),
+              ),
               subtitle: Text(
                 '${item.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(item.updatedAt)}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
               trailing: Row(
@@ -1785,7 +1986,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(
-                        item.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                        item.isStarred
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         color: item.isStarred ? Colors.amber : Colors.grey,
                       ),
                       onPressed: () => _toggleDocumentStar(item),
@@ -1796,7 +1999,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       if (val == 'open') _openDocument(item);
                       if (val == 'trash') _moveToTrashDocument(item);
                       if (val == 'restore') _restoreDocument(item);
-                      if (val == 'delete_perm') _permanentlyDeleteDocument(item);
+                      if (val == 'delete_perm') {
+                        _permanentlyDeleteDocument(item);
+                      }
                     },
                     itemBuilder: (ctx) => item.isTrash
                         ? const [
@@ -1804,7 +2009,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'restore',
                               child: Row(
                                 children: [
-                                  Icon(Icons.restore_from_trash_rounded, size: 18, color: Colors.blue),
+                                  Icon(
+                                    Icons.restore_from_trash_rounded,
+                                    size: 18,
+                                    color: Colors.blue,
+                                  ),
                                   SizedBox(width: 8),
                                   Text('กู้คืน'),
                                 ],
@@ -1814,9 +2023,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'delete_perm',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                                  Icon(
+                                    Icons.delete_forever_rounded,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('ลบถาวร', style: TextStyle(color: Colors.red)),
+                                  Text(
+                                    'ลบถาวร',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1836,9 +2052,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               value: 'trash',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                    color: Colors.red,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                                  Text(
+                                    'ย้ายไปถังขยะ',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1866,7 +2089,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
               Icon(
                 Icons.delete_outline_rounded,
                 size: 64,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.4,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(

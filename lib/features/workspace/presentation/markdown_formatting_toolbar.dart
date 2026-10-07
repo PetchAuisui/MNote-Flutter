@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
+import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 
-class MarkdownFormattingToolbar extends StatelessWidget {
+class MarkdownFormattingToolbar extends StatefulWidget {
   const MarkdownFormattingToolbar({
     super.key,
     required this.onUndo,
@@ -19,6 +21,9 @@ class MarkdownFormattingToolbar extends StatelessWidget {
     required this.onCodeBlock,
     required this.onLink,
     required this.onImage,
+    required this.onTable,
+    this.onDiagramTemplate,
+    this.onImportDiagram,
   });
 
   final VoidCallback? onUndo;
@@ -37,15 +42,29 @@ class MarkdownFormattingToolbar extends StatelessWidget {
   final VoidCallback onCodeBlock;
   final VoidCallback onLink;
   final VoidCallback onImage;
+  final VoidCallback onTable;
+  final ValueChanged<MermaidTemplate>? onDiagramTemplate;
+  final VoidCallback? onImportDiagram;
+
+  @override
+  State<MarkdownFormattingToolbar> createState() =>
+      _MarkdownFormattingToolbarState();
+}
+
+class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
+  int _headingLevel = 1;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final onDiagramTemplate = widget.onDiagramTemplate;
+    final onImportDiagram = widget.onImportDiagram;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Material(
+        key: const Key('markdown-toolbar-surface'),
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
@@ -55,6 +74,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.all(8),
               child: SizedBox(
+                height: workspaceToolbarControlSize,
                 width: double.infinity,
                 child: Row(
                   key: const Key('markdown-formatting-toolbar'),
@@ -65,22 +85,26 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       icon: Icons.undo_rounded,
                       label: 'เลิกทำ',
                       showLabel: false,
-                      onPressed: onUndo,
+                      onPressed: widget.onUndo,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-redo'),
                       icon: Icons.redo_rounded,
                       label: 'ทำซ้ำ',
                       showLabel: false,
-                      onPressed: onRedo,
+                      onPressed: widget.onRedo,
                     ),
                     const _ToolbarDivider(),
                     _ToolbarMenuButton<int>(
                       buttonKey: const Key('toolbar-heading'),
                       icon: Icons.title_rounded,
-                      label: 'หัวข้อ',
-                      showLabel: showLabels,
-                      onSelected: onHeading,
+                      showIcon: false,
+                      label: 'หัวข้อ $_headingLevel',
+                      showLabel: true,
+                      onSelected: (level) {
+                        setState(() => _headingLevel = level);
+                        widget.onHeading(level);
+                      },
                       items: const [
                         PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
                         PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
@@ -93,47 +117,29 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       icon: Icons.format_bold_rounded,
                       label: 'ตัวหนา',
                       showLabel: showLabels,
-                      onPressed: onBold,
+                      onPressed: widget.onBold,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-italic'),
                       icon: Icons.format_italic_rounded,
                       label: 'ตัวเอียง',
                       showLabel: showLabels,
-                      onPressed: onItalic,
+                      onPressed: widget.onItalic,
                     ),
                     const _ToolbarDivider(),
-                    _ToolbarMenuButton<_ListStyle>(
+                    _ToolbarActionButton(
                       buttonKey: const Key('toolbar-list'),
                       icon: Icons.format_list_bulleted_rounded,
-                      label: 'รายการ',
+                      label: 'รายการหัวข้อ',
                       showLabel: showLabels,
-                      onSelected: (style) {
-                        switch (style) {
-                          case _ListStyle.bulleted:
-                            onList();
-                          case _ListStyle.ordered:
-                            onOrderedList();
-                        }
-                      },
-                      items: const [
-                        PopupMenuItem(
-                          value: _ListStyle.bulleted,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_bulleted_rounded),
-                            title: Text('รายการหัวข้อ'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: _ListStyle.ordered,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_numbered_rounded),
-                            title: Text('รายการตัวเลข'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
+                      onPressed: widget.onList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-ordered-list'),
+                      icon: Icons.format_list_numbered_rounded,
+                      label: 'รายการตัวเลข',
+                      showLabel: showLabels,
+                      onPressed: widget.onOrderedList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),
@@ -141,7 +147,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'ทำเป็นรายการย่อย',
                       tooltip: 'ทำเป็นรายการย่อย',
                       showLabel: false,
-                      onPressed: onIndentList,
+                      onPressed: widget.onIndentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-outdent-list'),
@@ -149,14 +155,14 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'กลับสู่รายการหลัก',
                       tooltip: 'กลับสู่รายการหลัก',
                       showLabel: false,
-                      onPressed: onOutdentList,
+                      onPressed: widget.onOutdentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-quote'),
                       icon: Icons.format_quote_rounded,
                       label: 'อ้างอิง',
                       showLabel: showLabels,
-                      onPressed: onQuote,
+                      onPressed: widget.onQuote,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-line-break'),
@@ -164,7 +170,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'ขึ้นบรรทัด',
                       tooltip: 'ขึ้นบรรทัดใหม่ด้วย <br>',
                       showLabel: showLabels,
-                      onPressed: onLineBreak,
+                      onPressed: widget.onLineBreak,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-horizontal-rule'),
@@ -172,7 +178,14 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       label: 'เส้นคั่น',
                       tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
                       showLabel: showLabels,
-                      onPressed: onHorizontalRule,
+                      onPressed: widget.onHorizontalRule,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-table'),
+                      icon: Icons.table_chart_outlined,
+                      label: 'ตาราง',
+                      showLabel: showLabels,
+                      onPressed: widget.onTable,
                     ),
                     _ToolbarMenuButton<_CodeStyle>(
                       buttonKey: const Key('toolbar-code'),
@@ -182,9 +195,9 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       onSelected: (style) {
                         switch (style) {
                           case _CodeStyle.inline:
-                            onInlineCode();
+                            widget.onInlineCode();
                           case _CodeStyle.block:
-                            onCodeBlock();
+                            widget.onCodeBlock();
                         }
                       },
                       items: const [
@@ -206,20 +219,63 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (onDiagramTemplate != null || onImportDiagram != null)
+                      _ToolbarMenuButton<_DiagramMenuAction>(
+                        buttonKey: const Key('toolbar-diagram'),
+                        icon: Icons.account_tree_outlined,
+                        label: 'ไดอะแกรม',
+                        showLabel: showLabels,
+                        onSelected: (action) {
+                          switch (action) {
+                            case _InsertDiagramTemplate(:final template):
+                              onDiagramTemplate?.call(template);
+                            case _ImportDiagramFile():
+                              onImportDiagram?.call();
+                          }
+                        },
+                        items: [
+                          if (onDiagramTemplate != null)
+                            for (final template in mermaidTemplates)
+                              PopupMenuItem(
+                                key: Key('toolbar-diagram-${template.id}'),
+                                value: _InsertDiagramTemplate(template),
+                                child: ListTile(
+                                  leading: Icon(
+                                    _diagramTemplateIcon(template.id),
+                                  ),
+                                  title: Text(template.label),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                          if (onDiagramTemplate != null &&
+                              onImportDiagram != null)
+                            const PopupMenuDivider(),
+                          if (onImportDiagram != null)
+                            const PopupMenuItem(
+                              key: Key('toolbar-diagram-import'),
+                              value: _ImportDiagramFile(),
+                              child: ListTile(
+                                leading: Icon(Icons.file_open_outlined),
+                                title: Text('นำเข้าจากไฟล์ .mmd…'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                        ],
+                      ),
                     const _ToolbarDivider(),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-link'),
                       icon: Icons.link_rounded,
                       label: 'ลิงก์',
                       showLabel: showLabels,
-                      onPressed: onLink,
+                      onPressed: widget.onLink,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-image'),
                       icon: Icons.image_outlined,
                       label: 'รูปภาพ',
                       showLabel: showLabels,
-                      onPressed: onImage,
+                      onPressed: widget.onImage,
                     ),
                   ]),
                 ),
@@ -245,7 +301,7 @@ class MarkdownFormattingToolbar extends StatelessWidget {
           ? tool.label
           : (tool as _ToolbarMenuButton).label;
       if (!showLabel) {
-        return tool is _ToolbarActionButton ? 52 : 67;
+        return tool is _ToolbarActionButton ? 52 : 70;
       }
       final text = TextPainter(
         text: TextSpan(
@@ -255,14 +311,20 @@ class MarkdownFormattingToolbar extends StatelessWidget {
         textDirection: Directionality.of(context),
         textScaler: MediaQuery.textScalerOf(context),
       )..layout();
-      final result = text.width + 72;
+      // Label-only heading controls have no icon or icon-to-label gap.
+      final result =
+          text.width + (tool is _ToolbarMenuButton && !tool.showIcon ? 42 : 72);
       text.dispose();
       return result;
     }
 
     final widths = tools.map(toolWidth).toList();
+    Widget sizedTool(int index) =>
+        SizedBox(width: widths[index], child: tools[index]);
     if (widths.fold<double>(0, (sum, value) => sum + value) <= width) {
-      return tools;
+      return [
+        for (var index = 0; index < tools.length; index++) sizedTool(index),
+      ];
     }
     var used = 0.0;
     var count = 0;
@@ -292,13 +354,16 @@ class MarkdownFormattingToolbar extends StatelessWidget {
       }
     }
     return [
-      ...tools.take(count),
-      PopupMenuButton<VoidCallback>(
-        key: const Key('toolbar-more'),
-        tooltip: 'เครื่องมือเพิ่มเติม',
-        icon: const Icon(Icons.more_horiz_rounded),
-        onSelected: (action) => action(),
-        itemBuilder: (_) => entries,
+      for (var index = 0; index < count; index++) sizedTool(index),
+      SizedBox(
+        width: 48,
+        child: PopupMenuButton<VoidCallback>(
+          key: const Key('toolbar-more'),
+          tooltip: 'เครื่องมือเพิ่มเติม',
+          icon: const Icon(Icons.more_horiz_rounded),
+          onSelected: (action) => action(),
+          itemBuilder: (_) => entries,
+        ),
       ),
     ];
   }
@@ -329,11 +394,11 @@ class _ToolbarActionButton extends StatelessWidget {
           ? TextButton.icon(
               key: buttonKey,
               onPressed: onPressed,
-              icon: Icon(icon, size: 19),
+              icon: Icon(icon, size: workspaceToolbarIconSize),
               label: Text(label),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                minimumSize: const Size(48, 48),
+                minimumSize: workspaceToolbarControlConstraints,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             )
@@ -341,8 +406,11 @@ class _ToolbarActionButton extends StatelessWidget {
               key: buttonKey,
               onPressed: onPressed,
               tooltip: tooltip ?? label,
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: Icon(icon, size: 21),
+              constraints: const BoxConstraints.tightFor(
+                width: workspaceToolbarControlSize,
+                height: workspaceToolbarControlSize,
+              ),
+              icon: Icon(icon, size: workspaceToolbarIconSize),
             ),
     );
   }
@@ -352,6 +420,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
   const _ToolbarMenuButton({
     required this.buttonKey,
     required this.icon,
+    this.showIcon = true,
     required this.label,
     required this.showLabel,
     required this.onSelected,
@@ -360,6 +429,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
 
   final Key buttonKey;
   final IconData icon;
+  final bool showIcon;
   final String label;
   final bool showLabel;
   final ValueChanged<T> onSelected;
@@ -369,6 +439,7 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
     for (final item in items)
       if (item is PopupMenuItem<T>)
         PopupMenuItem<VoidCallback>(
+          key: item.key,
           value: () => onSelected(item.value as T),
           child: item.child,
         ),
@@ -382,14 +453,20 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: PopupMenuButton<T>(
         key: buttonKey,
-        tooltip: label,
+        tooltip: showLabel ? '' : label,
         onSelected: onSelected,
         itemBuilder: (_) => items,
         borderRadius: BorderRadius.circular(20),
         color: colorScheme.surfaceContainer,
         child: Container(
-          height: 48,
-          padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 12),
+          height: workspaceToolbarControlSize,
+          padding: EdgeInsets.symmetric(
+            horizontal: !showIcon
+                ? 10
+                : showLabel
+                ? 14
+                : 12,
+          ),
           decoration: ShapeDecoration(
             color: Colors.transparent,
             shape: const StadiumBorder(),
@@ -397,13 +474,22 @@ class _ToolbarMenuButton<T> extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 21, color: colorScheme.onSurfaceVariant),
+              if (showIcon)
+                Icon(
+                  icon,
+                  size: workspaceToolbarIconSize,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               if (showLabel) ...[
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                if (showIcon) const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -442,4 +528,21 @@ class _ToolbarDivider extends StatelessWidget {
 
 enum _CodeStyle { inline, block }
 
-enum _ListStyle { bulleted, ordered }
+sealed class _DiagramMenuAction {
+  const _DiagramMenuAction();
+}
+
+final class _InsertDiagramTemplate extends _DiagramMenuAction {
+  const _InsertDiagramTemplate(this.template);
+  final MermaidTemplate template;
+}
+
+final class _ImportDiagramFile extends _DiagramMenuAction {
+  const _ImportDiagramFile();
+}
+
+IconData _diagramTemplateIcon(String id) => switch (id) {
+  'sequence' => Icons.swap_horiz_rounded,
+  'class' => Icons.schema_outlined,
+  _ => Icons.account_tree_outlined,
+};

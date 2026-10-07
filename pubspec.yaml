@@ -73,7 +73,9 @@ flutter:
     - assets/images/
     - assets/fonts/
     - assets/examples/welcome.md
+    - assets/examples/welcome_v1.md
     - assets/mermaid/
+    - ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

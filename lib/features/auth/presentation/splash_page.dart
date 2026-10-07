@@ -48,10 +48,7 @@ class _SplashPageState extends State<SplashPage>
     );
 
     _scaleAnimation = Tween<double>(begin: 0.90, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutBack,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
     );
 
     _animationController.forward();

@@ -56,43 +56,37 @@ class _AuthPageState extends State<AuthPage>
         parent: _entranceController,
         curve: const Interval(0.25, 0.75, curve: Curves.easeOut),
       );
-      _titleSlide = Tween<Offset>(
-        begin: const Offset(0, 0.25),
-        end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: _entranceController,
-          curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
-        ),
-      );
+      _titleSlide =
+          Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+            CurvedAnimation(
+              parent: _entranceController,
+              curve: const Interval(0.25, 0.75, curve: Curves.easeOutCubic),
+            ),
+          );
 
       _subtitleFade = CurvedAnimation(
         parent: _entranceController,
         curve: const Interval(0.40, 0.85, curve: Curves.easeOut),
       );
-      _subtitleSlide = Tween<Offset>(
-        begin: const Offset(0, 0.25),
-        end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: _entranceController,
-          curve: const Interval(0.40, 0.85, curve: Curves.easeOutCubic),
-        ),
-      );
+      _subtitleSlide =
+          Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+            CurvedAnimation(
+              parent: _entranceController,
+              curve: const Interval(0.40, 0.85, curve: Curves.easeOutCubic),
+            ),
+          );
 
       _buttonFade = CurvedAnimation(
         parent: _entranceController,
         curve: const Interval(0.55, 1.0, curve: Curves.easeOut),
       );
-      _buttonSlide = Tween<Offset>(
-        begin: const Offset(0, 0.25),
-        end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: _entranceController,
-          curve: const Interval(0.55, 1.0, curve: Curves.easeOutCubic),
-        ),
-      );
+      _buttonSlide =
+          Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+            CurvedAnimation(
+              parent: _entranceController,
+              curve: const Interval(0.55, 1.0, curve: Curves.easeOutCubic),
+            ),
+          );
 
       _entranceController.forward();
     } else {
@@ -154,7 +148,8 @@ class _AuthPageState extends State<AuthPage>
 
     if (!mounted) return;
 
-    final repo = widget.repository ??
+    final repo =
+        widget.repository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
 
     Navigator.of(context).pushReplacement(
@@ -180,7 +175,8 @@ class _AuthPageState extends State<AuthPage>
           builder: (_) =>
               widget.nextPage ??
               MarkdownWorkspacePage(
-                repository: widget.repository ??
+                repository:
+                    widget.repository ??
                     const LocalDocumentRepository(DeviceDocumentStorage()),
               ),
         ),
@@ -207,9 +203,11 @@ class _AuthPageState extends State<AuthPage>
 
   void _openEmailFlow(bool register) {
     final auth = widget.authRepository!;
-    final next = widget.nextPage ??
+    final next =
+        widget.nextPage ??
         MarkdownWorkspacePage(
-          repository: widget.repository ??
+          repository:
+              widget.repository ??
               const LocalDocumentRepository(DeviceDocumentStorage()),
         );
     Navigator.of(context).push(

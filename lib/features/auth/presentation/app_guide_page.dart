@@ -9,11 +9,7 @@ import 'package:mnote/screens/note_list_screen.dart';
 /// แสดงผลแบบ Presentation Carousel มีเอฟเฟกต์เบลอที่การ์ดด้านข้าง
 /// และมีปุ่ม "ข้าม" กับ "เข้าสู่ Mnote" เพื่อนำทางไปยัง NoteListScreen
 class AppGuidePage extends StatefulWidget {
-  const AppGuidePage({
-    super.key,
-    this.repository,
-    this.nextPage,
-  });
+  const AppGuidePage({super.key, this.repository, this.nextPage});
 
   final DocumentRepository? repository;
   final Widget? nextPage;
@@ -77,7 +73,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
   }
 
   void _navigateToNext() {
-    final repo = widget.repository ??
+    final repo =
+        widget.repository ??
         const LocalDocumentRepository(DeviceDocumentStorage());
     final destination = widget.nextPage ?? NoteListScreen(repository: repo);
 
@@ -161,7 +158,9 @@ class _AppGuidePageState extends State<AppGuidePage> {
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF5B8CB9).withValues(alpha: 0.35),
+                                color: const Color(
+                                  0xFF5B8CB9,
+                                ).withValues(alpha: 0.35),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -218,7 +217,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
                       final opacity = (1.0 - (diff * 0.4)).clamp(0.5, 1.0);
                       final blurSigma = (diff * 5.5).clamp(0.0, 6.0);
 
-                      Widget cardContent = _buildCard(item, isCurrent: isCurrent);
+                      Widget cardContent = _buildCard(
+                        item,
+                        isCurrent: isCurrent,
+                      );
 
                       // Apply blur to side cards as requested: "ส่วนข้างที่สีมนๆ ทำเบลอข้อมูล"
                       if (blurSigma > 0.1) {
@@ -234,10 +236,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                       return Center(
                         child: Transform.scale(
                           scale: scale,
-                          child: Opacity(
-                            opacity: opacity,
-                            child: cardContent,
-                          ),
+                          child: Opacity(opacity: opacity, child: cardContent),
                         ),
                       );
                     },
@@ -323,7 +322,9 @@ class _AppGuidePageState extends State<AppGuidePage> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 4,
-                            shadowColor: const Color(0xFF4A89DC).withValues(alpha: 0.4),
+                            shadowColor: const Color(
+                              0xFF4A89DC,
+                            ).withValues(alpha: 0.4),
                           ),
                           icon: const Text(
                             'เข้าสู่ Mnote',
@@ -353,10 +354,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
   Widget _buildCard(_GuideItem item, {required bool isCurrent}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      constraints: const BoxConstraints(
-        maxWidth: 680,
-        maxHeight: 380,
-      ),
+      constraints: const BoxConstraints(maxWidth: 680, maxHeight: 380),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -458,11 +456,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                           ),
                         ],
                       ),
-                      child: Icon(
-                        item.icon,
-                        size: 34,
-                        color: item.badgeColor,
-                      ),
+                      child: Icon(item.icon, size: 34, color: item.badgeColor),
                     ),
                     const SizedBox(height: 14),
                     Padding(

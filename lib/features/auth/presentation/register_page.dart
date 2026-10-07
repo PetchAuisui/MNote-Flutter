@@ -78,8 +78,11 @@ class _RegisterPageState extends State<RegisterPage> {
         MaterialPageRoute<void>(builder: (_) => widget.nextPage),
         (_) => false,
       );
-    } on AuthException catch (e) {
+    } catch (error) {
       if (!mounted) return;
+      final e = error is AuthException
+          ? error
+          : const AuthException(AuthErrorCode.unknown);
       setState(() {
         _isLoading = false;
         // Cancelling the Google flow is not an error worth showing.

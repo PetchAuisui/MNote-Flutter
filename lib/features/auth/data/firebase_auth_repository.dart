@@ -93,12 +93,18 @@ class FirebaseAuthRepository implements AuthRepository {
       }
 
       if (credential.additionalUserInfo?.isNewUser ?? false) {
-        await _users.doc(firebaseUser.uid).set({
-          'displayName': firebaseUser.displayName,
-          'email': firebaseUser.email,
-          'photoUrl': firebaseUser.photoURL,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        try {
+          await _users.doc(firebaseUser.uid).set({
+            'displayName': firebaseUser.displayName,
+            'email': firebaseUser.email,
+            'photoUrl': firebaseUser.photoURL,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } on FirebaseException catch (e) {
+          // The user is already signed in; a failed profile write must not
+          // surface as a sign-in failure.
+          debugPrint('Profile write failed: ${e.code} ${e.message}');
+        }
       }
       return _map(firebaseUser)!;
     } on fb.FirebaseAuthException catch (e) {

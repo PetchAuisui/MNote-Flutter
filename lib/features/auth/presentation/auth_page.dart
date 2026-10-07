@@ -186,9 +186,12 @@ class _AuthPageState extends State<AuthPage>
         ),
         (_) => false,
       );
-    } on AuthException catch (e) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
+      final e = error is AuthException
+          ? error
+          : const AuthException(AuthErrorCode.unknown);
       if (e.code == AuthErrorCode.cancelled) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()

@@ -37,9 +37,12 @@ class FirebaseAuthRepository implements AuthRepository {
         email: email.trim(),
         password: password,
       );
-      final user = _map(credential.user);
-      if (user == null) throw const AuthException(AuthErrorCode.unknown);
-      return user;
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw const AuthException(AuthErrorCode.unknown);
+      }
+      await _ensureProfile(firebaseUser);
+      return _map(firebaseUser)!;
     } on fb.FirebaseAuthException catch (e) {
       throw AuthException(mapErrorCode(e.code), e.message);
     }
@@ -61,13 +64,15 @@ class FirebaseAuthRepository implements AuthRepository {
         throw const AuthException(AuthErrorCode.unknown);
       }
 
+      // The account exists from here on, so profile setup is best effort:
+      // failing it must not make registration look like it failed.
       final name = displayName.trim();
-      await firebaseUser.updateDisplayName(name);
-      await _users.doc(firebaseUser.uid).set({
-        'displayName': name,
-        'email': firebaseUser.email,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      try {
+        await firebaseUser.updateDisplayName(name);
+      } on fb.FirebaseAuthException catch (e) {
+        debugPrint('Display name update failed: ${e.code} ${e.message}');
+      }
+      await _ensureProfile(firebaseUser, displayName: name);
 
       return AuthUser(
         uid: firebaseUser.uid,
@@ -76,8 +81,6 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     } on fb.FirebaseAuthException catch (e) {
       throw AuthException(mapErrorCode(e.code), e.message);
-    } on FirebaseException catch (e) {
-      throw AuthException(AuthErrorCode.unknown, e.message);
     }
   }
 
@@ -92,20 +95,7 @@ class FirebaseAuthRepository implements AuthRepository {
         throw const AuthException(AuthErrorCode.unknown);
       }
 
-      if (credential.additionalUserInfo?.isNewUser ?? false) {
-        try {
-          await _users.doc(firebaseUser.uid).set({
-            'displayName': firebaseUser.displayName,
-            'email': firebaseUser.email,
-            'photoUrl': firebaseUser.photoURL,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        } on FirebaseException catch (e) {
-          // The user is already signed in; a failed profile write must not
-          // surface as a sign-in failure.
-          debugPrint('Profile write failed: ${e.code} ${e.message}');
-        }
-      }
+      await _ensureProfile(firebaseUser);
       return _map(firebaseUser)!;
     } on fb.FirebaseAuthException catch (e) {
       debugPrint('Google sign-in failed: ${e.code} ${e.message}');
@@ -121,6 +111,24 @@ class FirebaseAuthRepository implements AuthRepository {
     } on FirebaseException catch (e) {
       debugPrint('Google sign-in failed: ${e.code} ${e.message}');
       throw AuthException(AuthErrorCode.unknown, e.message);
+    }
+  }
+
+  /// Creates the users/{uid} profile doc if it is missing. Runs on every
+  /// sign-in so a failed earlier write is repaired. Never throws: the user is
+  /// already authenticated, so a profile failure must not fail the sign-in.
+  Future<void> _ensureProfile(fb.User user, {String? displayName}) async {
+    try {
+      final doc = _users.doc(user.uid);
+      if ((await doc.get()).exists) return;
+      await doc.set({
+        'displayName': displayName ?? user.displayName,
+        'email': user.email,
+        'photoUrl': user.photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      debugPrint('Profile write failed: ${e.code} ${e.message}');
     }
   }
 
@@ -146,15 +154,18 @@ class FirebaseAuthRepository implements AuthRepository {
     try {
       await user.updateDisplayName(name);
       await user.reload();
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(mapErrorCode(e.code), e.message);
+    }
+    // Auth is the source of truth; the Firestore copy is best effort.
+    try {
       await _users.doc(user.uid).set({
         'displayName': name,
       }, SetOptions(merge: true));
-      return _map(_auth.currentUser)!;
-    } on fb.FirebaseAuthException catch (e) {
-      throw AuthException(mapErrorCode(e.code), e.message);
     } on FirebaseException catch (e) {
-      throw AuthException(AuthErrorCode.unknown, e.message);
+      debugPrint('Profile name sync failed: ${e.code} ${e.message}');
     }
+    return _map(_auth.currentUser)!;
   }
 
   @override

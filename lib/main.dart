@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 
@@ -9,7 +10,9 @@ Future<void> main() async {
 
   final AuthRepository authRepository;
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     authRepository = FirebaseAuthRepository();
   } catch (e) {
     // Login is mandatory, so without Firebase the app cannot be used.

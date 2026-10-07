@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "544925751012",
+    "project_id": "mnote-8db27",
+    "storage_bucket": "mnote-8db27.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:544925751012:android:c6273ada0310dce35d7ef1",
+        "android_client_info": {
+          "package_name": "com.petchauisui.mnote"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "544925751012-6evn9vorijcoem83vjma04g7t8udfa0i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBirK1iCOB35--XnAIp4n7dKGqNe9PNzl8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "544925751012-6evn9vorijcoem83vjma04g7t8udfa0i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "544925751012-fc7j7dq1k7g307ahj9p7669ppin8ibo2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.petchauisui.mnote"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

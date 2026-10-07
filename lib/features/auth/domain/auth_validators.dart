@@ -50,6 +50,8 @@ class AuthValidators {
         return 'ลองใหม่หลายครั้งเกินไป กรุณารอสักครู่';
       case AuthErrorCode.network:
         return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้';
+      case AuthErrorCode.cancelled:
+        return 'ยกเลิกการเข้าสู่ระบบ';
       case AuthErrorCode.unknown:
         return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
     }

@@ -12,6 +12,7 @@ class FakeAuthRepository implements AuthRepository {
   AuthException? error;
   int signInCalls = 0;
   int registerCalls = 0;
+  int googleCalls = 0;
   String? lastEmail;
   String? lastDisplayName;
   String? resetEmail;
@@ -44,6 +45,17 @@ class FakeAuthRepository implements AuthRepository {
       uid: 'u2',
       email: email,
       displayName: displayName,
+    );
+  }
+
+  @override
+  Future<AuthUser> signInWithGoogle() async {
+    googleCalls += 1;
+    if (error != null) throw error!;
+    return currentUser = const AuthUser(
+      uid: 'g1',
+      email: 'g@example.com',
+      displayName: 'Google User',
     );
   }
 

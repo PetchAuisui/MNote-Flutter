@@ -18,28 +18,55 @@ Future<void> _pump(WidgetTester tester, Widget page) async {
 
 void main() {
   group('Mandatory login', () {
-    testWidgets(
-      'AuthPage with Firebase shows Google as coming soon and requires email login',
-      (tester) async {
-        await _pump(
-          tester,
-          AuthPage(authRepository: FakeAuthRepository(), nextPage: _next),
-        );
+    testWidgets('AuthPage offers email login', (tester) async {
+      await _pump(
+        tester,
+        AuthPage(authRepository: FakeAuthRepository(), nextPage: _next),
+      );
 
-        expect(find.text('Continue with Google'), findsOneWidget);
-        await tester.tap(find.text('Continue with Google'));
-        await tester.pump();
-        expect(
-          find.text('การเข้าสู่ระบบด้วย Google เร็วๆ นี้'),
-          findsOneWidget,
-        );
-        expect(find.text('next-page'), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, 'เข้าสู่ระบบ'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginPage), findsOneWidget);
+    });
 
-        await tester.tap(find.widgetWithText(FilledButton, 'เข้าสู่ระบบ'));
-        await tester.pumpAndSettle();
-        expect(find.byType(LoginPage), findsOneWidget);
-      },
-    );
+    testWidgets('Continue with Google signs in and opens next page',
+        (tester) async {
+      final repo = FakeAuthRepository();
+      await _pump(tester, AuthPage(authRepository: repo, nextPage: _next));
+
+      await tester.tap(find.text('Continue with Google'));
+      await tester.pumpAndSettle();
+
+      expect(repo.googleCalls, 1);
+      expect(find.text('next-page'), findsOneWidget);
+    });
+
+    testWidgets('Google sign-in cancelled stays on AuthPage silently',
+        (tester) async {
+      final repo = FakeAuthRepository(
+        error: const AuthException(AuthErrorCode.cancelled),
+      );
+      await _pump(tester, AuthPage(authRepository: repo, nextPage: _next));
+
+      await tester.tap(find.text('Continue with Google'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('next-page'), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('Google sign-in failure shows an error', (tester) async {
+      final repo = FakeAuthRepository(
+        error: const AuthException(AuthErrorCode.network),
+      );
+      await _pump(tester, AuthPage(authRepository: repo, nextPage: _next));
+
+      await tester.tap(find.text('Continue with Google'));
+      await tester.pump();
+
+      expect(find.text('เชื่อมต่ออินเทอร์เน็ตไม่ได้'), findsOneWidget);
+      expect(find.text('next-page'), findsNothing);
+    });
   });
 
   group('LoginPage', () {

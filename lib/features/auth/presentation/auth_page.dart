@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/auth/domain/auth_validators.dart';
 import 'package:mnote/features/auth/presentation/login_page.dart';
 import 'package:mnote/features/auth/presentation/register_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/auth_primary_button.dart';
@@ -167,15 +169,36 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
-  void _showGoogleComingSoon() {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('การเข้าสู่ระบบด้วย Google เร็วๆ นี้'),
-          behavior: SnackBarBehavior.floating,
+  Future<void> _signInWithGoogle() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      await widget.authRepository!.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              widget.nextPage ??
+              MarkdownWorkspacePage(
+                repository: widget.repository ??
+                    const LocalDocumentRepository(DeviceDocumentStorage()),
+              ),
         ),
+        (_) => false,
       );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (e.code == AuthErrorCode.cancelled) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(AuthValidators.messageFor(e)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   void _openEmailFlow(bool register) {
@@ -288,7 +311,8 @@ class _AuthPageState extends State<AuthPage>
                         child: Column(
                           children: [
                             GoogleSignInButton(
-                              onPressed: _showGoogleComingSoon,
+                              onPressed: _signInWithGoogle,
+                              isLoading: _isLoading,
                             ),
                             const SizedBox(height: 16),
                             AuthPrimaryButton(

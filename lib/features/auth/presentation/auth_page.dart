@@ -167,6 +167,17 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
+  void _showGoogleComingSoon() {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('การเข้าสู่ระบบด้วย Google เร็วๆ นี้'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   void _openEmailFlow(bool register) {
     final auth = widget.authRepository!;
     final next = widget.nextPage ??
@@ -276,6 +287,10 @@ class _AuthPageState extends State<AuthPage>
                         position: _buttonSlide,
                         child: Column(
                           children: [
+                            GoogleSignInButton(
+                              onPressed: _showGoogleComingSoon,
+                            ),
+                            const SizedBox(height: 16),
                             AuthPrimaryButton(
                               label: 'เข้าสู่ระบบ',
                               onPressed: () => _openEmailFlow(false),

@@ -19,14 +19,20 @@ Future<void> _pump(WidgetTester tester, Widget page) async {
 void main() {
   group('Mandatory login', () {
     testWidgets(
-      'AuthPage with Firebase hides Google bypass and requires email login',
+      'AuthPage with Firebase shows Google as coming soon and requires email login',
       (tester) async {
         await _pump(
           tester,
           AuthPage(authRepository: FakeAuthRepository(), nextPage: _next),
         );
 
-        expect(find.text('Continue with Google'), findsNothing);
+        expect(find.text('Continue with Google'), findsOneWidget);
+        await tester.tap(find.text('Continue with Google'));
+        await tester.pump();
+        expect(
+          find.text('การเข้าสู่ระบบด้วย Google เร็วๆ นี้'),
+          findsOneWidget,
+        );
         expect(find.text('next-page'), findsNothing);
 
         await tester.tap(find.widgetWithText(FilledButton, 'เข้าสู่ระบบ'));

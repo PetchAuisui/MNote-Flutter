@@ -96,6 +96,7 @@ class FirebaseAuthRepository implements AuthRepository {
         await _users.doc(firebaseUser.uid).set({
           'displayName': firebaseUser.displayName,
           'email': firebaseUser.email,
+          'photoUrl': firebaseUser.photoURL,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -149,6 +150,7 @@ class FirebaseAuthRepository implements AuthRepository {
       uid: user.uid,
       email: user.email ?? '',
       displayName: user.displayName,
+      photoUrl: user.photoURL,
     );
   }
 

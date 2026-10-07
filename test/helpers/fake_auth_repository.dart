@@ -56,6 +56,7 @@ class FakeAuthRepository implements AuthRepository {
       uid: 'g1',
       email: 'g@example.com',
       displayName: 'Google User',
+      photoUrl: 'https://example.com/g.png',
     );
   }
 

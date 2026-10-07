@@ -24,9 +24,14 @@ class AccountAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final photoUrl = user.photoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFF4A89DC),
+      // The initial underneath stays visible if the photo fails to load.
+      foregroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+      onForegroundImageError: hasPhoto ? (_, _) {} : null,
       child: Text(
         accountInitial(user),
         style: TextStyle(

@@ -31,6 +31,32 @@ void main() {
     );
   });
 
+  testWidgets('avatar loads the Google photo when available', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AccountAvatar(
+          user: AuthUser(
+            uid: '1',
+            email: 'x@y.co',
+            photoUrl: 'https://example.com/p.png',
+          ),
+        ),
+      ),
+    );
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar));
+    expect(avatar.foregroundImage, isA<NetworkImage>());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AccountAvatar(user: AuthUser(uid: '1', email: 'x@y.co')),
+      ),
+    );
+    expect(
+      tester.widget<CircleAvatar>(find.byType(CircleAvatar)).foregroundImage,
+      isNull,
+    );
+  });
+
   testWidgets('note list shows initial icon, dialog, and signs out', (
     tester,
   ) async {

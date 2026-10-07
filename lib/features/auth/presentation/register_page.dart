@@ -5,6 +5,7 @@ import 'package:mnote/features/auth/domain/auth_validators.dart';
 import 'package:mnote/features/auth/presentation/login_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/auth_primary_button.dart';
 import 'package:mnote/features/auth/presentation/widgets/auth_text_field.dart';
+import 'package:mnote/features/auth/presentation/widgets/google_sign_in_button.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({
@@ -60,6 +61,31 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _isLoading = false;
         _error = AuthValidators.messageFor(e);
+      });
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      await widget.authRepository.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => widget.nextPage),
+        (_) => false,
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        // Cancelling the Google flow is not an error worth showing.
+        _error = e.code == AuthErrorCode.cancelled
+            ? null
+            : AuthValidators.messageFor(e);
       });
     }
   }
@@ -158,6 +184,26 @@ class _RegisterPageState extends State<RegisterPage> {
                       label: 'สมัครสมาชิก',
                       isLoading: _isLoading,
                       onPressed: _submit,
+                    ),
+                    const SizedBox(height: 20),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider(color: Color(0xFFB8CCDD))),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'หรือ',
+                            style: TextStyle(color: Color(0xFF5A6C80)),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Color(0xFFB8CCDD))),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    GoogleSignInButton(
+                      label: 'สมัครด้วย Google',
+                      onPressed: _signInWithGoogle,
+                      isLoading: _isLoading,
                     ),
                     const SizedBox(height: 16),
                     TextButton(

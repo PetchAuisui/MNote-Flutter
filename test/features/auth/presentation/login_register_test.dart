@@ -29,8 +29,9 @@ void main() {
       expect(find.byType(LoginPage), findsOneWidget);
     });
 
-    testWidgets('Continue with Google signs in and opens next page',
-        (tester) async {
+    testWidgets('Continue with Google signs in and opens next page', (
+      tester,
+    ) async {
       final repo = FakeAuthRepository();
       await _pump(tester, AuthPage(authRepository: repo, nextPage: _next));
 
@@ -41,8 +42,9 @@ void main() {
       expect(find.text('next-page'), findsOneWidget);
     });
 
-    testWidgets('Google sign-in cancelled stays on AuthPage silently',
-        (tester) async {
+    testWidgets('Google sign-in cancelled stays on AuthPage silently', (
+      tester,
+    ) async {
       final repo = FakeAuthRepository(
         error: const AuthException(AuthErrorCode.cancelled),
       );
@@ -116,6 +118,30 @@ void main() {
   });
 
   group('RegisterPage', () {
+    testWidgets('can sign up with Google', (tester) async {
+      final repo = FakeAuthRepository();
+      await _pump(tester, RegisterPage(authRepository: repo, nextPage: _next));
+
+      await tester.tap(find.text('สมัครด้วย Google'));
+      await tester.pumpAndSettle();
+
+      expect(repo.googleCalls, 1);
+      expect(find.text('next-page'), findsOneWidget);
+    });
+
+    testWidgets('Google cancel on register shows no error', (tester) async {
+      final repo = FakeAuthRepository(
+        error: const AuthException(AuthErrorCode.cancelled),
+      );
+      await _pump(tester, RegisterPage(authRepository: repo, nextPage: _next));
+
+      await tester.tap(find.text('สมัครด้วย Google'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('next-page'), findsNothing);
+      expect(find.byKey(const Key('auth-error')), findsNothing);
+    });
+
     testWidgets('rejects mismatched passwords', (tester) async {
       final repo = FakeAuthRepository();
       await _pump(tester, RegisterPage(authRepository: repo, nextPage: _next));

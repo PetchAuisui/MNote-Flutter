@@ -5,10 +5,12 @@ class GoogleSignInButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     this.isLoading = false,
+    this.label = 'Continue with Google',
   });
 
   final VoidCallback onPressed;
   final bool isLoading;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +60,8 @@ class GoogleSignInButton extends StatelessWidget {
                     },
                   ),
                 const SizedBox(width: 14),
-                const Text(
-                  'Continue with Google',
+                Text(
+                  label,
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w500,

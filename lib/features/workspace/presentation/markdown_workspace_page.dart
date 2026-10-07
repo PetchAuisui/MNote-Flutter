@@ -589,6 +589,53 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  Future<void> _moveToTrash() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+        title: const Text('ย้ายไปถังขยะ?'),
+        content: Text(
+          'คุณต้องการย้าย "${_workspace.document.name}" ไปยังถังขยะหรือไม่?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ย้ายไปถังขยะ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final metadata = await widget.repository.loadMetadata();
+      if (metadata != null) {
+        final docUri = _workspace.document.uri;
+        final docName = _workspace.document.name;
+        final updatedDocs = metadata.documents.map((d) {
+          if ((docUri != null && d.uri == docUri) || d.name == docName) {
+            return d.copyWith(isTrash: true);
+          }
+          return d;
+        }).toList();
+        await widget.repository.saveMetadata(
+          metadata.copyWith(documents: updatedDocs),
+        );
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
   Future<void> _openLink(String? href) async {
     final uri = href == null ? null : Uri.tryParse(href);
     if (uri == null || !await launchUrl(uri)) {
@@ -875,19 +922,23 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             PopupMenuItem(
               key: Key('toolbar-add-image'),
               value: _ToolbarAddAction.image,
-              child: ListTile(
-                leading: Icon(Icons.image_outlined),
-                title: Text('เพิ่มรูปภาพ'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.image_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เพิ่มรูปภาพ')),
+                ],
               ),
             ),
             PopupMenuItem(
               key: Key('toolbar-add-file'),
               value: _ToolbarAddAction.openFile,
-              child: ListTile(
-                leading: Icon(Icons.folder_open_rounded),
-                title: Text('เลือกไฟล์'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.folder_open_rounded, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เลือกไฟล์')),
+                ],
               ),
             ),
           ],
@@ -900,9 +951,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         ),
         PopupMenuButton<_DocumentAction>(
           tooltip: 'คำสั่งเพิ่มเติม',
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
           onSelected: (action) {
             switch (action) {
               case _DocumentAction.newDocument:
@@ -911,31 +959,52 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 _openDocument();
               case _DocumentAction.saveAs:
                 _saveDocument(saveAs: true);
+              case _DocumentAction.trash:
+                _moveToTrash();
             }
           },
           itemBuilder: (context) => const [
             PopupMenuItem(
               value: _DocumentAction.newDocument,
-              child: ListTile(
-                leading: Icon(Icons.note_add_outlined),
-                title: Text('เอกสารใหม่'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.note_add_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เอกสารใหม่')),
+                ],
               ),
             ),
             PopupMenuItem(
               value: _DocumentAction.openDocument,
-              child: ListTile(
-                leading: Icon(Icons.folder_open_outlined),
-                title: Text('เปิดเอกสารอื่น'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.folder_open_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เปิดเอกสารอื่น')),
+                ],
               ),
             ),
             PopupMenuItem(
               value: _DocumentAction.saveAs,
-              child: ListTile(
-                leading: Icon(Icons.save_as_outlined),
-                title: Text('บันทึกเป็น'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.save_as_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('บันทึกเป็น')),
+                ],
+              ),
+            ),
+            PopupMenuDivider(),
+            PopupMenuItem(
+              value: _DocumentAction.trash,
+              child: Row(
+                children: [
+                  Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('ย้ายไปถังขยะ', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1114,7 +1183,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 }
 
-enum _DocumentAction { newDocument, openDocument, saveAs }
+enum _DocumentAction { newDocument, openDocument, saveAs, trash }
 enum _ToolbarAddAction { image, openFile }
 
 class _LineNumberPainter extends CustomPainter {

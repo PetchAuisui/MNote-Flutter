@@ -129,18 +129,22 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       items: const [
                         PopupMenuItem(
                           value: _ListStyle.bulleted,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_bulleted_rounded),
-                            title: Text('รายการหัวข้อ'),
-                            contentPadding: EdgeInsets.zero,
+                          child: Row(
+                            children: [
+                              Icon(Icons.format_list_bulleted_rounded, size: 20),
+                              SizedBox(width: 12),
+                              Expanded(child: Text('รายการหัวข้อ')),
+                            ],
                           ),
                         ),
                         PopupMenuItem(
                           value: _ListStyle.ordered,
-                          child: ListTile(
-                            leading: Icon(Icons.format_list_numbered_rounded),
-                            title: Text('รายการตัวเลข'),
-                            contentPadding: EdgeInsets.zero,
+                          child: Row(
+                            children: [
+                              Icon(Icons.format_list_numbered_rounded, size: 20),
+                              SizedBox(width: 12),
+                              Expanded(child: Text('รายการตัวเลข')),
+                            ],
                           ),
                         ),
                       ],
@@ -200,18 +204,22 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                       items: const [
                         PopupMenuItem(
                           value: _CodeStyle.inline,
-                          child: ListTile(
-                            leading: Icon(Icons.code_rounded),
-                            title: Text('โค้ดในบรรทัด'),
-                            contentPadding: EdgeInsets.zero,
+                          child: Row(
+                            children: [
+                              Icon(Icons.code_rounded, size: 20),
+                              SizedBox(width: 12),
+                              Expanded(child: Text('โค้ดในบรรทัด')),
+                            ],
                           ),
                         ),
                         PopupMenuItem(
                           value: _CodeStyle.block,
-                          child: ListTile(
-                            leading: Icon(Icons.data_object_rounded),
-                            title: Text('บล็อกโค้ด'),
-                            contentPadding: EdgeInsets.zero,
+                          child: Row(
+                            children: [
+                              Icon(Icons.data_object_rounded, size: 20),
+                              SizedBox(width: 12),
+                              Expanded(child: Text('บล็อกโค้ด')),
+                            ],
                           ),
                         ),
                       ],
@@ -236,12 +244,15 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                               PopupMenuItem(
                                 key: Key('toolbar-diagram-${template.id}'),
                                 value: _InsertDiagramTemplate(template),
-                                child: ListTile(
-                                  leading: Icon(
-                                    _diagramTemplateIcon(template.id),
-                                  ),
-                                  title: Text(template.label),
-                                  contentPadding: EdgeInsets.zero,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _diagramTemplateIcon(template.id),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Text(template.label)),
+                                  ],
                                 ),
                               ),
                           if (onDiagramTemplate != null &&
@@ -251,10 +262,12 @@ class MarkdownFormattingToolbar extends StatelessWidget {
                             const PopupMenuItem(
                               key: Key('toolbar-diagram-import'),
                               value: _ImportDiagramFile(),
-                              child: ListTile(
-                                leading: Icon(Icons.file_open_outlined),
-                                title: Text('นำเข้าจากไฟล์ .mmd…'),
-                                contentPadding: EdgeInsets.zero,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_open_outlined, size: 20),
+                                  SizedBox(width: 12),
+                                  Expanded(child: Text('นำเข้าจากไฟล์ .mmd…')),
+                                ],
                               ),
                             ),
                         ],
@@ -333,10 +346,12 @@ class MarkdownFormattingToolbar extends StatelessWidget {
             key: tool.buttonKey,
             value: tool.onPressed,
             enabled: tool.onPressed != null,
-            child: ListTile(
-              leading: Icon(tool.icon),
-              title: Text(tool.label),
-              contentPadding: EdgeInsets.zero,
+            child: Row(
+              children: [
+                Icon(tool.icon, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text(tool.label)),
+              ],
             ),
           ),
         );

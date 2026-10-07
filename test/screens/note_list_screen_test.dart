@@ -601,5 +601,93 @@ void main() {
     );
     expect(editor.controller?.text, 'Brand new external content');
   });
+
+  testWidgets('renders centered document name with maxLines: 2 and bounded 3-dots button', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
+    final longDoc = DocumentItem(
+      id: 'long-doc',
+      name: 'รายงานการประชุมประจำปีการศึกษา2569ระดับผู้บริหาร.md',
+      content: 'hello',
+      updatedAt: DateTime(2026, 10, 7),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [longDoc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textWidget = tester.widget<Text>(find.text(longDoc.displayName));
+    expect(textWidget.textAlign, TextAlign.center);
+    expect(textWidget.maxLines, 2);
+    expect(textWidget.overflow, TextOverflow.ellipsis);
+
+    // Verify 3-dots button is rendered and can be tapped
+    final menuButton = find.byKey(Key('doc-menu-${longDoc.id}'));
+    expect(menuButton, findsOneWidget);
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('เปลี่ยนชื่อไฟล์'), findsOneWidget);
+    expect(find.text('ส่งออก'), findsOneWidget);
+    expect(find.text('ย้ายไปถังขยะ'), findsOneWidget);
+  });
+
+  testWidgets('renders grouped filter menu with dividers, refined wording, and active checkmark', (tester) async {
+    final fakeRepo = FakeDocumentRepository();
+    final folder = FolderItem(id: 'f1', name: 'โฟลเดอร์ทดสอบ', updatedAt: DateTime(2026, 10, 7));
+    final doc1 = DocumentItem(id: 'd1', name: 'โน้ต1.md', content: 'เนื้อหา', updatedAt: DateTime(2026, 10, 7));
+    final doc2 = DocumentItem(id: 'd2', name: 'โน้ต2.txt', content: 'เนื้อหา txt', updatedAt: DateTime(2026, 10, 7));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [folder],
+          initialDocuments: [doc1, doc2],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap filter button (currently showing 'ทั้งหมด')
+    await tester.tap(find.text('ทั้งหมด'));
+    await tester.pumpAndSettle();
+
+    // Verify Group 1: มุมมองหลัก
+    expect(find.text('ติดดาว (รายการโปรด)'), findsOneWidget);
+
+    // Verify Group 2: ประเภทเนื้อหา (Refined wording without 'เฉพาะ' and 'เอกสารทั้งหมด')
+    expect(find.text('โฟลเดอร์'), findsOneWidget);
+    expect(find.text('เอกสารทั้งหมด'), findsOneWidget);
+    expect(find.text('Markdown (.md)'), findsOneWidget);
+    expect(find.text('Text (.txt)'), findsOneWidget);
+
+    // Verify Group 3: ระบบ
+    expect(find.text('ถังขยะ'), findsOneWidget);
+
+    // Verify PopupMenuDividers are present (at least 2 dividers)
+    expect(find.byType(PopupMenuDivider), findsNWidgets(2));
+
+    // Verify checkmark is rendered for the currently active filter ('ทั้งหมด')
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+
+    // Switch filter to 'เอกสารทั้งหมด'
+    await tester.tap(find.text('เอกสารทั้งหมด'));
+    await tester.pumpAndSettle();
+
+    // Documents are visible, folder is filtered out
+    expect(find.text('โน้ต1'), findsOneWidget);
+    expect(find.text('โน้ต2'), findsOneWidget);
+    expect(find.text('โฟลเดอร์ทดสอบ'), findsNothing);
+
+    // Button label now displays 'เอกสารทั้งหมด'
+    expect(find.text('เอกสารทั้งหมด'), findsOneWidget);
+  });
 }
 

@@ -44,6 +44,7 @@ dependencies:
   markdown: ^7.3.1
   shared_preferences: ^2.5.5
   pdf: ^3.13.1
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:

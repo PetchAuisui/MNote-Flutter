@@ -122,8 +122,12 @@ The end.''';
       expect(find.byKey(const Key('export-option-plaintext')), findsOneWidget);
       expect(find.byKey(const Key('export-option-image')), findsOneWidget);
 
-      // Tap Markdown export option
+      // Tap Markdown export option and verify drill-down options
       await tester.tap(find.byKey(const Key('export-option-markdown')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('export-save-button')), findsOneWidget);
+      expect(find.byKey(const Key('export-share-button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('export-save-button')));
       await tester.pumpAndSettle();
 
       expect(savedExt, 'md');
@@ -136,6 +140,8 @@ The end.''';
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('export-option-plaintext')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('export-save-button')));
+      await tester.pumpAndSettle();
 
       expect(savedExt, 'txt');
       expect(savedFileName, 'Welcome.txt');
@@ -144,8 +150,12 @@ The end.''';
       // Tap export button again and choose PDF
       await tester.tap(exportBtn);
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('export-option-pdf')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('export-pdf-ink-switch')), findsOneWidget);
+      expect(find.byKey(const Key('export-pdf-page-format')), findsOneWidget);
       await tester.runAsync(() async {
-        await tester.tap(find.byKey(const Key('export-option-pdf')));
+        await tester.tap(find.byKey(const Key('export-save-button')));
         await Future.delayed(const Duration(milliseconds: 500));
       });
       await tester.pumpAndSettle();

@@ -152,6 +152,13 @@ abstract final class AppTheme {
           borderSide: BorderSide.none,
         ),
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: 4,
+        color: scheme.surfaceContainerHigh,
+      ),
     );
   }
 }

@@ -178,21 +178,27 @@ class _NoteListScreenState extends State<NoteListScreen> {
       await _persistLibrary();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการดึงไฟล์: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการดึงไฟล์: $e'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
       }
     }
   }
@@ -311,12 +317,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -452,16 +461,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'เลิกทำ',
-          onPressed: () => _restoreFolder(folder),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            onPressed: () => _restoreFolder(folder),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _restoreFolder(FolderItem folder) {
@@ -479,12 +491,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   Future<void> _permanentlyDeleteFolder(FolderItem folder) async {
@@ -529,12 +544,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -617,12 +635,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เปลี่ยนชื่อเอกสารเป็น "$newName" แล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('เปลี่ยนชื่อเอกสารเป็น "$newName" แล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -687,12 +708,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เปลี่ยนชื่อโฟลเดอร์เป็น "$newName" แล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('เปลี่ยนชื่อโฟลเดอร์เป็น "$newName" แล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -737,16 +761,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'เลิกทำ',
-          onPressed: () => _restoreDocument(doc),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            onPressed: () => _restoreDocument(doc),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _restoreDocument(DocumentItem doc) {
@@ -759,12 +786,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   Future<void> _permanentlyDeleteDocument(DocumentItem doc) async {
@@ -803,12 +833,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -858,12 +891,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
     }
   }
 

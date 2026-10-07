@@ -19,6 +19,13 @@ abstract class AuthRepository {
     required String password,
   });
 
+  /// Signs in (or signs up) with a Google account. Throws [AuthException]
+  /// with [AuthErrorCode.cancelled] if the user dismisses the Google flow.
+  Future<AuthUser> signInWithGoogle();
+
+  /// Updates the signed-in user's display name and returns the new user.
+  Future<AuthUser> updateDisplayName(String displayName);
+
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();

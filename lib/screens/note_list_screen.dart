@@ -997,6 +997,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           if (widget.authRepository?.currentUser != null)
             AccountAvatarButton(
               user: widget.authRepository!.currentUser!,
+              authRepository: widget.authRepository!,
               onSignOut: _signOut,
             ),
           const SizedBox(width: 8),

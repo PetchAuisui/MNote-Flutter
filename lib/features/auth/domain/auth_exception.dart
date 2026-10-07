@@ -7,6 +7,7 @@ enum AuthErrorCode {
   weakPassword,
   tooManyRequests,
   network,
+  cancelled,
   unknown,
 }
 

@@ -16,6 +16,7 @@ class FakeAuthRepository implements AuthRepository {
   String? lastEmail;
   String? lastDisplayName;
   String? resetEmail;
+  String? updatedName;
 
   @override
   Stream<AuthUser?> authStateChanges() => Stream.value(currentUser);
@@ -57,6 +58,20 @@ class FakeAuthRepository implements AuthRepository {
       email: 'g@example.com',
       displayName: 'Google User',
       photoUrl: 'https://example.com/g.png',
+    );
+  }
+
+  @override
+  Future<AuthUser> updateDisplayName(String displayName) async {
+    updatedName = displayName;
+    final u = currentUser!;
+    return currentUser = AuthUser(
+      uid: u.uid,
+      email: u.email,
+      displayName: displayName,
+      photoUrl: u.photoUrl,
+      providerIds: u.providerIds,
+      createdAt: u.createdAt,
     );
   }
 

@@ -23,6 +23,9 @@ abstract class AuthRepository {
   /// with [AuthErrorCode.cancelled] if the user dismisses the Google flow.
   Future<AuthUser> signInWithGoogle();
 
+  /// Updates the signed-in user's display name and returns the new user.
+  Future<AuthUser> updateDisplayName(String displayName);
+
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();

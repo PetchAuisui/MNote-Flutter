@@ -133,6 +133,25 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthUser> updateDisplayName(String displayName) async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AuthException(AuthErrorCode.unknown);
+    final name = displayName.trim();
+    try {
+      await user.updateDisplayName(name);
+      await user.reload();
+      await _users.doc(user.uid).set({
+        'displayName': name,
+      }, SetOptions(merge: true));
+      return _map(_auth.currentUser)!;
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(mapErrorCode(e.code), e.message);
+    } on FirebaseException catch (e) {
+      throw AuthException(AuthErrorCode.unknown, e.message);
+    }
+  }
+
+  @override
   Future<void> sendPasswordReset(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
@@ -151,6 +170,8 @@ class FirebaseAuthRepository implements AuthRepository {
       email: user.email ?? '',
       displayName: user.displayName,
       photoUrl: user.photoURL,
+      providerIds: [for (final info in user.providerData) info.providerId],
+      createdAt: user.metadata.creationTime,
     );
   }
 

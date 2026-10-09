@@ -494,8 +494,13 @@ void main() {
   });
 
   testWidgets(
-      'header add button opens menu with insert image and open file options',
+      'toolbar image button inserts image and more actions menu supports import file',
       (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final repo = FakeDocumentRepository();
     final imagePicker = FakeDeviceImagePicker(
       MarkdownImageReference(alt: 'photo', uri: Uri.parse('photo.png')),
@@ -511,36 +516,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify the add button exists with note_add icon
-    final addButton = find.byKey(const Key('toolbar-add-button'));
-    expect(addButton, findsOneWidget);
-    expect(
-      find.descendant(
-        of: addButton,
-        matching: find.byIcon(Icons.note_add_rounded),
-      ),
-      findsOneWidget,
-    );
+    // Verify redundant toolbar-add-button does not exist
+    expect(find.byKey(const Key('toolbar-add-button')), findsNothing);
 
-    // Tap to open popup menu
-    await tester.tap(addButton);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('toolbar-add-image')), findsOneWidget);
-    expect(find.text('เพิ่มรูปภาพ'), findsOneWidget);
-    expect(find.byKey(const Key('toolbar-add-file')), findsOneWidget);
-    expect(find.text('เลือกไฟล์'), findsOneWidget);
-
-    // Tap "เพิ่มรูปภาพ"
-    await tester.tap(find.byKey(const Key('toolbar-add-image')));
+    // Tap toolbar image button directly
+    final imageButton = find.byKey(const Key('toolbar-image'));
+    expect(imageButton, findsOneWidget);
+    await tester.tap(imageButton);
     await tester.pumpAndSettle();
 
     expect(imagePicker.pickCount, 1);
     expect(find.textContaining('![photo](photo.png)'), findsOneWidget);
 
-    // Tap add button again and select "เลือกไฟล์"
-    await tester.tap(addButton);
+    // Tap more actions menu and select import file
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('toolbar-add-file')), findsOneWidget);
+    expect(find.text('แทรกเนื้อหาจากไฟล์'), findsOneWidget);
     await tester.tap(find.byKey(const Key('toolbar-add-file')));
     await tester.pumpAndSettle();
 

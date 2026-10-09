@@ -902,47 +902,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        PopupMenuButton<_ToolbarAddAction>(
-          key: const Key('toolbar-add-button'),
-          tooltip: 'เพิ่มเนื้อหา',
-          icon: const Icon(Icons.note_add_rounded),
-          enabled: !_workspace.isBusy,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          onSelected: (action) {
-            switch (action) {
-              case _ToolbarAddAction.image:
-                _insertImage();
-              case _ToolbarAddAction.openFile:
-                _importTextFile();
-            }
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(
-              key: Key('toolbar-add-image'),
-              value: _ToolbarAddAction.image,
-              child: Row(
-                children: [
-                  Icon(Icons.image_outlined, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(child: Text('เพิ่มรูปภาพ')),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              key: Key('toolbar-add-file'),
-              value: _ToolbarAddAction.openFile,
-              child: Row(
-                children: [
-                  Icon(Icons.folder_open_rounded, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(child: Text('เลือกไฟล์')),
-                ],
-              ),
-            ),
-          ],
-        ),
         IconButton(
           key: const Key('toolbar-export-button'),
           onPressed: _workspace.isBusy ? null : _openExportSheet,
@@ -957,6 +916,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 _newDocument();
               case _DocumentAction.openDocument:
                 _openDocument();
+              case _DocumentAction.importFile:
+                _importTextFile();
               case _DocumentAction.saveAs:
                 _saveDocument(saveAs: true);
               case _DocumentAction.trash:
@@ -981,6 +942,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   Icon(Icons.folder_open_outlined, size: 20),
                   SizedBox(width: 12),
                   Expanded(child: Text('เปิดเอกสารอื่น')),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              key: Key('toolbar-add-file'),
+              value: _DocumentAction.importFile,
+              child: Row(
+                children: [
+                  Icon(Icons.post_add_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('แทรกเนื้อหาจากไฟล์')),
                 ],
               ),
             ),
@@ -1183,8 +1155,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 }
 
-enum _DocumentAction { newDocument, openDocument, saveAs, trash }
-enum _ToolbarAddAction { image, openFile }
+enum _DocumentAction { newDocument, openDocument, importFile, saveAs, trash }
 
 class _LineNumberPainter extends CustomPainter {
   _LineNumberPainter({

@@ -60,8 +60,8 @@ The end.''';
       expect(editorFinder, findsOneWidget);
       final initialText = tester.widget<TextField>(editorFinder).controller!.text;
 
-      // Tap add button and select เลือกไฟล์
-      await tester.tap(find.byKey(const Key('toolbar-add-button')));
+      // Tap more actions button and select แทรกเนื้อหาจากไฟล์
+      await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('toolbar-add-file')));
       await tester.pumpAndSettle();

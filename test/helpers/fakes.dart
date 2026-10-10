@@ -113,11 +113,17 @@ class FakeDocumentRepository implements DocumentRepository {
     deletedUris.add(uri);
   }
 
+  Object? metadataError;
+
   @override
-  Future<LibraryMetadata?> loadMetadata() async => storedMetadata;
+  Future<LibraryMetadata?> loadMetadata() async {
+    if (metadataError case final err?) throw err;
+    return storedMetadata;
+  }
 
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
+    if (metadataError case final err?) throw err;
     storedMetadata = metadata;
   }
 }

@@ -628,10 +628,15 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           metadata.copyWith(documents: updatedDocs),
         );
       }
-    } catch (_) {}
-
-    if (mounted) {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้')),
+        );
+      }
     }
   }
 

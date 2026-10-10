@@ -242,15 +242,12 @@ void main() {
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
 
-    await tester.tap(find.byKey(const Key('ink-width')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('ink-width-preset-2')));
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
 
-    await tester.tap(find.byKey(const Key('ink-width')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ink-width-edit-2')));
+    // Tapping the selected width edits that preset.
+    await tester.tap(find.byKey(const Key('ink-width-preset-2')));
     await tester.pumpAndSettle();
     tester.widget<Slider>(find.byKey(const Key('ink-width-slider'))).onChanged!(
       25,
@@ -323,16 +320,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('ink-color-preset-4')));
       expect(find.byKey(const Key('ink-color-preset-4')), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const Key('ink-width')));
-      await tester.tap(find.byKey(const Key('ink-width')));
-      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('ink-width-preset-2')));
       expect(find.byKey(const Key('ink-width-preset-0')), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.tapAt(
-        tester.getTopLeft(find.byKey(const Key('ink-width-preset-0'))) +
-            const Offset(10, 10),
-      );
-      await tester.pumpAndSettle();
     }
   });
 
@@ -651,6 +641,9 @@ void main() {
   });
 
   testWidgets('ink menu only offers clearing', (tester) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final session = InkSession();
     addTearDown(session.dispose);
     await tester.pumpWidget(_inkPage(session: session));

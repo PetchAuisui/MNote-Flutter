@@ -462,29 +462,18 @@ class InkToolbar extends StatelessWidget {
                                     );
                                   },
                                 ),
-                                PopupMenuButton<Object>(
-                                  key: const Key('ink-width'),
-                                  tooltip: 'เลือกความหนาปากกา',
-                                  initialValue: penWidth,
-                                  onSelected: (v) =>
-                                      onWidthSelected(v as double),
-                                  itemBuilder: (menuContext) => [
-                                    _panelItem(
-                                      (_) => _WidthPresetPanel(
-                                        widths: widthPresets,
-                                        selected: penWidth,
-                                        color: penColor,
-                                        onSelect: (v) =>
-                                            Navigator.pop(menuContext, v),
-                                        onEdit: (i) {
-                                          Navigator.pop(menuContext);
-                                          _editWidth(context, i);
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                  icon: const Icon(Icons.line_weight),
-                                ),
+                                const SizedBox(width: 4),
+                                for (var i = 0; i < widthPresets.length; i++)
+                                  _WidthPresetButton(
+                                    key: Key('ink-width-preset-$i'),
+                                    width: widthPresets[i],
+                                    color: penColor,
+                                    selected: widthPresets[i] == penWidth,
+                                    onTap: () => widthPresets[i] == penWidth
+                                        ? _editWidth(context, i)
+                                        : onWidthSelected(widthPresets[i]),
+                                    onLongPress: () => _editWidth(context, i),
+                                  ),
                               ],
                             ),
                             const SizedBox(width: 8),
@@ -579,14 +568,6 @@ class InkToolbar extends StatelessWidget {
     icon: icon,
     selectedIcon: selectedIcon,
   );
-
-  /// A non-selectable popup entry that hosts a full-width responsive panel.
-  static PopupMenuEntry<Object> _panelItem(WidgetBuilder builder) =>
-      PopupMenuItem<Object>(
-        enabled: false,
-        padding: EdgeInsets.zero,
-        child: Builder(builder: builder),
-      );
 
   Future<void> _editColor(
     BuildContext context,
@@ -925,81 +906,57 @@ class _CustomWidthDialogState extends State<_CustomWidthDialog> {
   }
 }
 
-/// Popup width follows the screen so it fills the menu on any size and
-/// keeps up with rotation (the panel rebuilds when MediaQuery changes).
-double _panelWidth(BuildContext context, {double ideal = 268}) => ideal.clamp(
-  160.0,
-  (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 280.0),
-);
-
-class _WidthPresetPanel extends StatelessWidget {
-  const _WidthPresetPanel({
-    required this.widths,
-    required this.selected,
+/// A stroke-width preset in the toolbar, drawn as a dot of that thickness.
+/// Tap selects it; tap again or long-press edits the preset slot.
+class _WidthPresetButton extends StatelessWidget {
+  const _WidthPresetButton({
+    super.key,
+    required this.width,
     required this.color,
-    required this.onSelect,
-    required this.onEdit,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
   });
 
-  final List<double> widths;
-  final double selected;
+  final double width;
   final Color color;
-  final ValueChanged<double> onSelect;
-  final ValueChanged<int> onEdit;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: _panelWidth(context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < widths.length; i++)
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    key: Key('ink-width-preset-$i'),
-                    onTap: () => onSelect(widths[i]),
-                    child: Container(
-                      height: 56,
-                      padding: const EdgeInsets.only(left: 16),
-                      color: widths[i] == selected
-                          ? scheme.secondaryContainer.withValues(alpha: 0.6)
-                          : null,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: widths[i].clamp(1.0, 28.0),
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 44,
-                            child: Text(
-                              widths[i].toStringAsFixed(0),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  key: Key('ink-width-edit-$i'),
-                  tooltip: 'แก้ไขขนาดพรีเซ็ตนี้',
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  onPressed: () => onEdit(i),
-                ),
-              ],
+    return Tooltip(
+      message:
+          'ความหนา ${width.toStringAsFixed(0)} · แตะซ้ำหรือกดค้างเพื่อแก้ไข',
+      child: InkResponse(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        radius: 24,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected
+                  ? scheme.secondaryContainer.withValues(alpha: 0.8)
+                  : null,
+              border: Border.all(
+                width: selected ? 2 : 1,
+                color: selected ? scheme.primary : scheme.outlineVariant,
+              ),
             ),
-        ],
+            child: Container(
+              width: width.clamp(2.0, 22.0),
+              height: width.clamp(2.0, 22.0),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+          ),
+        ),
       ),
     );
   }

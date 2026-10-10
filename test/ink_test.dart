@@ -392,6 +392,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('autosaves ink on stroke and marks session clean', (
+    tester,
+  ) async {
+    final session = InkSession();
+    final storage = FakeInkFileStorage();
+    addTearDown(session.dispose);
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    session.pen.setSketch(sketch: sketch);
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(storage.savedBytes, isNotNull);
+    expect(session.isDirty, isFalse);
+  });
+
   testWidgets('ink survives Markdown deletion, mode switch and resize', (
     tester,
   ) async {
@@ -431,6 +446,48 @@ void main() {
       sketch,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dispose does not mark session saved if autoSave returns false', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = false;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isTrue);
+  });
+
+  testWidgets('dispose marks session saved when autoSave succeeds', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = true;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isFalse);
   });
 }
 
@@ -481,4 +538,17 @@ class FakeInkFileStorage implements InkFileStorage {
     savedBytes = bytes;
     return saveResult;
   }
+
+  @override
+  Future<bool> autoSave({
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    savedName = name;
+    savedBytes = bytes;
+    return saveResult;
+  }
+
+  @override
+  Future<Uint8List?> autoLoad({required String name}) async => openBytes;
 }

@@ -4,6 +4,16 @@ class LibraryMetadata {
 
   const LibraryMetadata({this.folders = const [], this.documents = const []});
 
+  LibraryMetadata copyWith({
+    List<FolderItem>? folders,
+    List<DocumentItem>? documents,
+  }) {
+    return LibraryMetadata(
+      folders: folders ?? this.folders,
+      documents: documents ?? this.documents,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'folders': folders
         .map(

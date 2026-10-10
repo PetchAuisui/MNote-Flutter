@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -46,11 +47,42 @@ class _InkPageState extends State<InkPage> {
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   bool _busy = false;
   double _viewportWidth = 0;
+  Timer? _autoSaveInkTimer;
 
   @override
   void initState() {
     super.initState();
+    widget.session.pen.addListener(_onPenChanged);
+    _autoLoadInkIfAvailable();
     _attachTransform();
+  }
+
+  void _onPenChanged() {
+    if (widget.session.isDirty) {
+      _autoSaveInkTimer?.cancel();
+      _autoSaveInkTimer = Timer(const Duration(milliseconds: 600), () async {
+        if (!mounted) return;
+        final snapshot = widget.session.encode();
+        final saved = await widget.fileStorage.autoSave(
+          name: widget.name,
+          bytes: Uint8List.fromList(utf8.encode(snapshot)),
+        );
+        if (saved && mounted) {
+          widget.session.markSaved(snapshot);
+        }
+      });
+    }
+  }
+
+  Future<void> _autoLoadInkIfAvailable() async {
+    if (widget.session.pen.currentSketch.lines.isEmpty) {
+      final bytes = await widget.fileStorage.autoLoad(name: widget.name);
+      if (bytes != null && mounted) {
+        try {
+          widget.session.load(utf8.decode(bytes));
+        } catch (_) {}
+      }
+    }
   }
 
   void _attachTransform() {
@@ -73,6 +105,22 @@ class _InkPageState extends State<InkPage> {
 
   @override
   void dispose() {
+    _autoSaveInkTimer?.cancel();
+    if (widget.session.isDirty) {
+      final snapshot = widget.session.encode();
+      final session = widget.session;
+      widget.fileStorage
+          .autoSave(
+            name: widget.name,
+            bytes: Uint8List.fromList(utf8.encode(snapshot)),
+          )
+          .then((saved) {
+            if (saved) {
+              session.markSaved(snapshot);
+            }
+          });
+    }
+    widget.session.pen.removeListener(_onPenChanged);
     if (_ownsTransform) {
       _transform.dispose();
     }

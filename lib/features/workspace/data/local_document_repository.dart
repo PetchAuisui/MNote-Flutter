@@ -18,11 +18,16 @@ class LocalDocumentRepository implements DocumentRepository {
 
     try {
       final content = utf8.decode(_withoutByteOrderMark(file.bytes));
-      return MarkdownDocument.opened(
+      final doc = MarkdownDocument.opened(
         name: file.name,
         content: content,
         uri: file.uri,
       );
+
+      // บันทึกเข้า Metadata ป้องกันไฟล์หาย
+      await _registerToMetadata(doc);
+
+      return doc;
     } on FormatException {
       throw const DocumentReadException(
         'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ',
@@ -32,15 +37,45 @@ class LocalDocumentRepository implements DocumentRepository {
 
   @override
   Future<MarkdownDocument?> save(MarkdownDocument document) async {
-    final uri = document.uri;
-    if (uri == null ||
-        uri.scheme != 'file' ||
-        document.name != _nameFrom(uri, document.name)) {
+    var uri = document.uri;
+    if (uri == null || uri.scheme.isEmpty) {
+      final targetName = _ensureMarkdownExtension(document.name);
+      uri = await _storage.createDocument(
+        name: targetName,
+        bytes: _encode(document.content),
+      );
+      if (uri == null) return saveAs(document);
+      final savedDoc = document.markSaved(name: document.name, uri: uri);
+      await _registerToMetadata(savedDoc);
+      return savedDoc;
+    }
+
+    final currentFileName = _nameFrom(uri, document.name);
+    final targetFileName = _ensureMarkdownExtension(document.name);
+
+    if (uri.scheme != 'file' ||
+        targetFileName != _ensureMarkdownExtension(currentFileName)) {
       return saveAs(document);
     }
 
-    await _storage.write(uri, _encode(document.content));
-    return document.markSaved(name: document.name, uri: uri);
+    try {
+      await _storage.write(uri, _encode(document.content));
+    } catch (_) {
+      try {
+        final newUri = await _storage.createDocument(
+          name: targetFileName,
+          bytes: _encode(document.content),
+        );
+        if (newUri == null) return null;
+        uri = newUri;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final savedDoc = document.markSaved(name: document.name, uri: uri);
+    await _registerToMetadata(savedDoc);
+    return savedDoc;
   }
 
   @override
@@ -51,16 +86,48 @@ class LocalDocumentRepository implements DocumentRepository {
     );
     if (uri == null) return null;
 
-    return document.markSaved(name: _nameFrom(uri, document.name), uri: uri);
+    final savedDoc = document.markSaved(
+      name: _nameFrom(uri, document.name),
+      uri: uri,
+    );
+    await _registerToMetadata(savedDoc);
+    return savedDoc;
   }
 
   @override
   Future<List<MarkdownDocument>> listDocuments() async {
     try {
-      final files = await _storage.listDocuments();
+      final metadata = await loadMetadata();
       final documents = <MarkdownDocument>[];
+      final seenUris = <String>{};
 
+      // 1. อ่านไฟล์จาก Metadata (ข้ามไฟล์ที่อยู่ในถังขยะ isTrash)
+      if (metadata != null) {
+        for (final docItem in metadata.documents) {
+          if (docItem.isTrash) continue;
+
+          final uri = docItem.uri;
+          if (uri != null) {
+            seenUris.add(uri.toString());
+            final content = await readDocument(uri);
+            if (content != null) {
+              documents.add(
+                MarkdownDocument.opened(
+                  name: docItem.name,
+                  content: content,
+                  uri: uri,
+                ),
+              );
+            }
+          }
+        }
+      }
+
+      // 2. สแกนไฟล์ตกค้างใน App Documents Directory
+      final files = await _storage.listDocuments();
       for (final file in files) {
+        if (seenUris.contains(file.uri.toString())) continue;
+
         try {
           final content = utf8.decode(_withoutByteOrderMark(file.bytes));
           documents.add(
@@ -71,7 +138,6 @@ class LocalDocumentRepository implements DocumentRepository {
             ),
           );
         } on FormatException {
-          // หากมีไฟล์ใด decode utf-8 ไม่ผ่าน ให้ข้ามไฟล์นั้นไป ไม่ให้แอปแครช
           continue;
         }
       }
@@ -94,7 +160,21 @@ class LocalDocumentRepository implements DocumentRepository {
   }
 
   @override
-  Future<void> delete(Uri uri) => _storage.delete(uri);
+  Future<void> delete(Uri uri) async {
+    // 1. ลบ physical file จริงออกจากเครื่อง
+    await _storage.delete(uri);
+
+    // 2. ลบออกจาก Metadata JSON
+    final metadata = await loadMetadata();
+    if (metadata != null) {
+      final updatedDocs = metadata.documents
+          .where((doc) => doc.uri?.toString() != uri.toString())
+          .toList();
+      await saveMetadata(
+        LibraryMetadata(folders: metadata.folders, documents: updatedDocs),
+      );
+    }
+  }
 
   @override
   Future<LibraryMetadata?> loadMetadata() async {
@@ -110,6 +190,44 @@ class LocalDocumentRepository implements DocumentRepository {
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
     await _storage.writeMetadata(jsonEncode(metadata.toJson()));
+  }
+
+  Future<void> _registerToMetadata(MarkdownDocument doc) async {
+    final uri = doc.uri;
+    if (uri == null) return;
+
+    final metadata = await loadMetadata() ?? const LibraryMetadata();
+    final uriStr = uri.toString();
+
+    final existingIndex = metadata.documents.indexWhere(
+      (d) => d.uri?.toString() == uriStr,
+    );
+    final updatedDocs = List<DocumentItem>.from(metadata.documents);
+
+    if (existingIndex >= 0) {
+      final old = updatedDocs[existingIndex];
+      updatedDocs[existingIndex] = old.copyWith(
+        name: doc.name,
+        content: doc.content,
+        updatedAt: DateTime.now(),
+      );
+    } else {
+      updatedDocs.add(
+        DocumentItem(
+          id: uriStr,
+          name: doc.name,
+          content: doc.content,
+          updatedAt: DateTime.now(),
+          uri: uri,
+          isTrash: false,
+          isStarred: false,
+        ),
+      );
+    }
+
+    await saveMetadata(
+      LibraryMetadata(folders: metadata.folders, documents: updatedDocs),
+    );
   }
 
   Uint8List _encode(String content) => Uint8List.fromList(utf8.encode(content));

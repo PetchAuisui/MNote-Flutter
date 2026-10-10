@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/data/document_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -22,6 +23,16 @@ class FakeDocumentStorage implements DocumentStorage {
     savedAsName = name;
     writtenBytes = bytes;
     return saveUri;
+  }
+
+  @override
+  Future<Uri?> createDocument({
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    final uri = saveUri ?? Uri.file('/tmp/$name');
+    await write(uri, bytes);
+    return uri;
   }
 
   String? metadataContent;
@@ -105,11 +116,29 @@ class FakeDocumentRepository implements DocumentRepository {
     deletedUris.add(uri);
   }
 
+  Object? metadataError;
+
   @override
-  Future<LibraryMetadata?> loadMetadata() async => storedMetadata;
+  Future<LibraryMetadata?> loadMetadata() async {
+    if (metadataError case final err?) throw err;
+    return storedMetadata;
+  }
 
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
+    if (metadataError case final err?) throw err;
     storedMetadata = metadata;
+  }
+}
+
+class FakeDeviceImagePicker extends DeviceImagePicker {
+  FakeDeviceImagePicker([this.result]);
+  final MarkdownImageReference? result;
+  int pickCount = 0;
+
+  @override
+  Future<MarkdownImageReference?> pick() async {
+    pickCount++;
+    return result;
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import 'markdown_live_editor.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
+import 'export_sheet.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
   const MarkdownWorkspacePage({
@@ -25,12 +27,14 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.initialDocument,
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
+    this.exportSaver,
   });
 
   final DocumentRepository repository;
   final MarkdownDocument? initialDocument;
   final DeviceImagePicker imagePicker;
   final MermaidFileSource mermaidFileSource;
+  final ExportSaver? exportSaver;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -53,6 +57,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
+  final GlobalKey _surfaceBoundaryKey = GlobalKey();
   late final TransformationController _inkTransform;
   InkTool _inkTool = InkTool.pen;
   Color _inkPenColor = const Color(0xFF202124);
@@ -103,8 +108,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     }
   }
 
+  Timer? _autoSaveTimer;
+
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _inkTransform.dispose();
     _ink.dispose();
     _workspace
@@ -123,6 +131,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     super.dispose();
   }
 
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 600), () {
+      _performAutoSave();
+    });
+  }
+
+  Future<void> _performAutoSave() async {
+    if (!mounted) return;
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+      if (mounted) setState(() {});
+    }
+  }
+
   void _onWorkspaceChanged() {
     final content = _workspace.document.content;
     if (_textController.text != content) {
@@ -133,6 +156,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     }
     if (!_isEditingTitle && _titleController.text != _workspace.document.name) {
       _titleController.text = _workspace.document.name;
+    }
+    if (_workspace.document.isDirty) {
+      _scheduleAutoSave();
     }
     if (mounted) setState(() {});
   }
@@ -169,6 +195,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace.updateName(name);
     _titleController.text = _workspace.document.name;
     _titleFocusNode.unfocus();
+    if (_workspace.document.isDirty) {
+      _scheduleAutoSave();
+    }
   }
 
   String _normalizedDocumentName(String value) {
@@ -183,31 +212,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return '$name.md';
   }
 
-  Future<bool> _confirmDiscardChanges() async {
-    if (!_workspace.document.isDirty && !_ink.isDirty) return true;
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            icon: const Icon(Icons.warning_amber_rounded),
-            title: const Text('ละทิ้งการแก้ไข?'),
-            content: const Text('การเปลี่ยนแปลงที่ยังไม่ได้บันทึกจะหายไป'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('ยกเลิก'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('ละทิ้ง'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   Future<void> _openDocument() async {
-    if (!await _confirmDiscardChanges()) return;
+    _autoSaveTimer?.cancel();
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+    }
     final opened = await _runFileAction(
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
@@ -219,7 +228,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<void> _newDocument() async {
-    if (!await _confirmDiscardChanges()) return;
+    _autoSaveTimer?.cancel();
+    if (_workspace.document.isDirty) {
+      await _workspace.save();
+    }
     _workspace.newDocument();
     _resetInk();
     _resetUndoHistory();
@@ -621,7 +633,125 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _insertImage() async {
     final image = await widget.imagePicker.pick();
     if (image == null || !mounted) return;
+    if (_workspace.mode != WorkspaceMode.edit) {
+      _workspace.setMode(WorkspaceMode.edit);
+    }
     _replaceSelection('', '', placeholder: image.markdown);
+  }
+
+  Future<void> _importTextFile() async {
+    final file = await widget.repository.open();
+    if (file == null || !mounted) return;
+    final textToAppend = file.content.trim();
+    if (textToAppend.isEmpty) return;
+
+    if (_workspace.mode != WorkspaceMode.edit) {
+      _workspace.setMode(WorkspaceMode.edit);
+    }
+
+    final value = _textController.value;
+    final currentText = value.text;
+    final selection = value.selection;
+
+    if (selection.isValid && selection.start >= 0) {
+      final leadingBreak =
+          selection.start > 0 && currentText[selection.start - 1] != '\n'
+          ? '\n\n'
+          : '';
+      final trailingBreak =
+          selection.end < currentText.length &&
+              currentText[selection.end] != '\n'
+          ? '\n\n'
+          : '';
+      final replacement = '$leadingBreak$textToAppend$trailingBreak';
+      final nextText = currentText.replaceRange(
+        selection.start,
+        selection.end,
+        replacement,
+      );
+      final nextOffset = selection.start + replacement.length;
+      _applyTextEdit(nextText, TextSelection.collapsed(offset: nextOffset));
+    } else {
+      final prefix = currentText.isEmpty
+          ? ''
+          : currentText.endsWith('\n\n')
+          ? ''
+          : currentText.endsWith('\n')
+          ? '\n'
+          : '\n\n';
+      final nextText = '$currentText$prefix$textToAppend';
+      _applyTextEdit(
+        nextText,
+        TextSelection.collapsed(offset: nextText.length),
+      );
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('แทรกเนื้อหาจาก ${file.name} เรียบร้อยแล้ว')),
+      );
+    }
+  }
+
+  void _openExportSheet() {
+    showExportBottomSheet(
+      context,
+      document: _workspace.document,
+      surfaceKey: _surfaceBoundaryKey,
+      exportSaver: widget.exportSaver ?? defaultExportSaver,
+    );
+  }
+
+  Future<void> _moveToTrash() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+        title: const Text('ย้ายไปถังขยะ?'),
+        content: Text(
+          'คุณต้องการย้าย "${_workspace.document.name}" ไปยังถังขยะหรือไม่?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ย้ายไปถังขยะ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final metadata = await widget.repository.loadMetadata();
+      if (metadata != null) {
+        final docUri = _workspace.document.uri;
+        final updatedDocs = metadata.documents.map((d) {
+          if (docUri != null &&
+              (d.uri == docUri || d.id == docUri.toString())) {
+            return d.copyWith(isTrash: true);
+          }
+          return d;
+        }).toList();
+        await widget.repository.saveMetadata(
+          metadata.copyWith(documents: updatedDocs),
+        );
+      }
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้')),
+        );
+      }
+    }
   }
 
   Future<void> _openLink(String? href) async {
@@ -641,11 +771,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final shouldPop = await _confirmDiscardChanges();
-        if (shouldPop && context.mounted) {
-          Navigator.of(
-            context,
-          ).pop(_workspace.document.isDirty ? null : _workspace.document);
+        _autoSaveTimer?.cancel();
+        if (_workspace.document.isDirty) {
+          await _workspace.save();
+        }
+        if (context.mounted) {
+          Navigator.of(context).pop(_workspace.document);
         }
       },
       child: Scaffold(
@@ -663,54 +794,57 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Card(
-                    key: const Key('document-surface'),
-                    margin: EdgeInsets.zero,
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: _workspace.mode == WorkspaceMode.edit
-                              ? _buildEditor()
-                              : _workspace.mode == WorkspaceMode.split
-                              ? _buildSplitView()
-                              : _workspace.mode == WorkspaceMode.ink
-                              ? InkPage(
-                                  key: ObjectKey(_ink),
-                                  session: _ink,
-                                  markdown: document.content,
-                                  name: document.name,
-                                  imageDirectory: _imageDirectory,
-                                  transformationController: _inkTransform,
-                                  showToolbar: false,
-                                  onViewportWidthChanged: (w) =>
-                                      _inkViewportWidth = w,
-                                )
-                              : _buildPreview(),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              _workspace.mode == WorkspaceMode.split
-                                  ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
-                                  : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                              key: const Key('document-statistics'),
-                              maxLines: 1,
-                              textAlign: TextAlign.end,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: const Color(0xFF5F6368)),
+                  child: RepaintBoundary(
+                    key: _surfaceBoundaryKey,
+                    child: Card(
+                      key: const Key('document-surface'),
+                      margin: EdgeInsets.zero,
+                      elevation: 0,
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: _workspace.mode == WorkspaceMode.edit
+                                ? _buildEditor()
+                                : _workspace.mode == WorkspaceMode.split
+                                ? _buildSplitView()
+                                : _workspace.mode == WorkspaceMode.ink
+                                ? InkPage(
+                                    key: ObjectKey(_ink),
+                                    session: _ink,
+                                    markdown: document.content,
+                                    name: document.name,
+                                    imageDirectory: _imageDirectory,
+                                    transformationController: _inkTransform,
+                                    showToolbar: false,
+                                    onViewportWidthChanged: (w) =>
+                                        _inkViewportWidth = w,
+                                  )
+                                : _buildPreview(),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                _workspace.mode == WorkspaceMode.split
+                                    ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                    : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                                key: const Key('document-statistics'),
+                                maxLines: 1,
+                                textAlign: TextAlign.end,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: const Color(0xFF5F6368)),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -914,16 +1048,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          onPressed: _workspace.isBusy ? null : _openDocument,
+          key: const Key('toolbar-export-button'),
+          onPressed: _workspace.isBusy ? null : _openExportSheet,
           visualDensity: VisualDensity.compact,
-          tooltip: 'เปิดไฟล์',
-          icon: const Icon(Icons.folder_open_rounded),
-        ),
-        IconButton.filledTonal(
-          onPressed: _workspace.isBusy ? null : _saveDocument,
-          visualDensity: VisualDensity.compact,
-          tooltip: 'บันทึก',
-          icon: const Icon(Icons.save_rounded),
+          tooltip: 'ส่งออก',
+          icon: const Icon(Icons.upload_rounded),
         ),
         PopupMenuButton<_DocumentAction>(
           iconSize: 24,
@@ -933,25 +1062,76 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             switch (action) {
               case _DocumentAction.newDocument:
                 _newDocument();
+              case _DocumentAction.openDocument:
+                _openDocument();
+              case _DocumentAction.importFile:
+                _importTextFile();
               case _DocumentAction.saveAs:
                 _saveDocument(saveAs: true);
+              case _DocumentAction.trash:
+                _moveToTrash();
             }
           },
           itemBuilder: (context) => const [
             PopupMenuItem(
               value: _DocumentAction.newDocument,
-              child: ListTile(
-                leading: Icon(Icons.note_add_outlined),
-                title: Text('เอกสารใหม่'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.note_add_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เอกสารใหม่')),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: _DocumentAction.openDocument,
+              child: Row(
+                children: [
+                  Icon(Icons.folder_open_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เปิดเอกสารอื่น')),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              key: Key('toolbar-add-file'),
+              value: _DocumentAction.importFile,
+              child: Row(
+                children: [
+                  Icon(Icons.post_add_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('แทรกเนื้อหาจากไฟล์')),
+                ],
               ),
             ),
             PopupMenuItem(
               value: _DocumentAction.saveAs,
-              child: ListTile(
-                leading: Icon(Icons.save_as_outlined),
-                title: Text('บันทึกเป็น'),
-                contentPadding: EdgeInsets.zero,
+              child: Row(
+                children: [
+                  Icon(Icons.save_as_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('บันทึกเป็น')),
+                ],
+              ),
+            ),
+            PopupMenuDivider(),
+            PopupMenuItem(
+              value: _DocumentAction.trash,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'ย้ายไปถังขยะ',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1286,7 +1466,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 }
 
-enum _DocumentAction { newDocument, saveAs }
+enum _DocumentAction { newDocument, openDocument, importFile, saveAs, trash }
 
 class _LineNumberPainter extends CustomPainter {
   _LineNumberPainter({

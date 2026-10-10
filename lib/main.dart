@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
@@ -7,6 +8,8 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   final AuthRepository authRepository;
   try {

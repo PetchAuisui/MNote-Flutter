@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
@@ -5,6 +6,7 @@ import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.d
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import '../models/note_item.dart';
@@ -219,21 +221,27 @@ class _NoteListScreenState extends State<NoteListScreen> {
       await _persistLibrary();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการดึงไฟล์: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาดในการดึงไฟล์: $e'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
       }
     }
   }
@@ -356,12 +364,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -520,16 +531,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'เลิกทำ',
-          onPressed: () => _restoreFolder(folder),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            onPressed: () => _restoreFolder(folder),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _restoreFolder(FolderItem folder) {
@@ -547,12 +561,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   Future<void> _permanentlyDeleteFolder(FolderItem folder) async {
@@ -597,13 +614,210 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
+  }
+
+  Future<void> _renameDocument(DocumentItem doc) async {
+    final controller = TextEditingController(text: doc.displayName);
+    final formKey = GlobalKey<FormState>();
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เปลี่ยนชื่อเอกสาร'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            key: const Key('rename-document-input'),
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'ชื่อเอกสาร',
+              hintText: 'กรอกชื่อเอกสารใหม่',
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'กรุณาระบุชื่อเอกสาร';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            key: const Key('rename-document-submit'),
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName == null ||
+        newName.isEmpty ||
+        newName == doc.displayName ||
+        !mounted) {
+      return;
+    }
+
+    final ext = doc.name.contains('.')
+        ? '.${doc.name.split('.').last}'
+        : (doc.isTxt ? '.txt' : '.md');
+    final newFileName = newName.endsWith(ext) ? newName : '$newName$ext';
+
+    Uri? newUri = doc.uri;
+    if (doc.uri != null && doc.uri!.scheme == 'file') {
+      try {
+        final oldFile = File.fromUri(doc.uri!);
+        if (await oldFile.exists()) {
+          final newPath = '${oldFile.parent.path}/$newFileName';
+          final newFile = await oldFile.rename(newPath);
+          newUri = newFile.uri;
+        }
+      } catch (_) {}
+    }
+
+    setState(() {
+      final idx = _documents.indexWhere((d) => d.id == doc.id);
+      if (idx != -1) {
+        _documents[idx] = doc.copyWith(
+          name: newFileName,
+          uri: newUri,
+          updatedAt: DateTime.now(),
+        );
+      }
+    });
+
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('เปลี่ยนชื่อเอกสารเป็น "$newName" แล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
+  }
+
+  Future<void> _renameFolder(FolderItem folder) async {
+    final controller = TextEditingController(text: folder.name);
+    final formKey = GlobalKey<FormState>();
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('เปลี่ยนชื่อโฟลเดอร์'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            key: const Key('rename-folder-input'),
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'ชื่อโฟลเดอร์',
+              hintText: 'กรอกชื่อโฟลเดอร์ใหม่',
+            ),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'กรุณาระบุชื่อโฟลเดอร์';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            key: const Key('rename-folder-submit'),
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('บันทึก'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName == null ||
+        newName.isEmpty ||
+        newName == folder.name ||
+        !mounted) {
+      return;
+    }
+
+    setState(() {
+      final idx = _folders.indexWhere((f) => f.id == folder.id);
+      if (idx != -1) {
+        _folders[idx] = folder.copyWith(
+          name: newName,
+          updatedAt: DateTime.now(),
+        );
+      }
+    });
+
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('เปลี่ยนชื่อโฟลเดอร์เป็น "$newName" แล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
+  }
+
+  Future<void> _exportDocument(DocumentItem doc) async {
+    var content = doc.content;
+    final uri = doc.uri;
+    if (content.isEmpty && uri != null) {
+      try {
+        final fresh = await widget.repository.readDocument(uri);
+        if (fresh != null) content = fresh;
+      } catch (_) {}
+    }
+
+    final mdDoc = uri != null
+        ? MarkdownDocument.opened(name: doc.name, content: content, uri: uri)
+        : MarkdownDocument(
+            name: doc.name,
+            content: content,
+            savedName: doc.name,
+            savedContent: content,
+          );
+
+    if (!mounted) return;
+
+    await showExportBottomSheet(context, document: mdDoc);
   }
 
   void _moveToTrashDocument(DocumentItem doc) {
@@ -616,16 +830,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'เลิกทำ',
-          onPressed: () => _restoreDocument(doc),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            onPressed: () => _restoreDocument(doc),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _restoreDocument(DocumentItem doc) {
@@ -638,12 +855,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     _persistLibrary();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   Future<void> _permanentlyDeleteDocument(DocumentItem doc) async {
@@ -684,12 +904,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -750,12 +973,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await _persistLibrary();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
     }
   }
 
@@ -794,7 +1020,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
     });
   }
 
-  String _formatDate(DateTime dt) {
+  String _formatDate(DateTime dt, {bool includeTime = true}) {
     final mNames = [
       '',
       'ม.ค.',
@@ -811,9 +1037,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
       'ธ.ค.',
     ];
     final yearThai = dt.year + (dt.year < 2500 ? 543 : 0);
+    final yearShort = (yearThai % 100).toString().padLeft(2, '0');
+    final dateStr = '${dt.day} ${mNames[dt.month]} $yearShort';
+    if (!includeTime) return dateStr;
     final min = dt.minute.toString().padLeft(2, '0');
     final hour = dt.hour.toString().padLeft(2, '0');
-    return '${dt.day} ${mNames[dt.month]} $yearThai $hour:$min';
+    return '$dateStr $hour:$min';
   }
 
   FolderItem? get _currentFolder {
@@ -1105,6 +1334,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     return PopupMenuButton<ViewFilter>(
       initialValue: _filter,
+      offset: const Offset(10, 42),
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
       onSelected: (val) {
         setState(() {
           _filter = val;
@@ -1150,45 +1388,67 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ),
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(value: ViewFilter.all, child: Text('ทั้งหมด')),
-        const PopupMenuItem(
+        // 1. กลุ่มมุมมองหลัก (View)
+        _buildFilterMenuItem(
+          value: ViewFilter.all,
+          icon: Icons.grid_view_rounded,
+          title: 'ทั้งหมด',
+          theme: theme,
+        ),
+        _buildFilterMenuItem(
           value: ViewFilter.starred,
-          child: Text('⭐ ติดดาว (รายการโปรด)'),
+          icon: Icons.star_rounded,
+          title: 'ติดดาว (รายการโปรด)',
+          theme: theme,
+          iconColor: Colors.amber,
         ),
-        const PopupMenuItem(
-          value: ViewFilter.foldersOnly,
-          child: Text('📁 เฉพาะโฟลเดอร์'),
-        ),
-        const PopupMenuItem(
-          value: ViewFilter.filesOnly,
-          child: Text('📄 ไฟล์ทั้งหมด (.md, .txt)'),
-        ),
-        const PopupMenuItem(
-          value: ViewFilter.markdownOnly,
-          child: Text('📝 เฉพาะ Markdown (.md)'),
-        ),
-        const PopupMenuItem(
-          value: ViewFilter.txtOnly,
-          child: Text('📋 เฉพาะ Text (.txt)'),
-        ),
+
         const PopupMenuDivider(),
-        PopupMenuItem(
+
+        // 2. กลุ่มประเภทเนื้อหา (Filter by Type)
+        _buildFilterMenuItem(
+          value: ViewFilter.foldersOnly,
+          icon: Icons.folder_rounded,
+          title: 'โฟลเดอร์',
+          theme: theme,
+          iconColor: Colors.blue,
+        ),
+        _buildFilterMenuItem(
+          value: ViewFilter.filesOnly,
+          icon: Icons.insert_drive_file_outlined,
+          title: 'เอกสารทั้งหมด',
+          theme: theme,
+          iconColor: Colors.indigo,
+        ),
+        _buildFilterMenuItem(
+          value: ViewFilter.markdownOnly,
+          icon: Icons.description_outlined,
+          title: 'Markdown (.md)',
+          theme: theme,
+          iconColor: Colors.blue,
+        ),
+        _buildFilterMenuItem(
+          value: ViewFilter.txtOnly,
+          icon: Icons.text_snippet_outlined,
+          title: 'Text (.txt)',
+          theme: theme,
+          iconColor: Colors.teal,
+        ),
+
+        const PopupMenuDivider(),
+
+        // 3. กลุ่มระบบ (System)
+        _buildFilterMenuItem(
           value: ViewFilter.trash,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.delete_outline_rounded,
-                size: 18,
-                color: Colors.red,
-              ),
-              const SizedBox(width: 8),
-              const Text('ถังขยะ', style: TextStyle(color: Colors.red)),
-              if (trashCount > 0) ...[
-                const Spacer(),
-                Container(
+          icon: Icons.delete_outline_rounded,
+          title: 'ถังขยะ',
+          theme: theme,
+          iconColor: Colors.red,
+          trailing: trashCount > 0
+              ? Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 1,
+                    horizontal: 7,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.15),
@@ -1202,12 +1462,53 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       color: Colors.red,
                     ),
                   ),
-                ),
-              ],
-            ],
-          ),
+                )
+              : null,
         ),
       ],
+    );
+  }
+
+  // สร้างไอเทมเมนูตัวกรองพร้อมสถานะ Active และ Checkmark
+  PopupMenuItem<ViewFilter> _buildFilterMenuItem({
+    required ViewFilter value,
+    required IconData icon,
+    required String title,
+    required ThemeData theme,
+    Color? iconColor,
+    Widget? trailing,
+  }) {
+    final isSelected = _filter == value;
+    final primary = theme.colorScheme.primary;
+    final activeColor = value == ViewFilter.trash ? Colors.red : primary;
+
+    return PopupMenuItem<ViewFilter>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isSelected
+                ? activeColor
+                : (iconColor ?? theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? activeColor : theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          if (trailing != null) ...[trailing, const SizedBox(width: 8)],
+          if (isSelected)
+            Icon(Icons.check_rounded, size: 18, color: activeColor),
+        ],
+      ),
     );
   }
 
@@ -1274,6 +1575,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     },
                   ),
                   ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: const Text('เปลี่ยนชื่อโฟลเดอร์'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _renameFolder(folder);
+                    },
+                  ),
+                  ListTile(
                     leading: Icon(
                       folder.isStarred
                           ? Icons.star_rounded
@@ -1313,7 +1622,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
-  // แสดงตัวเลือกของเอกสาร (เปิด, ติดดาว, ย้ายไปถังขยะ, กู้คืน, ลบถาวร)
+  // แสดงตัวเลือกของเอกสาร (เปิด, เปลี่ยนชื่อ, ส่งออก, ติดดาว, ย้ายไปถังขยะ, กู้คืน, ลบถาวร)
   void _showDocumentOptions(DocumentItem doc) {
     showModalBottomSheet(
       context: context,
@@ -1375,6 +1684,22 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     onTap: () {
                       Navigator.pop(ctx);
                       _openDocument(doc);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: const Text('เปลี่ยนชื่อไฟล์'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _renameDocument(doc);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.upload_rounded),
+                    title: const Text('ส่งออก'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _exportDocument(doc);
                     },
                   ),
                   ListTile(
@@ -1452,8 +1777,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: 'new_md',
           child: Row(
             children: [
-              Icon(Icons.description_outlined, color: Colors.blue),
-              SizedBox(width: 10),
+              Icon(Icons.description_outlined, color: Colors.blue, size: 20),
+              SizedBox(width: 12),
               Expanded(child: Text('เอกสาร Markdown ใหม่ (.md)')),
             ],
           ),
@@ -1462,8 +1787,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: 'new_txt',
           child: Row(
             children: [
-              Icon(Icons.text_snippet_outlined, color: Colors.teal),
-              SizedBox(width: 10),
+              Icon(Icons.text_snippet_outlined, color: Colors.teal, size: 20),
+              SizedBox(width: 12),
               Expanded(child: Text('ไฟล์ข้อความใหม่ (.txt)')),
             ],
           ),
@@ -1473,8 +1798,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
             value: 'new_folder',
             child: Row(
               children: [
-                Icon(Icons.create_new_folder_outlined, color: Colors.amber),
-                SizedBox(width: 10),
+                Icon(
+                  Icons.create_new_folder_outlined,
+                  color: Colors.amber,
+                  size: 20,
+                ),
+                SizedBox(width: 12),
                 Expanded(child: Text('โฟลเดอร์ใหม่')),
               ],
             ),
@@ -1484,8 +1813,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: 'import',
           child: Row(
             children: [
-              Icon(Icons.file_open_outlined, color: Colors.orange),
-              SizedBox(width: 10),
+              Icon(Icons.file_open_outlined, color: Colors.orange, size: 20),
+              SizedBox(width: 12),
               Expanded(child: Text('ดึงไฟล์จากเครื่อง (Import)')),
             ],
           ),
@@ -1627,48 +1956,141 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => _handleFolderTap(folder),
-            onLongPress: () => _showFolderOptions(folder),
-            onSecondaryTap: () => _showFolderOptions(folder),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    folder.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.5,
-                      letterSpacing: -0.1,
-                      height: 1.35,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(folder.updatedAt),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      letterSpacing: 0.1,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.75,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 160),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => _handleFolderTap(folder),
+                      onLongPress: () => _showFolderOptions(folder),
+                      onSecondaryTap: () => _showFolderOptions(folder),
+                      child: Text(
+                        folder.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
+                          letterSpacing: -0.1,
+                          height: 1.35,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(folder.updatedAt, includeTime: false),
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 0,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.75,
+                        ),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
+              SizedBox(
+                width: 24,
+                height: 32,
+                child: PopupMenuButton<String>(
+                  key: Key('folder-menu-${folder.id}'),
+                  tooltip: 'ตัวเลือกโฟลเดอร์',
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.75,
+                    ),
+                  ),
+                  onSelected: (val) {
+                    if (val == 'open') _handleFolderTap(folder);
+                    if (val == 'rename') _renameFolder(folder);
+                    if (val == 'trash') _moveToTrashFolder(folder);
+                    if (val == 'restore') _restoreFolder(folder);
+                    if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
+                  },
+                  itemBuilder: (ctx) => folder.isTrash
+                      ? const [
+                          PopupMenuItem(
+                            value: 'restore',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.restore_from_trash_rounded,
+                                  size: 18,
+                                  color: Colors.blue,
+                                ),
+                                SizedBox(width: 8),
+                                Text('กู้คืน'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete_perm',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_forever_rounded,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'ลบถาวร',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]
+                      : const [
+                          PopupMenuItem(
+                            value: 'rename',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('เปลี่ยนชื่อโฟลเดอร์'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'trash',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'ย้ายไปถังขยะ',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1745,17 +2167,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           ),
                           const SizedBox(height: 8),
                           Expanded(
-                            child: Text(
-                              doc.content,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                height: 1.48,
-                                letterSpacing: 0.1,
-                                color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.85),
-                              ),
-                              overflow: TextOverflow.fade,
-                            ),
+                            child: _buildCardPreviewContent(doc.content, theme),
                           ),
                         ],
                       ),
@@ -1784,50 +2196,216 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => _openDocument(doc),
-            onLongPress: () => _showDocumentOptions(doc),
-            onSecondaryTap: () => _showDocumentOptions(doc),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    doc.displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.5,
-                      letterSpacing: -0.1,
-                      height: 1.35,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(doc.updatedAt),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      letterSpacing: 0.1,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.75,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 148),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () => _openDocument(doc),
+                      onLongPress: () => _showDocumentOptions(doc),
+                      onSecondaryTap: () => _showDocumentOptions(doc),
+                      child: Text(
+                        doc.displayName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
+                          letterSpacing: -0.1,
+                          height: 1.35,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatDate(doc.updatedAt, includeTime: false),
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 0,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.75,
+                        ),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
+              SizedBox(
+                width: 24,
+                height: 32,
+                child: PopupMenuButton<String>(
+                  key: Key('doc-menu-${doc.id}'),
+                  tooltip: 'ตัวเลือกเอกสาร',
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.75,
+                    ),
+                  ),
+                  onSelected: (val) {
+                    if (val == 'open') _openDocument(doc);
+                    if (val == 'rename') _renameDocument(doc);
+                    if (val == 'export') _exportDocument(doc);
+                    if (val == 'trash') _moveToTrashDocument(doc);
+                    if (val == 'restore') _restoreDocument(doc);
+                    if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
+                  },
+                  itemBuilder: (ctx) => doc.isTrash
+                      ? const [
+                          PopupMenuItem(
+                            value: 'restore',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.restore_from_trash_rounded,
+                                  size: 18,
+                                  color: Colors.blue,
+                                ),
+                                SizedBox(width: 8),
+                                Text('กู้คืน'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete_perm',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_forever_rounded,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'ลบถาวร',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]
+                      : const [
+                          PopupMenuItem(
+                            value: 'rename',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('เปลี่ยนชื่อไฟล์'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'export',
+                            child: Row(
+                              children: [
+                                Icon(Icons.upload_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('ส่งออก'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'trash',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'ย้ายไปถังขยะ',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                ),
+              ),
+            ],
           ),
         ),
+      ],
+    );
+  }
+
+  // พรีวิวเนื้อหาเอกสารในการ์ด (แยก Title บรรทัดแรกให้อ่านง่าย และตัดคำไม่ให้เสียรูปทรง)
+  Widget _buildCardPreviewContent(String content, ThemeData theme) {
+    final rawLines = content
+        .trim()
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (rawLines.isEmpty) {
+      return Text(
+        'เอกสารว่าง',
+        style: TextStyle(
+          fontSize: 11,
+          fontStyle: FontStyle.italic,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+      );
+    }
+
+    // แยก Title บรรทัดแรก (ตัดเครื่องหมาย # ออก)
+    final firstLine = rawLines.first.replaceAll(RegExp(r'^#{1,6}\s*'), '');
+    final remaining = rawLines
+        .skip(1)
+        .map((l) => l.replaceAll(RegExp(r'^#{1,6}\s*'), ''))
+        .join(' ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          firstLine,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            height: 1.35,
+            color: theme.colorScheme.onSurface,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (remaining.isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Expanded(
+            child: Text(
+              remaining,
+              style: TextStyle(
+                fontSize: 10.5,
+                height: 1.35,
+                letterSpacing: 0.05,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.8,
+                ),
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1883,6 +2461,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
                     onSelected: (val) {
                       if (val == 'open') _handleFolderTap(item);
+                      if (val == 'rename') _renameFolder(item);
                       if (val == 'trash') _moveToTrashFolder(item);
                       if (val == 'restore') _restoreFolder(item);
                       if (val == 'delete_perm') _permanentlyDeleteFolder(item);
@@ -1929,6 +2508,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(Icons.folder_open_rounded, size: 18),
                                   SizedBox(width: 8),
                                   Text('เปิดโฟลเดอร์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'rename',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปลี่ยนชื่อโฟลเดอร์'),
                                 ],
                               ),
                             ),
@@ -1998,6 +2587,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
                     onSelected: (val) {
                       if (val == 'open') _openDocument(item);
+                      if (val == 'rename') _renameDocument(item);
+                      if (val == 'export') _exportDocument(item);
                       if (val == 'trash') _moveToTrashDocument(item);
                       if (val == 'restore') _restoreDocument(item);
                       if (val == 'delete_perm') {
@@ -2046,6 +2637,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(Icons.edit_note_rounded, size: 18),
                                   SizedBox(width: 8),
                                   Text('เปิดเอกสาร'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'rename',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปลี่ยนชื่อไฟล์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'export',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.upload_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('ส่งออก'),
                                 ],
                               ),
                             ),
@@ -2150,17 +2761,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
       case ViewFilter.all:
         return 'ทั้งหมด';
       case ViewFilter.starred:
-        return 'ติดดาว ⭐';
+        return 'ติดดาว';
       case ViewFilter.foldersOnly:
         return 'โฟลเดอร์';
       case ViewFilter.filesOnly:
-        return 'ไฟล์ทั้งหมด';
+        return 'เอกสารทั้งหมด';
       case ViewFilter.markdownOnly:
-        return 'Markdown (.md)';
+        return 'Markdown';
       case ViewFilter.txtOnly:
         return 'Text (.txt)';
       case ViewFilter.trash:
-        return 'ถังขยะ 🗑️';
+        return 'ถังขยะ';
     }
   }
 }

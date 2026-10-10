@@ -17,8 +17,11 @@ class MarkdownDocumentSurface extends StatelessWidget {
     this.imageDirectory,
     this.onTapLink,
     this.builders,
+    this.underlay,
   });
 
+  /// Painted on the white page but beneath the text (e.g. highlighter ink).
+  final Widget? underlay;
   final String markdown;
   final double height;
   final bool selectable;
@@ -38,28 +41,34 @@ class MarkdownDocumentSurface extends StatelessWidget {
         color: Colors.white,
         child: SizedBox(
           width: DocumentPageMetrics.width,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Theme(
-              data: documentTheme,
-              child: Column(
-                key: selectable ? const Key('markdown-preview') : null,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final range in ranges)
-                    MarkdownRenderedBlock(
-                      markdown: range.textInside(markdown),
-                      references: blockContext.references,
-                      orderedNumber: blockContext.orderedNumbers[range.start],
-                      theme: documentTheme,
-                      imageDirectory: imageDirectory,
-                      selectable: selectable,
-                      onTapLink: onTapLink,
-                      builders: builders ?? const {},
-                    ),
-                ],
+          child: Stack(
+            children: [
+              if (underlay != null) Positioned.fill(child: underlay!),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Theme(
+                  data: documentTheme,
+                  child: Column(
+                    key: selectable ? const Key('markdown-preview') : null,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final range in ranges)
+                        MarkdownRenderedBlock(
+                          markdown: range.textInside(markdown),
+                          references: blockContext.references,
+                          orderedNumber:
+                              blockContext.orderedNumbers[range.start],
+                          theme: documentTheme,
+                          imageDirectory: imageDirectory,
+                          selectable: selectable,
+                          onTapLink: onTapLink,
+                          builders: builders ?? const {},
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

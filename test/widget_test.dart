@@ -81,7 +81,7 @@ void main() {
     await tester.pumpAndSettle();
     final surface = find.byKey(const Key('document-surface'));
     final initialBottom = tester.getBottomLeft(surface).dy;
-    expect(initialBottom, closeTo(834 - 20 - 8, 0.1));
+    expect(initialBottom, closeTo(834, 0.1));
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     tester.view.padding = FakeViewPadding.zero;
     await tester.pumpAndSettle();

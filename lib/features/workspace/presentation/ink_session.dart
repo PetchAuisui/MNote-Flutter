@@ -36,7 +36,7 @@ class InkSession extends ChangeNotifier {
   Color highlightColor = const Color(0xFFFFD54F);
   double highlightWidth = 18;
 
-  static Color highlightInk(Color color) => color.withValues(alpha: 0.4);
+  static Color highlightInk(Color color) => color.withValues(alpha: 0.5);
 
   void setHighlightPreset(int index, Color color) {
     highlightPresets[index] = color;

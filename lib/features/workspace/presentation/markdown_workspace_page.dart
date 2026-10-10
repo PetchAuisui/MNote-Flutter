@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -25,12 +25,14 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.initialDocument,
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
+    this.inkStorage = const DeviceInkFileStorage(),
   });
 
   final DocumentRepository repository;
   final MarkdownDocument? initialDocument;
   final DeviceImagePicker imagePicker;
   final MermaidFileSource mermaidFileSource;
+  final InkFileStorage inkStorage;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -58,14 +60,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Color _inkPenColor = const Color(0xFF202124);
   double _inkPenWidth = 3;
   bool _inkTouch = false;
-  bool _inkBusy = false;
   double _inkViewportWidth = 0;
-  final DeviceInkFileStorage _inkStorage = const DeviceInkFileStorage();
+  Timer? _inkSaveTimer;
 
   @override
   void initState() {
     super.initState();
     _inkTransform = TransformationController();
+    _ink.addListener(_scheduleInkSave);
     _workspace = WorkspaceController(
       widget.repository,
       initialDocument: widget.initialDocument,
@@ -80,6 +82,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
     _loadBundledExample();
+    unawaited(_loadInk());
   }
 
   @override
@@ -105,8 +108,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   @override
   void dispose() {
+    unawaited(_saveInk());
     _inkTransform.dispose();
-    _ink.dispose();
+    _ink
+      ..removeListener(_scheduleInkSave)
+      ..dispose();
     _workspace
       ..removeListener(_onWorkspaceChanged)
       ..dispose();
@@ -215,6 +221,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (opened) {
       _resetInk();
       _resetUndoHistory();
+      unawaited(_loadInk());
     }
   }
 
@@ -228,15 +235,15 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _saveDocument({bool saveAs = false}) async {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: _ink.isDirty
-          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดเขียน'
-          : 'บันทึกเอกสารแล้ว',
+      successMessage: 'บันทึกเอกสารแล้ว',
     );
+    unawaited(_saveInk());
   }
 
   void _resetInk() {
-    final previous = _ink;
-    setState(() => _ink = InkSession());
+    final previous = _ink..removeListener(_scheduleInkSave);
+    _inkSaveTimer?.cancel();
+    setState(() => _ink = InkSession()..addListener(_scheduleInkSave));
     WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
 
@@ -692,6 +699,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         bindings: _isTextMode ? _formattingShortcuts : const {},
         child: Scaffold(
           body: SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 if (_workspace.isBusy)
@@ -704,15 +712,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   _buildInkToolbar(),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Card(
                       key: const Key('document-surface'),
                       margin: EdgeInsets.zero,
                       elevation: 0,
                       color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      shape: const RoundedRectangleBorder(),
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
@@ -726,7 +732,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                     key: ObjectKey(_ink),
                                     session: _ink,
                                     markdown: document.content,
-                                    name: document.name,
                                     imageDirectory: _imageDirectory,
                                     transformationController: _inkTransform,
                                     showToolbar: false,
@@ -735,8 +740,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                   )
                                 : _buildPreview(),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          const Divider(height: 1),
+                          Container(
+                            width: double.infinity,
+                            color: const Color(0xFFECEEF3),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 32, 10),
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: Text(
@@ -1147,54 +1155,37 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (clear == true) _ink.pen.clear();
   }
 
-  Future<void> _inkFileAction(bool save) async {
-    if (_inkBusy) return;
-    setState(() => _inkBusy = true);
+  /// Ink autosaves next to the Markdown file; a document that has no file yet
+  /// keeps its ink in memory until it is first saved.
+  void _scheduleInkSave() {
+    _inkSaveTimer?.cancel();
+    _inkSaveTimer = Timer(const Duration(milliseconds: 800), _saveInk);
+  }
+
+  Future<void> _saveInk() async {
+    _inkSaveTimer?.cancel();
+    final uri = _workspace.document.uri;
+    if (uri == null || !_ink.isDirty) return;
+    final session = _ink;
+    final snapshot = session.encode();
     try {
-      if (save) {
-        final snapshot = _ink.encode();
-        final saved = await _inkStorage.save(
-          name: '${_workspace.document.name}.ink.json',
-          bytes: Uint8List.fromList(utf8.encode(snapshot)),
-        );
-        if (saved && mounted) _ink.markSaved(snapshot);
-      } else {
-        if (_ink.isDirty) {
-          final discard = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('แทนที่หมึกที่ยังไม่บันทึก?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('ยกเลิก'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('เปิดหมึก'),
-                ),
-              ],
-            ),
-          );
-          if (discard != true || !mounted) return;
-        }
-        final bytes = await _inkStorage.open();
-        if (bytes == null) return;
-        if (!mounted) return;
-        _ink.load(utf8.decode(bytes));
-      }
+      await widget.inkStorage.write(uri, snapshot);
+      session.markSaved(snapshot);
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'เปิดหรือบันทึกหมึกไม่สำเร็จ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _inkBusy = false);
+      // The next stroke retries; the ink stays in memory meanwhile.
+    }
+  }
+
+  Future<void> _loadInk() async {
+    final uri = _workspace.document.uri;
+    if (uri == null) return;
+    final session = _ink;
+    try {
+      final source = await widget.inkStorage.read(uri);
+      if (source == null || !mounted || session != _ink) return;
+      session.load(source);
+    } catch (_) {
+      // An unreadable ink file leaves the page blank rather than blocking it.
     }
   }
 
@@ -1210,7 +1201,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             ? _ink.highlightWidth
             : _inkPenWidth,
         touchEnabled: _inkTouch,
-        busy: _inkBusy,
         onToolSelected: _selectInkTool,
         onColorSelected: _selectInkColor,
         onWidthSelected: _selectInkWidth,
@@ -1231,10 +1221,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
         onFit: _fitInk,
-        onGrow: () => _ink.grow(_ink.height + 1000),
-        onOpen: () => _inkFileAction(false),
-        onSave: () => _inkFileAction(true),
-        isDirty: _ink.isDirty,
       ),
     );
   }

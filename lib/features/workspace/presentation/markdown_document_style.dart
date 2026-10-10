@@ -9,6 +9,20 @@ abstract final class MarkdownDocumentStyle {
   static const headingSizes = [28.0, 24.0, 20.0, 18.0, 17.0, 17.0];
   static const textColor = Color(0xFF202124);
 
+  /// Block backgrounds are half transparent, so highlighter ink beneath the
+  /// text shows through them. Over the white page they look like [opaque].
+  static Color _translucentOnWhite(int opaque) {
+    const alpha = 0.5;
+    int channel(int shift) =>
+        ((((opaque >> shift) & 0xFF) - (1 - alpha) * 255) / alpha).round();
+    return Color.fromARGB(
+      (alpha * 255).round(),
+      channel(16),
+      channel(8),
+      channel(0),
+    );
+  }
+
   static ThemeData theme(BuildContext context) => ThemeData.from(
     colorScheme: AppTheme.colorScheme(Brightness.light),
     textTheme: Theme.of(
@@ -46,19 +60,21 @@ abstract final class MarkdownDocumentStyle {
         horizontal: 12,
         vertical: 8,
       ),
-      blockquoteDecoration: const BoxDecoration(
-        color: Color(0xFFE9E8EF),
-        borderRadius: BorderRadius.all(Radius.circular(4)),
-        border: Border(left: BorderSide(color: Color(0xFF4D6495), width: 3)),
+      blockquoteDecoration: BoxDecoration(
+        color: _translucentOnWhite(0xFFE9E8EF),
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+        border: const Border(
+          left: BorderSide(color: Color(0xFF4D6495), width: 3),
+        ),
       ),
       code: body.copyWith(
         fontFamily: 'monospace',
         fontSize: 15,
-        backgroundColor: const Color(0xFFF1F1F3),
+        backgroundColor: _translucentOnWhite(0xFFF1F1F3),
       ),
       codeblockPadding: const EdgeInsets.all(16),
       codeblockDecoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
+        color: _translucentOnWhite(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(8),
       ),
       horizontalRuleDecoration: const BoxDecoration(

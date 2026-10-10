@@ -1,9 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
@@ -16,18 +11,14 @@ class InkPage extends StatefulWidget {
     super.key,
     required this.session,
     required this.markdown,
-    required this.name,
     this.imageDirectory,
-    this.fileStorage = const DeviceInkFileStorage(),
     this.transformationController,
     this.showToolbar = true,
     this.onViewportWidthChanged,
   });
   final InkSession session;
   final String markdown;
-  final String name;
   final String? imageDirectory;
-  final InkFileStorage fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
   final ValueChanged<double>? onViewportWidthChanged;
@@ -45,7 +36,6 @@ class _InkPageState extends State<InkPage> {
   double _penWidth = 3;
   bool get _touch =>
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
-  bool _busy = false;
   double _viewportWidth = 0;
 
   @override
@@ -181,57 +171,6 @@ class _InkPageState extends State<InkPage> {
     if (clear == true) widget.session.pen.clear();
   }
 
-  Future<void> _fileAction(bool save) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      if (save) {
-        final snapshot = widget.session.encode();
-        final saved = await widget.fileStorage.save(
-          name: '${widget.name}.ink.json',
-          bytes: Uint8List.fromList(utf8.encode(snapshot)),
-        );
-        if (saved && mounted) widget.session.markSaved(snapshot);
-      } else {
-        if (widget.session.isDirty) {
-          final discard = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('แทนที่หมึกที่ยังไม่บันทึก?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('ยกเลิก'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('เปิดหมึก'),
-                ),
-              ],
-            ),
-          );
-          if (discard != true || !mounted) return;
-        }
-        final bytes = await widget.fileStorage.open();
-        if (bytes == null) return;
-        if (!mounted) return;
-        widget.session.load(utf8.decode(bytes));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'เปิดหรือบันทึกหมึกไม่สำเร็จ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.session,
@@ -276,11 +215,18 @@ class _InkPageState extends State<InkPage> {
                     selectable: false,
                     imageDirectory: widget.imageDirectory,
                     builders: {'code': MermaidElementBuilder()},
+                    // Highlighter strokes sit beneath the text, so the text
+                    // stays crisp on top of them like a real highlighter.
+                    underlay: _InkLayer(notifier: pen, highlighter: true),
                   ),
                   Positioned.fill(
-                    // Multiply keeps the page text on top of translucent
-                    // highlighter strokes, like a real highlighter.
-                    child: _MultiplyBlend(
+                    child: _InkLayer(notifier: pen, highlighter: false),
+                  ),
+                  // Receives the pointer input; the layers above and beneath
+                  // the text do the drawing.
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0,
                       child: Scribble(notifier: pen, drawPen: false),
                     ),
                   ),
@@ -304,7 +250,6 @@ class _InkPageState extends State<InkPage> {
                 ? widget.session.highlightWidth
                 : _penWidth,
             touchEnabled: _touch,
-            busy: _busy,
             onToolSelected: _selectTool,
             onColorSelected: _selectColor,
             onWidthSelected: _selectWidth,
@@ -329,12 +274,7 @@ class _InkPageState extends State<InkPage> {
               );
             },
             onFit: _fit,
-            onGrow: () => widget.session.grow(widget.session.height + 1000),
-            onOpen: () => _fileAction(false),
-            onSave: () => _fileAction(true),
-            isDirty: widget.session.isDirty,
           ),
-          if (_busy) const LinearProgressIndicator(),
           Expanded(child: canvas),
         ],
       );
@@ -343,8 +283,6 @@ class _InkPageState extends State<InkPage> {
 }
 
 enum InkTool { pen, highlighter, eraser }
-
-enum _InkManagementAction { open, save, clear }
 
 class _InkHistoryDock extends StatelessWidget {
   const _InkHistoryDock({required this.onUndo, required this.onRedo});
@@ -393,7 +331,6 @@ class InkToolbar extends StatelessWidget {
     required this.penColor,
     required this.penWidth,
     required this.touchEnabled,
-    required this.busy,
     required this.onToolSelected,
     required this.onColorSelected,
     required this.onWidthSelected,
@@ -406,17 +343,12 @@ class InkToolbar extends StatelessWidget {
     required this.onClear,
     required this.onTouchChanged,
     required this.onFit,
-    required this.onGrow,
-    required this.onOpen,
-    required this.onSave,
-    required this.isDirty,
   });
 
   final InkTool selectedTool;
   final Color penColor;
   final double penWidth;
   final bool touchEnabled;
-  final bool busy;
   final ValueChanged<InkTool> onToolSelected;
   final ValueChanged<Color> onColorSelected;
   final ValueChanged<double> onWidthSelected;
@@ -429,10 +361,6 @@ class InkToolbar extends StatelessWidget {
   final VoidCallback? onClear;
   final VoidCallback onTouchChanged;
   final VoidCallback onFit;
-  final VoidCallback onGrow;
-  final VoidCallback onOpen;
-  final VoidCallback onSave;
-  final bool isDirty;
 
   @override
   Widget build(BuildContext context) {
@@ -580,12 +508,6 @@ class InkToolbar extends StatelessWidget {
                                   onPressed: onFit,
                                   icon: const Icon(Icons.fit_screen),
                                 ),
-                                IconButton(
-                                  key: const Key('ink-grow'),
-                                  tooltip: 'เพิ่มพื้นที่ด้านล่าง',
-                                  onPressed: onGrow,
-                                  icon: const Icon(Icons.vertical_align_bottom),
-                                ),
                               ],
                             ),
                             const SizedBox(width: 8),
@@ -596,49 +518,14 @@ class InkToolbar extends StatelessWidget {
                                 alpha: 0.55,
                               ),
                               children: [
-                                PopupMenuButton<_InkManagementAction>(
+                                PopupMenuButton<bool>(
                                   key: const Key('ink-management-menu'),
-                                  tooltip: 'จัดการหมึก',
-                                  enabled: !busy,
-                                  onSelected: (action) {
-                                    switch (action) {
-                                      case _InkManagementAction.open:
-                                        onOpen();
-                                      case _InkManagementAction.save:
-                                        onSave();
-                                      case _InkManagementAction.clear:
-                                        onClear?.call();
-                                    }
-                                  },
+                                  tooltip: 'เพิ่มเติม',
+                                  onSelected: (_) => onClear?.call(),
                                   itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      key: Key('ink-open'),
-                                      value: _InkManagementAction.open,
-                                      child: ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: Icon(
-                                          Icons.folder_open_outlined,
-                                        ),
-                                        title: Text('เปิดไฟล์หมึก'),
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      key: const Key('ink-save'),
-                                      value: _InkManagementAction.save,
-                                      child: ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: Icon(
-                                          isDirty
-                                              ? Icons.save_as
-                                              : Icons.save_outlined,
-                                        ),
-                                        title: const Text('บันทึกไฟล์หมึก'),
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(),
                                     PopupMenuItem(
                                       key: const Key('ink-clear'),
-                                      value: _InkManagementAction.clear,
+                                      value: true,
                                       enabled: onClear != null,
                                       child: ListTile(
                                         contentPadding: EdgeInsets.zero,
@@ -659,10 +546,7 @@ class InkToolbar extends StatelessWidget {
                                       ),
                                     ),
                                   ],
-                                  icon: Badge(
-                                    isLabelVisible: isDirty,
-                                    child: const Icon(Icons.layers_outlined),
-                                  ),
+                                  icon: const Icon(Icons.more_horiz),
                                 ),
                               ],
                             ),
@@ -1175,20 +1059,39 @@ class _ColorSwatchButton extends StatelessWidget {
   }
 }
 
-/// Paints [child] into a layer that is multiplied with what is behind it.
-class _MultiplyBlend extends SingleChildRenderObjectWidget {
-  const _MultiplyBlend({super.child});
+/// Draws either the highlighter strokes or all other strokes of [notifier].
+class _InkLayer extends StatelessWidget {
+  const _InkLayer({required this.notifier, required this.highlighter});
+
+  final ScribbleNotifier notifier;
+  final bool highlighter;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderMultiply();
+  Widget build(BuildContext context) => IgnorePointer(
+    child: ValueListenableBuilder<ScribbleState>(
+      valueListenable: notifier,
+      builder: (context, state, _) => ScribbleSketch(
+        sketch: Sketch(
+          lines: [
+            // `lines` includes the stroke still being drawn, so ink follows
+            // the pen; the highlighter's width is constant while drawing too.
+            for (final line in state.lines)
+              if (((line.color >> 24) & 0xFF != 0xFF) == highlighter)
+                highlighter ? _constantWidth(line) : line,
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
-class _RenderMultiply extends RenderProxyBox {
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    final rect = offset & size;
-    context.canvas.saveLayer(rect, Paint()..blendMode = BlendMode.multiply);
-    super.paint(context, offset);
-    context.canvas.restore();
-  }
-}
+SketchLine _constantWidth(SketchLine line) => line.copyWith(
+  points: [
+    for (var i = 0; i < line.points.length; i++)
+      Point(
+        line.points[i].x,
+        line.points[i].y,
+        pressure: i == 0 ? 0.5 : 0.5001,
+      ),
+  ],
+);

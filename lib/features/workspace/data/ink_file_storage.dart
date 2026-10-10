@@ -1,35 +1,29 @@
-import 'dart:typed_data';
+import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
-
+/// Persists a document's ink next to the document itself, as
+/// `<document>.ink.json`. Only documents backed by a local file have ink on disk.
 abstract interface class InkFileStorage {
-  Future<bool> save({required String name, required Uint8List bytes});
+  Future<String?> read(Uri documentUri);
 
-  Future<Uint8List?> open();
+  Future<void> write(Uri documentUri, String content);
 }
 
 class DeviceInkFileStorage implements InkFileStorage {
   const DeviceInkFileStorage();
 
+  File? _sidecar(Uri documentUri) => documentUri.scheme == 'file'
+      ? File('${File.fromUri(documentUri).path}.ink.json')
+      : null;
+
   @override
-  Future<bool> save({required String name, required Uint8List bytes}) async {
-    final uri = await FilePicker.saveFile(
-      dialogTitle: 'บันทึกหมึกแยกจาก Markdown',
-      fileName: name,
-      bytes: bytes,
-      mimeType: 'application/json',
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
-    );
-    return uri != null;
+  Future<String?> read(Uri documentUri) async {
+    final file = _sidecar(documentUri);
+    if (file == null || !await file.exists()) return null;
+    return file.readAsString();
   }
 
   @override
-  Future<Uint8List?> open() async {
-    final file = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
-    );
-    return file?.readAsBytes();
+  Future<void> write(Uri documentUri, String content) async {
+    await _sidecar(documentUri)?.writeAsString(content, flush: true);
   }
 }

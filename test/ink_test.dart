@@ -247,6 +247,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
 
+    await tester.tap(find.byKey(const Key('ink-width')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ink-width-custom')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-width-slider'))).onChanged!(
+      25,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-width-apply')));
+    await tester.pumpAndSettle();
+    expect(pen.value.selectedWidth, 25);
+
     await tester.tap(find.byKey(const Key('ink-color')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('ink-color-custom')));
@@ -258,6 +270,7 @@ void main() {
     await tester.tap(find.byKey(const Key('ink-color-apply')));
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, isNot(0xFFB3261E));
+    expect(pen.value.selectedWidth, 25);
     expect(tester.takeException(), isNull);
   });
 

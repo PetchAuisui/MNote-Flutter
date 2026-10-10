@@ -521,23 +521,42 @@ class InkToolbar extends StatelessWidget {
                                     size: 22,
                                   ),
                                 ),
-                                PopupMenuButton<double>(
+                                PopupMenuButton<Object>(
                                   key: const Key('ink-width'),
                                   tooltip: 'เลือกความหนาปากกา',
                                   initialValue: penWidth,
-                                  onSelected: onWidthSelected,
+                                  onSelected: (value) async {
+                                    if (value is double) {
+                                      onWidthSelected(value);
+                                      return;
+                                    }
+                                    final picked = await showDialog<double>(
+                                      context: context,
+                                      builder: (_) => _CustomWidthDialog(
+                                        initial: penWidth,
+                                        color: penColor,
+                                      ),
+                                    );
+                                    if (picked != null) onWidthSelected(picked);
+                                  },
                                   itemBuilder: (context) => const [
-                                    PopupMenuItem(
-                                      value: 3,
+                                    PopupMenuItem<Object>(
+                                      value: 3.0,
                                       child: Text('เส้นบาง'),
                                     ),
-                                    PopupMenuItem(
-                                      value: 6,
+                                    PopupMenuItem<Object>(
+                                      value: 6.0,
                                       child: Text('เส้นกลาง'),
                                     ),
-                                    PopupMenuItem(
-                                      value: 12,
+                                    PopupMenuItem<Object>(
+                                      value: 12.0,
                                       child: Text('เส้นหนา'),
+                                    ),
+                                    PopupMenuDivider(),
+                                    PopupMenuItem<Object>(
+                                      key: Key('ink-width-custom'),
+                                      value: _customOption,
+                                      child: Text('กำหนดขนาดเอง…'),
                                     ),
                                   ],
                                   icon: const Icon(Icons.line_weight),
@@ -933,4 +952,71 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
       ),
     ],
   );
+}
+
+class _CustomWidthDialog extends StatefulWidget {
+  const _CustomWidthDialog({required this.initial, required this.color});
+
+  final double initial;
+  final Color color;
+
+  @override
+  State<_CustomWidthDialog> createState() => _CustomWidthDialogState();
+}
+
+class _CustomWidthDialogState extends State<_CustomWidthDialog> {
+  late double _width = widget.initial.clamp(1, 40);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('กำหนดขนาดเส้น'),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 48,
+              child: Center(
+                child: Container(
+                  key: const Key('ink-width-preview'),
+                  height: _width,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    borderRadius: BorderRadius.circular(_width / 2),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Slider(
+                    key: const Key('ink-width-slider'),
+                    value: _width,
+                    min: 1,
+                    max: 40,
+                    onChanged: (v) => setState(() => _width = v),
+                  ),
+                ),
+                SizedBox(width: 40, child: Text(_width.toStringAsFixed(0))),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ยกเลิก'),
+        ),
+        FilledButton(
+          key: const Key('ink-width-apply'),
+          onPressed: () => Navigator.pop(context, _width.roundToDouble()),
+          child: const Text('ตกลง'),
+        ),
+      ],
+    );
+  }
 }

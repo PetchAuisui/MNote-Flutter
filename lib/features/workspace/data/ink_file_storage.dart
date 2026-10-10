@@ -60,7 +60,7 @@ class DeviceInkFileStorage implements InkFileStorage {
       final appDir = await getApplicationDocumentsDirectory();
       final file = File('${appDir.path}/$name.ink.json');
       if (await file.exists()) {
-        return file.readAsBytes();
+        return await file.readAsBytes();
       }
     } catch (_) {}
     return null;

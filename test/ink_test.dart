@@ -1,7 +1,8 @@
-import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -233,19 +234,42 @@ void main() {
     await tester.pump();
     expect(pen.value, isA<Drawing>());
     expect(pen.value.selectedWidth, 18);
-    expect((pen.value as Drawing).selectedColor, 0x66FFD54F);
+    expect((pen.value as Drawing).selectedColor, 0x80FFD54F);
 
-    await tester.tap(find.byKey(const Key('ink-color')));
+    await tester.tap(find.byKey(const Key('ink-pen')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('แดง'));
+    await tester.tap(find.byKey(const Key('ink-color-preset-2')));
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
 
-    await tester.tap(find.byKey(const Key('ink-width')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('เส้นหนา'));
+    await tester.tap(find.byKey(const Key('ink-width-preset-2')));
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
+
+    // Tapping the selected width edits that preset.
+    await tester.tap(find.byKey(const Key('ink-width-preset-2')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-width-slider'))).onChanged!(
+      25,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-width-apply')));
+    await tester.pumpAndSettle();
+    expect(pen.value.selectedWidth, 25);
+
+    await tester.longPress(find.byKey(const Key('ink-color-preset-2')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      120,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, isNot(0xFFB3261E));
+    expect(pen.value.selectedWidth, 25);
+    final session = tester.widget<InkPage>(find.byType(InkPage)).session;
+    expect(session.widthPresets[2], 25);
+    expect(session.colorPresets[2], isNot(const Color(0xFFB3261E)));
     expect(tester.takeException(), isNull);
   });
 
@@ -255,9 +279,7 @@ void main() {
     addTearDown(tester.view.reset);
     final session = InkSession();
     addTearDown(session.dispose);
-    await tester.pumpWidget(
-      _inkPage(session: session, storage: FakeInkFileStorage()),
-    );
+    await tester.pumpWidget(_inkPage(session: session));
     await tester.pumpAndSettle();
 
     expect(
@@ -283,6 +305,234 @@ void main() {
     );
     expect(tester.getRect(find.byKey(const Key('ink-history-dock'))), dockRect);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('color swatches and width menu fit narrow and wide screens', (
+    tester,
+  ) async {
+    addTearDown(tester.view.reset);
+    for (final size in const [Size(320, 700), Size(1180, 820)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      final session = InkSession();
+      addTearDown(session.dispose);
+      await tester.pumpWidget(_inkPage(session: session));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('ink-color-preset-4')));
+      expect(find.byKey(const Key('ink-color-preset-4')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('ink-width-preset-2')));
+      expect(find.byKey(const Key('ink-width-preset-0')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('tapping the selected swatch or palette edits a preset', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.pumpAndSettle();
+    final original = session.colorPresets[0];
+    await tester.tap(find.byKey(const Key('ink-color-preset-0')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      200,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect(session.colorPresets[0], isNot(original));
+
+    await tester.tap(find.byKey(const Key('ink-color')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      30,
+    );
+    await tester.pump();
+    final before = session.colorPresets[0];
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect(session.colorPresets[0], isNot(before));
+  });
+
+  testWidgets('highlighter keeps its own colors, separate from the pen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.pumpAndSettle();
+    final pen = session.pen;
+
+    await tester.tap(find.byKey(const Key('ink-color-preset-1')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, 0xFF275DAD);
+
+    await tester.tap(find.byKey(const Key('ink-highlighter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ink-color-preset-1')));
+    await tester.pumpAndSettle();
+    expect(session.highlightColor, session.highlightPresets[1]);
+    expect(
+      (pen.value as Drawing).selectedColor,
+      InkSession.highlightInk(session.highlightPresets[1]).toARGB32(),
+    );
+
+    await tester.tap(find.byKey(const Key('ink-pen')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, 0xFF275DAD);
+    expect(session.colorPresets[1], const Color(0xFF275DAD));
+  });
+
+  testWidgets('page stays centred however the transform is disturbed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final transform = TransformationController();
+    addTearDown(transform.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: InkPage(
+            session: session,
+            markdown: '# Notes',
+            name: 'notes.md',
+            transformationController: transform,
+            showToolbar: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final centred = transform.value.getTranslation().x;
+    expect(centred, closeTo((1400 - InkSession.pageWidth) / 2, 0.5));
+
+    transform.value = Matrix4.identity();
+    await tester.pump();
+    expect(transform.value.getTranslation().x, closeTo(centred, 0.5));
+
+    transform.value = Matrix4.identity()..setTranslationRaw(-120, 0, 0);
+    await tester.pump();
+    expect(transform.value.getTranslation().x, closeTo(centred, 0.5));
+  });
+
+  testWidgets('highlighter strokes and dots render with equal thickness', (
+    tester,
+  ) async {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    const color = 0x66FFD54F;
+    session.pen.setSketch(
+      sketch: Sketch(
+        lines: [
+          SketchLine(
+            color: color,
+            width: 18,
+            points: const [Point(40, 60), Point(300, 66)],
+          ),
+        ],
+      ),
+    );
+    void add(List<Point> points) => session.pen.setSketch(
+      sketch: Sketch(
+        lines: [
+          ...session.pen.currentSketch.lines,
+          SketchLine(color: color, width: 18, points: points),
+        ],
+      ),
+    );
+    add(const [Point(400, 150)]);
+    add(const [
+      Point(40, 200),
+      Point(90, 215),
+      Point(150, 190),
+      Point(210, 220),
+      Point(300, 205),
+    ]);
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: RepaintBoundary(
+            key: key,
+            child: SizedBox(
+              width: 500,
+              height: 300,
+              child: ColoredBox(
+                color: const Color(0xFFFFFFFF),
+                child: Scribble(notifier: session.pen, drawPen: false),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final image = await tester.runAsync(() async {
+      final boundary =
+          key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      return boundary.toImage();
+    });
+    final data = (await tester.runAsync(
+      () => image!.toByteData(format: ImageByteFormat.rawRgba),
+    ))!;
+    int thickness(int x, int y) {
+      bool inked(int py) {
+        final i = (py * 500 + x) * 4;
+        return data.getUint8(i + 2) < 250;
+      }
+
+      var top = y;
+      while (top > 0 && inked(top - 1)) {
+        top--;
+      }
+      var bottom = y;
+      while (bottom < 299 && inked(bottom + 1)) {
+        bottom++;
+      }
+      return bottom - top + 1;
+    }
+
+    final lineMiddle = thickness(170, 63);
+    final lineNearEnd = thickness(60, 61);
+    final dot = thickness(400, 150);
+    final wavyMiddle = thickness(170, 200);
+    expect(lineMiddle, closeTo(36, 3));
+    expect(lineNearEnd, closeTo(lineMiddle, 2));
+    expect(dot, closeTo(lineMiddle, 2));
+    expect(wavyMiddle, closeTo(lineMiddle, 2));
+  });
+
+  test('finished highlighter strokes stay free-form', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    SketchLine wavy(int color) => SketchLine(
+      color: color,
+      width: 18,
+      points: const [
+        Point(10, 100),
+        Point(60, 108),
+        Point(110, 95),
+        Point(160, 104),
+        Point(210, 102),
+      ],
+    );
+    session.pen.setSketch(sketch: Sketch(lines: [wavy(0x66FFD54F)]));
+    final stroke = session.pen.currentSketch.lines.single;
+    expect(stroke.points, hasLength(5));
+    expect(stroke.points[2].y, 95);
+    expect(stroke.points.map((p) => p.pressure).toSet().length, greaterThan(1));
   });
 
   testWidgets('clearing ink asks for confirmation and can be undone', (
@@ -344,54 +594,6 @@ void main() {
     expect(session.pen.currentSketch, sketch);
   });
 
-  testWidgets(
-    'saves ink through storage and only marks successful saves clean',
-    (tester) async {
-      final session = InkSession();
-      final storage = FakeInkFileStorage();
-      addTearDown(session.dispose);
-      session.pen.setSketch(sketch: sketch);
-
-      await tester.pumpWidget(_inkPage(session: session, storage: storage));
-      await _chooseInkManagementAction(tester, const Key('ink-save'));
-
-      expect(storage.savedName, 'notes.md.ink.json');
-      expect(
-        jsonDecode(utf8.decode(storage.savedBytes!))['format'],
-        'mnote-ink',
-      );
-      expect(session.isDirty, isFalse);
-
-      session.pen.clear();
-      storage.saveResult = false;
-      await tester.pump();
-      await _chooseInkManagementAction(tester, const Key('ink-save'));
-
-      expect(session.isDirty, isTrue);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('opens ink through storage and restores a clean session', (
-    tester,
-  ) async {
-    final source = InkSession()..pen.setSketch(sketch: sketch);
-    final target = InkSession();
-    final storage = FakeInkFileStorage(
-      openBytes: Uint8List.fromList(utf8.encode(source.encode())),
-    );
-    addTearDown(source.dispose);
-    addTearDown(target.dispose);
-
-    await tester.pumpWidget(_inkPage(session: target, storage: storage));
-    await _chooseInkManagementAction(tester, const Key('ink-open'));
-
-    expect(storage.openCalls, 1);
-    expect(target.pen.currentSketch, sketch);
-    expect(target.isDirty, isFalse);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('autosaves ink on stroke and marks session clean', (
     tester,
   ) async {
@@ -405,6 +607,20 @@ void main() {
 
     expect(storage.savedBytes, isNotNull);
     expect(session.isDirty, isFalse);
+  });
+
+  testWidgets('ink menu only offers clearing', (tester) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.tap(find.byKey(const Key('ink-management-menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ink-clear')), findsOneWidget);
+    expect(find.byKey(const Key('ink-open')), findsNothing);
+    expect(find.byKey(const Key('ink-save')), findsNothing);
   });
 
   testWidgets('ink survives Markdown deletion, mode switch and resize', (
@@ -501,17 +717,14 @@ Future<void> _chooseInkManagementAction(
   await tester.pumpAndSettle();
 }
 
-Widget _inkPage({
-  required InkSession session,
-  required InkFileStorage storage,
-}) {
+Widget _inkPage({required InkSession session, InkFileStorage? storage}) {
   return MaterialApp(
     home: Scaffold(
       body: InkPage(
         session: session,
         markdown: '# Notes',
         name: 'notes.md',
-        fileStorage: storage,
+        fileStorage: storage ?? FakeInkFileStorage(),
       ),
     ),
   );

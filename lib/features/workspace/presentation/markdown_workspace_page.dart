@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
-import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -63,9 +61,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Color _inkPenColor = const Color(0xFF202124);
   double _inkPenWidth = 3;
   bool _inkTouch = false;
-  bool _inkBusy = false;
   double _inkViewportWidth = 0;
-  final DeviceInkFileStorage _inkStorage = const DeviceInkFileStorage();
 
   @override
   void initState() {
@@ -240,9 +236,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _saveDocument({bool saveAs = false}) async {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: _ink.isDirty
-          ? 'บันทึก Markdown แล้ว · หมึกยังไม่บันทึก ใช้ปุ่มบันทึกในโหมดเขียน'
-          : 'บันทึกเอกสารแล้ว',
+      successMessage: 'บันทึกเอกสารแล้ว',
     );
   }
 
@@ -639,6 +633,56 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _replaceSelection('', '', placeholder: image.markdown);
   }
 
+  bool get _isTextMode =>
+      _workspace.mode == WorkspaceMode.edit ||
+      _workspace.mode == WorkspaceMode.split;
+
+  /// Formatting shortcuts act on the document body, not on the title field.
+  VoidCallback _unlessTitleFocused(VoidCallback action) => () {
+    if (!_titleFocusNode.hasFocus) action();
+  };
+
+  Map<ShortcutActivator, VoidCallback> get _formattingShortcuts => {
+    for (final control in [true, false]) ...{
+      SingleActivator(
+        LogicalKeyboardKey.keyB,
+        control: control,
+        meta: !control,
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+      ),
+      SingleActivator(
+        LogicalKeyboardKey.keyI,
+        control: control,
+        meta: !control,
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+      ),
+      SingleActivator(
+        LogicalKeyboardKey.keyE,
+        control: control,
+        meta: !control,
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('`', '`', placeholder: 'code'),
+      ),
+      SingleActivator(
+        LogicalKeyboardKey.keyK,
+        control: control,
+        meta: !control,
+      ): _unlessTitleFocused(
+        () => _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+      ),
+      SingleActivator(
+        LogicalKeyboardKey.keyX,
+        control: control,
+        meta: !control,
+        shift: true,
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+      ),
+    },
+  };
+
   Future<void> _importTextFile() async {
     final file = await widget.repository.open();
     if (file == null || !mounted) return;
@@ -779,77 +823,84 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           Navigator.of(context).pop(_workspace.document);
         }
       },
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (_workspace.isBusy)
-                const LinearProgressIndicator(minHeight: 2),
-              _buildWorkspaceHeader(document),
-              if (_workspace.mode == WorkspaceMode.edit ||
-                  _workspace.mode == WorkspaceMode.split)
-                _buildFormattingToolbar()
-              else if (_workspace.mode == WorkspaceMode.ink)
-                _buildInkToolbar(),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: RepaintBoundary(
-                    key: _surfaceBoundaryKey,
-                    child: Card(
-                      key: const Key('document-surface'),
-                      margin: EdgeInsets.zero,
-                      elevation: 0,
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: _workspace.mode == WorkspaceMode.edit
-                                ? _buildEditor()
-                                : _workspace.mode == WorkspaceMode.split
-                                ? _buildSplitView()
-                                : _workspace.mode == WorkspaceMode.ink
-                                ? InkPage(
-                                    key: ObjectKey(_ink),
-                                    session: _ink,
-                                    markdown: document.content,
-                                    name: document.name,
-                                    imageDirectory: _imageDirectory,
-                                    transformationController: _inkTransform,
-                                    showToolbar: false,
-                                    onViewportWidthChanged: (w) =>
-                                        _inkViewportWidth = w,
-                                  )
-                                : _buildPreview(),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                _workspace.mode == WorkspaceMode.split
-                                    ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
-                                    : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                                key: const Key('document-statistics'),
-                                maxLines: 1,
-                                textAlign: TextAlign.end,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(color: const Color(0xFF5F6368)),
+      child: CallbackShortcuts(
+        bindings: _isTextMode ? _formattingShortcuts : const {},
+        child: Scaffold(
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                if (_workspace.isBusy)
+                  const LinearProgressIndicator(minHeight: 2),
+                _buildWorkspaceHeader(document),
+                if (_workspace.mode == WorkspaceMode.edit ||
+                    _workspace.mode == WorkspaceMode.split)
+                  _buildFormattingToolbar()
+                else if (_workspace.mode == WorkspaceMode.ink)
+                  _buildInkToolbar(),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: RepaintBoundary(
+                      key: _surfaceBoundaryKey,
+                      child: Card(
+                        key: const Key('document-surface'),
+                        margin: EdgeInsets.zero,
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: const RoundedRectangleBorder(),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: _workspace.mode == WorkspaceMode.edit
+                                  ? _buildEditor()
+                                  : _workspace.mode == WorkspaceMode.split
+                                  ? _buildSplitView()
+                                  : _workspace.mode == WorkspaceMode.ink
+                                  ? InkPage(
+                                      key: ObjectKey(_ink),
+                                      session: _ink,
+                                      markdown: document.content,
+                                      name: document.name,
+                                      imageDirectory: _imageDirectory,
+                                      transformationController: _inkTransform,
+                                      showToolbar: false,
+                                      onViewportWidthChanged: (w) =>
+                                          _inkViewportWidth = w,
+                                    )
+                                  : _buildPreview(),
+                            ),
+                            const Divider(height: 1),
+                            Container(
+                              width: double.infinity,
+                              color: const Color(0xFFECEEF3),
+                              padding: const EdgeInsets.fromLTRB(16, 8, 32, 10),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _workspace.mode == WorkspaceMode.split
+                                      ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                      : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                                  key: const Key('document-statistics'),
+                                  maxLines: 1,
+                                  textAlign: TextAlign.end,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: const Color(0xFF5F6368),
+                                      ),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1162,12 +1213,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
         onItalic: () =>
             _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+        onStrikethrough: () =>
+            _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
         onList: () => _formatSelectedLines(
           prefixBuilder: (_) => '- ',
           placeholder: 'รายการ',
           removePattern: '- ',
         ),
         onOrderedList: _formatOrderedList,
+        onTaskList: () => _formatSelectedLines(
+          prefixBuilder: (_) => '- [ ] ',
+          placeholder: 'งานที่ต้องทำ',
+          removePattern: RegExp(r'^- \[[ xX]\] '),
+        ),
         onIndentList: () => _changeListIndent(increase: true),
         onOutdentList: () => _changeListIndent(increase: false),
         onQuote: () => _formatSelectedLines(
@@ -1208,8 +1266,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           ..setStrokeWidth(_inkPenWidth);
       case InkTool.highlighter:
         pen
-          ..setColor(const Color(0x66FFD54F))
-          ..setStrokeWidth(18);
+          ..setColor(InkSession.highlightInk(_ink.highlightColor))
+          ..setStrokeWidth(_ink.highlightWidth);
       case InkTool.eraser:
         pen
           ..setEraser()
@@ -1218,6 +1276,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _selectInkColor(Color color) {
+    if (_inkTool == InkTool.highlighter) {
+      _ink.selectHighlight(color: color);
+      _ink.pen.setColor(InkSession.highlightInk(color));
+      return;
+    }
     setState(() {
       _inkPenColor = color;
       _inkTool = InkTool.pen;
@@ -1228,6 +1291,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _selectInkWidth(double width) {
+    if (_inkTool == InkTool.highlighter) {
+      _ink.selectHighlight(width: width);
+      _ink.pen.setStrokeWidth(width);
+      return;
+    }
     setState(() {
       _inkPenWidth = width;
       _inkTool = InkTool.pen;
@@ -1267,78 +1335,38 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (clear == true) _ink.pen.clear();
   }
 
-  Future<void> _inkFileAction(bool save) async {
-    if (_inkBusy) return;
-    setState(() => _inkBusy = true);
-    try {
-      if (save) {
-        final snapshot = _ink.encode();
-        final saved = await _inkStorage.save(
-          name: '${_workspace.document.name}.ink.json',
-          bytes: Uint8List.fromList(utf8.encode(snapshot)),
-        );
-        if (saved && mounted) _ink.markSaved(snapshot);
-      } else {
-        if (_ink.isDirty) {
-          final discard = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('แทนที่หมึกที่ยังไม่บันทึก?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('ยกเลิก'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('เปิดหมึก'),
-                ),
-              ],
-            ),
-          );
-          if (discard != true || !mounted) return;
-        }
-        final bytes = await _inkStorage.open();
-        if (bytes == null) return;
-        if (!mounted) return;
-        _ink.load(utf8.decode(bytes));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'เปิดหรือบันทึกหมึกไม่สำเร็จ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _inkBusy = false);
-    }
-  }
-
   Widget _buildInkToolbar() {
     return ListenableBuilder(
       listenable: _ink,
       builder: (context, _) => InkToolbar(
         selectedTool: _inkTool,
-        penColor: _inkPenColor,
-        penWidth: _inkPenWidth,
+        penColor: _inkTool == InkTool.highlighter
+            ? _ink.highlightColor
+            : _inkPenColor,
+        penWidth: _inkTool == InkTool.highlighter
+            ? _ink.highlightWidth
+            : _inkPenWidth,
         touchEnabled: _inkTouch,
-        busy: _inkBusy,
         onToolSelected: _selectInkTool,
         onColorSelected: _selectInkColor,
         onWidthSelected: _selectInkWidth,
+        colorPresets: _inkTool == InkTool.highlighter
+            ? _ink.highlightPresets
+            : _ink.colorPresets,
+        widthPresets: _inkTool == InkTool.highlighter
+            ? _ink.highlightWidthPresets
+            : _ink.widthPresets,
+        onColorPresetChanged: _inkTool == InkTool.highlighter
+            ? _ink.setHighlightPreset
+            : _ink.setColorPreset,
+        onWidthPresetChanged: _inkTool == InkTool.highlighter
+            ? _ink.setHighlightWidthPreset
+            : _ink.setWidthPreset,
         onUndo: _ink.pen.canUndo ? _ink.pen.undo : null,
         onRedo: _ink.pen.canRedo ? _ink.pen.redo : null,
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
         onFit: _fitInk,
-        onGrow: () => _ink.grow(_ink.height + 1000),
-        onOpen: () => _inkFileAction(false),
-        onSave: () => _inkFileAction(true),
-        isDirty: _ink.isDirty,
       ),
     );
   }
@@ -1355,7 +1383,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               .merge(_editorTextStyle)
               .copyWith(color: const Color(0xFF202124));
           final lineCount = '\n'.allMatches(_textController.text).length + 1;
-          final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
+          // Reserve at least 3 digits so the text doesn't shift sideways when
+          // the line count crosses 10 or 100.
+          final gutterDigits = lineCount.toString().length.clamp(3, 99);
+          final gutterWidth = 28.0 + gutterDigits * 8.0;
           const horizontalTextPadding = 28.0;
           final textWidth =
               (constraints.maxWidth - gutterWidth - horizontalTextPadding)

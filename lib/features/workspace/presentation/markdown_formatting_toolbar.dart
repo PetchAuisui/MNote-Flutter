@@ -10,8 +10,10 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onHeading,
     required this.onBold,
     required this.onItalic,
+    required this.onStrikethrough,
     required this.onList,
     required this.onOrderedList,
+    required this.onTaskList,
     required this.onIndentList,
     required this.onOutdentList,
     required this.onQuote,
@@ -31,8 +33,10 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final ValueChanged<int> onHeading;
   final VoidCallback onBold;
   final VoidCallback onItalic;
+  final VoidCallback onStrikethrough;
   final VoidCallback onList;
   final VoidCallback onOrderedList;
+  final VoidCallback onTaskList;
   final VoidCallback onIndentList;
   final VoidCallback onOutdentList;
   final VoidCallback onQuote;
@@ -126,6 +130,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       showLabel: showLabels,
                       onPressed: widget.onItalic,
                     ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-strikethrough'),
+                      icon: Icons.format_strikethrough_rounded,
+                      label: 'ขีดฆ่า',
+                      showLabel: showLabels,
+                      onPressed: widget.onStrikethrough,
+                    ),
                     const _ToolbarDivider(),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-list'),
@@ -140,6 +151,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       label: 'รายการตัวเลข',
                       showLabel: showLabels,
                       onPressed: widget.onOrderedList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-task-list'),
+                      icon: Icons.checklist_rounded,
+                      label: 'รายการงาน',
+                      showLabel: showLabels,
+                      onPressed: widget.onTaskList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),

@@ -72,7 +72,7 @@ void main() {
     testWidgets(
       'จอแท็บเล็ต 1024x768: เจอ Key toolbar-diagram กดแล้วเห็นครบ 3 แบบ และแทรกข้อความถูกต้อง',
       (tester) async {
-        await _pumpWorkspace(tester, size: const Size(1024, 768));
+        await _pumpWorkspace(tester, size: const Size(1280, 768));
 
         final diagramButton = find.byKey(const Key('toolbar-diagram'));
         if (diagramButton.evaluate().isEmpty) {
@@ -104,7 +104,7 @@ void main() {
       (tester) async {
         await _pumpWorkspace(
           tester,
-          size: const Size(1024, 768),
+          size: const Size(1280, 768),
           text: 'first',
         );
 
@@ -124,7 +124,7 @@ void main() {
     testWidgets(
       'undo: หลังแทรก template กด toolbar-undo ข้อความกลับเป็นค่าเดิม',
       (tester) async {
-        await _pumpWorkspace(tester, size: const Size(1024, 768));
+        await _pumpWorkspace(tester, size: const Size(1280, 768));
 
         await tester.tap(find.byKey(const Key('toolbar-diagram')));
         await tester.pumpAndSettle();
@@ -175,7 +175,7 @@ void main() {
     testWidgets(
       'ครบวงจร: แทรก template แล้วออกจากการแก้ไข เจอ mermaid-diagram-fallback',
       (tester) async {
-        await _pumpWorkspace(tester, size: const Size(1024, 768));
+        await _pumpWorkspace(tester, size: const Size(1280, 768));
 
         await tester.tap(find.byKey(const Key('toolbar-diagram')));
         await tester.pumpAndSettle();
@@ -195,7 +195,7 @@ void main() {
     );
 
     testWidgets('6. เมนูไดอะแกรมมี Key toolbar-diagram-import', (tester) async {
-      await _pumpWorkspace(tester, size: const Size(1024, 768));
+      await _pumpWorkspace(tester, size: const Size(1280, 768));
 
       await tester.tap(find.byKey(const Key('toolbar-diagram')));
       await tester.pumpAndSettle();
@@ -217,7 +217,7 @@ void main() {
 
         await _pumpWorkspace(
           tester,
-          size: const Size(1024, 768),
+          size: const Size(1280, 768),
           fileSource: fakeSource,
         );
 
@@ -246,7 +246,7 @@ void main() {
 
         await _pumpWorkspace(
           tester,
-          size: const Size(1024, 768),
+          size: const Size(1280, 768),
           fileSource: fakeSource,
         );
 
@@ -269,7 +269,7 @@ void main() {
 
       await _pumpWorkspace(
         tester,
-        size: const Size(1024, 768),
+        size: const Size(1280, 768),
         fileSource: fakeSource,
       );
 

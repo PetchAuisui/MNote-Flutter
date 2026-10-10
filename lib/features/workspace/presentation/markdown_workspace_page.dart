@@ -624,6 +624,46 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _replaceSelection('', '', placeholder: image.markdown);
   }
 
+  bool get _isTextMode =>
+      _workspace.mode == WorkspaceMode.edit ||
+      _workspace.mode == WorkspaceMode.split;
+
+  Map<ShortcutActivator, VoidCallback> get _formattingShortcuts => {
+    for (final control in [true, false]) ...{
+      SingleActivator(
+        LogicalKeyboardKey.keyB,
+        control: control,
+        meta: !control,
+      ): () =>
+          _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+      SingleActivator(
+        LogicalKeyboardKey.keyI,
+        control: control,
+        meta: !control,
+      ): () =>
+          _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+      SingleActivator(
+        LogicalKeyboardKey.keyE,
+        control: control,
+        meta: !control,
+      ): () =>
+          _toggleInlineFormat('`', '`', placeholder: 'code'),
+      SingleActivator(
+        LogicalKeyboardKey.keyK,
+        control: control,
+        meta: !control,
+      ): () =>
+          _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+      SingleActivator(
+        LogicalKeyboardKey.keyX,
+        control: control,
+        meta: !control,
+        shift: true,
+      ): () =>
+          _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+    },
+  };
+
   Future<void> _openLink(String? href) async {
     final uri = href == null ? null : Uri.tryParse(href);
     if (uri == null || !await launchUrl(uri)) {
@@ -648,74 +688,77 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           ).pop(_workspace.document.isDirty ? null : _workspace.document);
         }
       },
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              if (_workspace.isBusy)
-                const LinearProgressIndicator(minHeight: 2),
-              _buildWorkspaceHeader(document),
-              if (_workspace.mode == WorkspaceMode.edit ||
-                  _workspace.mode == WorkspaceMode.split)
-                _buildFormattingToolbar()
-              else if (_workspace.mode == WorkspaceMode.ink)
-                _buildInkToolbar(),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Card(
-                    key: const Key('document-surface'),
-                    margin: EdgeInsets.zero,
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: _workspace.mode == WorkspaceMode.edit
-                              ? _buildEditor()
-                              : _workspace.mode == WorkspaceMode.split
-                              ? _buildSplitView()
-                              : _workspace.mode == WorkspaceMode.ink
-                              ? InkPage(
-                                  key: ObjectKey(_ink),
-                                  session: _ink,
-                                  markdown: document.content,
-                                  name: document.name,
-                                  imageDirectory: _imageDirectory,
-                                  transformationController: _inkTransform,
-                                  showToolbar: false,
-                                  onViewportWidthChanged: (w) =>
-                                      _inkViewportWidth = w,
-                                )
-                              : _buildPreview(),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              _workspace.mode == WorkspaceMode.split
-                                  ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
-                                  : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
-                              key: const Key('document-statistics'),
-                              maxLines: 1,
-                              textAlign: TextAlign.end,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: const Color(0xFF5F6368)),
+      child: CallbackShortcuts(
+        bindings: _isTextMode ? _formattingShortcuts : const {},
+        child: Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                if (_workspace.isBusy)
+                  const LinearProgressIndicator(minHeight: 2),
+                _buildWorkspaceHeader(document),
+                if (_workspace.mode == WorkspaceMode.edit ||
+                    _workspace.mode == WorkspaceMode.split)
+                  _buildFormattingToolbar()
+                else if (_workspace.mode == WorkspaceMode.ink)
+                  _buildInkToolbar(),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Card(
+                      key: const Key('document-surface'),
+                      margin: EdgeInsets.zero,
+                      elevation: 0,
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: _workspace.mode == WorkspaceMode.edit
+                                ? _buildEditor()
+                                : _workspace.mode == WorkspaceMode.split
+                                ? _buildSplitView()
+                                : _workspace.mode == WorkspaceMode.ink
+                                ? InkPage(
+                                    key: ObjectKey(_ink),
+                                    session: _ink,
+                                    markdown: document.content,
+                                    name: document.name,
+                                    imageDirectory: _imageDirectory,
+                                    transformationController: _inkTransform,
+                                    showToolbar: false,
+                                    onViewportWidthChanged: (w) =>
+                                        _inkViewportWidth = w,
+                                  )
+                                : _buildPreview(),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                _workspace.mode == WorkspaceMode.split
+                                    ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
+                                    : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                                key: const Key('document-statistics'),
+                                maxLines: 1,
+                                textAlign: TextAlign.end,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: const Color(0xFF5F6368)),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

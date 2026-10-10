@@ -237,19 +237,19 @@ void main() {
 
     await tester.tap(find.byKey(const Key('ink-color')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('แดง'));
+    await tester.tap(find.byKey(const Key('ink-color-preset-2')));
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
 
     await tester.tap(find.byKey(const Key('ink-width')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('เส้นหนา'));
+    await tester.tap(find.byKey(const Key('ink-width-preset-2')));
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
 
     await tester.tap(find.byKey(const Key('ink-width')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ink-width-custom')));
+    await tester.tap(find.byKey(const Key('ink-width-edit-2')));
     await tester.pumpAndSettle();
     tester.widget<Slider>(find.byKey(const Key('ink-width-slider'))).onChanged!(
       25,
@@ -261,7 +261,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('ink-color')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ink-color-custom')));
+    await tester.tap(find.byKey(const Key('ink-color-edit-2')));
     await tester.pumpAndSettle();
     tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
       120,
@@ -271,6 +271,9 @@ void main() {
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, isNot(0xFFB3261E));
     expect(pen.value.selectedWidth, 25);
+    final session = tester.widget<InkPage>(find.byType(InkPage)).session;
+    expect(session.widthPresets[2], 25);
+    expect(session.colorPresets[2], isNot(const Color(0xFFB3261E)));
     expect(tester.takeException(), isNull);
   });
 

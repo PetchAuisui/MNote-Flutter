@@ -283,6 +283,10 @@ class _InkPageState extends State<InkPage> {
             onToolSelected: _selectTool,
             onColorSelected: _selectColor,
             onWidthSelected: _selectWidth,
+            colorPresets: widget.session.colorPresets,
+            widthPresets: widget.session.widthPresets,
+            onColorPresetChanged: widget.session.setColorPreset,
+            onWidthPresetChanged: widget.session.setWidthPreset,
             onUndo: pen.canUndo ? pen.undo : null,
             onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,
@@ -360,6 +364,10 @@ class InkToolbar extends StatelessWidget {
     required this.onToolSelected,
     required this.onColorSelected,
     required this.onWidthSelected,
+    required this.colorPresets,
+    required this.widthPresets,
+    required this.onColorPresetChanged,
+    required this.onWidthPresetChanged,
     required this.onUndo,
     required this.onRedo,
     required this.onClear,
@@ -379,6 +387,10 @@ class InkToolbar extends StatelessWidget {
   final ValueChanged<InkTool> onToolSelected;
   final ValueChanged<Color> onColorSelected;
   final ValueChanged<double> onWidthSelected;
+  final List<Color> colorPresets;
+  final List<double> widthPresets;
+  final void Function(int index, Color color) onColorPresetChanged;
+  final void Function(int index, double width) onWidthPresetChanged;
   final VoidCallback? onUndo;
   final VoidCallback? onRedo;
   final VoidCallback? onClear;
@@ -388,14 +400,6 @@ class InkToolbar extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onSave;
   final bool isDirty;
-
-  static const _colors = [
-    Color(0xFF202124),
-    Color(0xFF275DAD),
-    Color(0xFFB3261E),
-    Color(0xFF237A3B),
-    Color(0xFF7B4BA0),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -474,46 +478,51 @@ class InkToolbar extends StatelessWidget {
                                   key: const Key('ink-color'),
                                   tooltip: 'เลือกสีปากกา',
                                   initialValue: penColor,
-                                  onSelected: (value) async {
-                                    if (value is Color) {
-                                      onColorSelected(value);
-                                      return;
-                                    }
-                                    final picked = await showDialog<Color>(
-                                      context: context,
-                                      builder: (_) =>
-                                          _CustomColorDialog(initial: penColor),
-                                    );
-                                    if (picked != null) onColorSelected(picked);
-                                  },
-                                  itemBuilder: (context) => [
-                                    for (final color in _colors)
-                                      PopupMenuItem(
-                                        value: color,
+                                  onSelected: (v) =>
+                                      onColorSelected(v as Color),
+                                  itemBuilder: (menuContext) => [
+                                    for (
+                                      var i = 0;
+                                      i < colorPresets.length;
+                                      i++
+                                    )
+                                      PopupMenuItem<Object>(
+                                        key: Key('ink-color-preset-$i'),
+                                        value: colorPresets[i],
                                         child: Row(
                                           children: [
-                                            Icon(Icons.circle, color: color),
+                                            Icon(
+                                              Icons.circle,
+                                              color: colorPresets[i],
+                                            ),
                                             const SizedBox(width: 12),
-                                            Text(_colorName(color)),
-                                            if (color == penColor) ...[
-                                              const Spacer(),
-                                              const Icon(Icons.check),
-                                            ],
+                                            Text('สีที่ ${i + 1}'),
+                                            if (colorPresets[i] == penColor)
+                                              const Padding(
+                                                padding: EdgeInsets.only(
+                                                  left: 8,
+                                                ),
+                                                child: Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                            const Spacer(),
+                                            IconButton(
+                                              key: Key('ink-color-edit-$i'),
+                                              tooltip: 'แก้ไขสีพรีเซ็ตนี้',
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                                size: 20,
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(menuContext);
+                                                _editColor(context, i);
+                                              },
+                                            ),
                                           ],
                                         ),
                                       ),
-                                    const PopupMenuDivider(),
-                                    const PopupMenuItem<Object>(
-                                      key: Key('ink-color-custom'),
-                                      value: _customOption,
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.palette_outlined),
-                                          SizedBox(width: 12),
-                                          Text('กำหนดสีเอง…'),
-                                        ],
-                                      ),
-                                    ),
                                   ],
                                   icon: Icon(
                                     Icons.circle,
@@ -525,39 +534,65 @@ class InkToolbar extends StatelessWidget {
                                   key: const Key('ink-width'),
                                   tooltip: 'เลือกความหนาปากกา',
                                   initialValue: penWidth,
-                                  onSelected: (value) async {
-                                    if (value is double) {
-                                      onWidthSelected(value);
-                                      return;
-                                    }
-                                    final picked = await showDialog<double>(
-                                      context: context,
-                                      builder: (_) => _CustomWidthDialog(
-                                        initial: penWidth,
-                                        color: penColor,
+                                  onSelected: (v) =>
+                                      onWidthSelected(v as double),
+                                  itemBuilder: (menuContext) => [
+                                    for (
+                                      var i = 0;
+                                      i < widthPresets.length;
+                                      i++
+                                    )
+                                      PopupMenuItem<Object>(
+                                        key: Key('ink-width-preset-$i'),
+                                        value: widthPresets[i],
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 56,
+                                              child: Container(
+                                                height: widthPresets[i].clamp(
+                                                  1.0,
+                                                  24.0,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: penColor,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              widthPresets[i].toStringAsFixed(
+                                                0,
+                                              ),
+                                            ),
+                                            if (widthPresets[i] == penWidth)
+                                              const Padding(
+                                                padding: EdgeInsets.only(
+                                                  left: 8,
+                                                ),
+                                                child: Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                            const Spacer(),
+                                            IconButton(
+                                              key: Key('ink-width-edit-$i'),
+                                              tooltip: 'แก้ไขขนาดพรีเซ็ตนี้',
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                                size: 20,
+                                              ),
+                                              onPressed: () {
+                                                Navigator.pop(menuContext);
+                                                _editWidth(context, i);
+                                              },
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    );
-                                    if (picked != null) onWidthSelected(picked);
-                                  },
-                                  itemBuilder: (context) => const [
-                                    PopupMenuItem<Object>(
-                                      value: 3.0,
-                                      child: Text('เส้นบาง'),
-                                    ),
-                                    PopupMenuItem<Object>(
-                                      value: 6.0,
-                                      child: Text('เส้นกลาง'),
-                                    ),
-                                    PopupMenuItem<Object>(
-                                      value: 12.0,
-                                      child: Text('เส้นหนา'),
-                                    ),
-                                    PopupMenuDivider(),
-                                    PopupMenuItem<Object>(
-                                      key: Key('ink-width-custom'),
-                                      value: _customOption,
-                                      child: Text('กำหนดขนาดเอง…'),
-                                    ),
                                   ],
                                   icon: const Icon(Icons.line_weight),
                                 ),
@@ -700,15 +735,26 @@ class InkToolbar extends StatelessWidget {
     selectedIcon: selectedIcon,
   );
 
-  static const _customOption = 'custom';
+  Future<void> _editColor(BuildContext context, int index) async {
+    final picked = await showDialog<Color>(
+      context: context,
+      builder: (_) => _CustomColorDialog(initial: colorPresets[index]),
+    );
+    if (picked == null) return;
+    onColorPresetChanged(index, picked);
+    onColorSelected(picked);
+  }
 
-  static String _colorName(Color color) => switch (color.toARGB32()) {
-    0xFF202124 => 'ดำ',
-    0xFF275DAD => 'น้ำเงิน',
-    0xFFB3261E => 'แดง',
-    0xFF237A3B => 'เขียว',
-    _ => 'ม่วง',
-  };
+  Future<void> _editWidth(BuildContext context, int index) async {
+    final picked = await showDialog<double>(
+      context: context,
+      builder: (_) =>
+          _CustomWidthDialog(initial: widthPresets[index], color: penColor),
+    );
+    if (picked == null) return;
+    onWidthPresetChanged(index, picked);
+    onWidthSelected(picked);
+  }
 }
 
 class _InkToolbarGroup extends StatelessWidget {

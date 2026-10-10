@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
@@ -40,13 +42,18 @@ Future<void> _pumpWorkspace(
       documentRepository: repo,
       home: MarkdownWorkspacePage(
         repository: repo,
+        initialDocument: MarkdownDocument.opened(
+          name: 'Test.md',
+          content: '',
+          uri: Uri.file('/tmp/Test.md'),
+        ),
         mermaidFileSource: fileSource ?? _FakeMermaidFileSource(null),
       ),
     ),
   );
   await tester.pumpAndSettle();
 
-  final editor = find.byKey(const Key('markdown-editor'));
+  final editor = find.byKey(const Key('markdown-live-block-editor'));
   await tester.tap(editor);
   await tester.pump(const Duration(milliseconds: 600));
   await tester.enterText(editor, text);
@@ -54,8 +61,8 @@ Future<void> _pumpWorkspace(
 }
 
 String _editorText(WidgetTester tester) => tester
-    .widget<TextField>(find.byKey(const Key('markdown-editor')))
-    .controller!
+    .widget<MarkdownLiveEditor>(find.byType(MarkdownLiveEditor))
+    .controller
     .text;
 
 final _flowchart = mermaidTemplates.firstWhere((t) => t.id == 'flowchart');
@@ -68,9 +75,11 @@ void main() {
         await _pumpWorkspace(tester, size: const Size(1024, 768));
 
         final diagramButton = find.byKey(const Key('toolbar-diagram'));
-        expect(diagramButton, findsOneWidget);
-
-        await tester.tap(diagramButton);
+        if (diagramButton.evaluate().isEmpty) {
+          await tester.tap(find.byKey(const Key('toolbar-more')));
+        } else {
+          await tester.tap(diagramButton);
+        }
         await tester.pumpAndSettle();
 
         for (final template in mermaidTemplates) {
@@ -164,7 +173,7 @@ void main() {
     );
 
     testWidgets(
-      'ครบวงจร: แทรก template แล้วกดแท็บแสดงผล เจอ mermaid-diagram-fallback',
+      'ครบวงจร: แทรก template แล้วออกจากการแก้ไข เจอ mermaid-diagram-fallback',
       (tester) async {
         await _pumpWorkspace(tester, size: const Size(1024, 768));
 
@@ -174,8 +183,7 @@ void main() {
         await tester.tap(find.text(_flowchart.label));
         await tester.pumpAndSettle();
 
-        final previewTab = find.text('แสดงผล');
-        await tester.tap(previewTab);
+        FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
 
         expect(

@@ -13,12 +13,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
-enum ExportFormat {
-  pdf,
-  markdown,
-  plainText,
-  image,
-}
+enum ExportFormat { pdf, markdown, plainText, image }
 
 String stripMarkdown(String markdown) {
   var text = markdown;
@@ -59,17 +54,19 @@ String stripMarkdown(String markdown) {
   return text.trim();
 }
 
-typedef ExportSaver = Future<Uri?> Function({
-  required String fileName,
-  required Uint8List bytes,
-  required String extension,
-});
+typedef ExportSaver =
+    Future<Uri?> Function({
+      required String fileName,
+      required Uint8List bytes,
+      required String extension,
+    });
 
-typedef ExportSharer = Future<void> Function({
-  required String fileName,
-  required Uint8List bytes,
-  required String mimeType,
-});
+typedef ExportSharer =
+    Future<void> Function({
+      required String fileName,
+      required Uint8List bytes,
+      required String mimeType,
+    });
 
 Future<Uri?> defaultExportSaver({
   required String fileName,
@@ -103,13 +100,15 @@ Future<void> defaultExportSharer({
 
 Future<Uint8List?> captureSurfaceImage(GlobalKey surfaceKey) async {
   try {
-    final boundary = surfaceKey.currentContext?.findRenderObject()
-        as RenderRepaintBoundary?;
+    final boundary =
+        surfaceKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
     if (boundary == null || boundary.debugNeedsPaint) return null;
-    final image = await boundary.toImage(pixelRatio: 2.0).timeout(
-      const Duration(milliseconds: 300),
-      onTimeout: () => throw TimeoutException('toImage timed out'),
-    );
+    final image = await boundary
+        .toImage(pixelRatio: 2.0)
+        .timeout(
+          const Duration(milliseconds: 300),
+          onTimeout: () => throw TimeoutException('toImage timed out'),
+        );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData?.buffer.asUint8List();
   } catch (_) {
@@ -140,9 +139,7 @@ Future<Uint8List> generatePdf({
         pageFormat: pageFormat,
         margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
-          return pw.Center(
-            child: pw.Image(image, fit: pw.BoxFit.contain),
-          );
+          return pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain));
         },
       ),
     );
@@ -307,8 +304,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                                 .withValues(alpha: 0.65),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: colorScheme.outlineVariant
-                                  .withValues(alpha: 0.4),
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -323,8 +321,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                               ),
                               const SizedBox(width: 5),
                               ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 240),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 240,
+                                ),
                                 child: Text(
                                   widget.document.name,
                                   style: TextStyle(
@@ -445,12 +444,16 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
               children: [
                 SwitchListTile(
                   key: const Key('export-pdf-ink-switch'),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   title: const Text(
                     'รวมรอยหมึกปากกา (Layer หมึกวาด)',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5,
+                    ),
                   ),
                   subtitle: Text(
                     _includeInk
@@ -472,12 +475,16 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   title: const Text(
                     'ขนาดหน้าเอกสาร',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5,
+                    ),
                   ),
                   subtitle: Text(
                     _isContinuous
@@ -542,12 +549,13 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
             ),
             child: SwitchListTile(
               key: const Key('export-image-ink-switch'),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
               title: const Text(
                 'รวมรอยหมึกปากกา',
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
               ),
               subtitle: Text(
                 _includeInk
@@ -577,7 +585,10 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     );
   }
 
-  Widget _buildTextOptionsView(BuildContext context, {required bool isMarkdown}) {
+  Widget _buildTextOptionsView(
+    BuildContext context, {
+    required bool isMarkdown,
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -600,60 +611,57 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isMarkdown
-                        ? const Color(0xFFE3F2FD)
-                        : const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(12),
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isMarkdown
+                          ? const Color(0xFFE3F2FD)
+                          : const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isMarkdown
+                          ? Icons.description_rounded
+                          : Icons.text_snippet_rounded,
+                      color: isMarkdown
+                          ? const Color(0xFF1E88E5)
+                          : const Color(0xFFFB8C00),
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    isMarkdown
-                        ? Icons.description_rounded
-                        : Icons.text_snippet_rounded,
-                    color: isMarkdown
-                        ? const Color(0xFF1E88E5)
-                        : const Color(0xFFFB8C00),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isMarkdown ? 'Markdown (.md)' : 'ข้อความล้วน (.txt)',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.5,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isMarkdown ? 'Markdown (.md)' : 'ข้อความล้วน (.txt)',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isMarkdown
-                            ? 'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด'
-                            : 'ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 2),
+                        Text(
+                          isMarkdown
+                              ? 'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด'
+                              : 'ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 20),
-          _buildActionButtons(
-            saveLabel: 'บันทึกไฟล์',
-            shareLabel: 'แชร์ไฟล์',
-          ),
+          const SizedBox(height: 20),
+          _buildActionButtons(saveLabel: 'บันทึกไฟล์', shareLabel: 'แชร์ไฟล์'),
           const SizedBox(height: 12),
         ],
       ),
@@ -677,7 +685,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
             ),
             icon: const Icon(Icons.share_rounded, size: 18),
             label: Text(shareLabel),
-            onPressed: _isProcessing ? null : () => _executeExport(isShare: true),
+            onPressed: _isProcessing
+                ? null
+                : () => _executeExport(isShare: true),
           ),
         ),
         const SizedBox(width: 12),
@@ -692,7 +702,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
             ),
             icon: const Icon(Icons.save_alt_rounded, size: 18),
             label: Text(saveLabel),
-            onPressed: _isProcessing ? null : () => _executeExport(isShare: false),
+            onPressed: _isProcessing
+                ? null
+                : () => _executeExport(isShare: false),
           ),
         ),
       ],
@@ -793,7 +805,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         setState(() => _isProcessing = false);
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่')),
+        const SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่'),
+        ),
       );
     }
   }

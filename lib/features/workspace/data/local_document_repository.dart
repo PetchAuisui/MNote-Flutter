@@ -65,9 +65,9 @@ class LocalDocumentRepository implements DocumentRepository {
         name: targetFileName,
         bytes: _encode(document.content),
       );
-      if (newUri != null) {
-        uri = newUri;
-      }
+      // ถ้าสำรองไม่สำเร็จด้วย ต้องโยนข้อผิดพลาดต่อ ไม่ใช่ถือว่าบันทึกแล้ว
+      if (newUri == null) rethrow;
+      uri = newUri;
     }
 
     final savedDoc = document.markSaved(name: document.name, uri: uri);
@@ -168,10 +168,7 @@ class LocalDocumentRepository implements DocumentRepository {
           .where((doc) => doc.uri?.toString() != uri.toString())
           .toList();
       await saveMetadata(
-        LibraryMetadata(
-          folders: metadata.folders,
-          documents: updatedDocs,
-        ),
+        LibraryMetadata(folders: metadata.folders, documents: updatedDocs),
       );
     }
   }
@@ -226,10 +223,7 @@ class LocalDocumentRepository implements DocumentRepository {
     }
 
     await saveMetadata(
-      LibraryMetadata(
-        folders: metadata.folders,
-        documents: updatedDocs,
-      ),
+      LibraryMetadata(folders: metadata.folders, documents: updatedDocs),
     );
   }
 

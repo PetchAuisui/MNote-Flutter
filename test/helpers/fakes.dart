@@ -26,7 +26,10 @@ class FakeDocumentStorage implements DocumentStorage {
   }
 
   @override
-  Future<Uri?> createDocument({required String name, required Uint8List bytes}) async {
+  Future<Uri?> createDocument({
+    required String name,
+    required Uint8List bytes,
+  }) async {
     final uri = saveUri ?? Uri.file('/tmp/$name');
     await write(uri, bytes);
     return uri;

@@ -39,7 +39,10 @@ class DeviceDocumentStorage implements DocumentStorage {
   }
 
   @override
-  Future<Uri?> createDocument({required String name, required Uint8List bytes}) async {
+  Future<Uri?> createDocument({
+    required String name,
+    required Uint8List bytes,
+  }) async {
     final appDir = await getApplicationDocumentsDirectory();
     final file = File('${appDir.path}/$name');
     await file.writeAsBytes(bytes, flush: true);
@@ -80,11 +83,7 @@ class DeviceDocumentStorage implements DocumentStorage {
         final filename = file.uri.pathSegments.last;
         final bytes = await file.readAsBytes();
         result.add(
-          SelectedDocumentFile(
-            name: filename,
-            uri: file.uri,
-            bytes: bytes,
-          ),
+          SelectedDocumentFile(name: filename, uri: file.uri, bytes: bytes),
         );
       }
     }
@@ -118,4 +117,3 @@ class DeviceDocumentStorage implements DocumentStorage {
     await file.writeAsString(content, flush: true);
   }
 }
-

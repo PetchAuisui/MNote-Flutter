@@ -33,15 +33,19 @@ abstract final class AppTheme {
       seedColor: primarySeed,
       brightness: brightness,
       secondary: isDark ? const Color(0xFFC1C6DA) : const Color(0xFF595E6F),
-      secondaryContainer:
-          isDark ? const Color(0xFF414657) : const Color(0xFFDDE2F7),
-      onSecondaryContainer:
-          isDark ? const Color(0xFFDDE2F7) : const Color(0xFF161B2B),
+      secondaryContainer: isDark
+          ? const Color(0xFF414657)
+          : const Color(0xFFDDE2F7),
+      onSecondaryContainer: isDark
+          ? const Color(0xFFDDE2F7)
+          : const Color(0xFF161B2B),
       tertiary: isDark ? const Color(0xFFB2C9E2) : const Color(0xFF4B6077),
-      tertiaryContainer:
-          isDark ? const Color(0xFF33495E) : const Color(0xFFCEE5FF),
-      onTertiaryContainer:
-          isDark ? const Color(0xFFCEE5FF) : const Color(0xFF041D32),
+      tertiaryContainer: isDark
+          ? const Color(0xFF33495E)
+          : const Color(0xFFCEE5FF),
+      onTertiaryContainer: isDark
+          ? const Color(0xFFCEE5FF)
+          : const Color(0xFF041D32),
       error: isDark ? const Color(0xFFFFB4AB) : const Color(0xFFBA1A1A),
     );
   }
@@ -95,18 +99,12 @@ abstract final class AppTheme {
         letterSpacing: -0.1,
         height: 1.35,
       ),
-      bodyLarge: textTheme.bodyLarge?.copyWith(
-        height: 1.5,
-        letterSpacing: 0.1,
-      ),
+      bodyLarge: textTheme.bodyLarge?.copyWith(height: 1.5, letterSpacing: 0.1),
       bodyMedium: textTheme.bodyMedium?.copyWith(
         height: 1.45,
         letterSpacing: 0.1,
       ),
-      bodySmall: textTheme.bodySmall?.copyWith(
-        height: 1.4,
-        letterSpacing: 0.1,
-      ),
+      bodySmall: textTheme.bodySmall?.copyWith(height: 1.4, letterSpacing: 0.1),
       labelLarge: textTheme.labelLarge?.copyWith(
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
@@ -153,9 +151,7 @@ abstract final class AppTheme {
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 4,
         color: scheme.surfaceContainerHigh,
       ),

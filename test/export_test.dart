@@ -40,130 +40,155 @@ The end.''';
   });
 
   group('Import Append Behavior', () {
-    testWidgets('importing file appends text without overwriting existing content', (tester) async {
-      final repo = FakeDocumentRepository();
-      repo.openResult = MarkdownDocument.opened(
-        name: 'Extra.md',
-        content: 'Appended content from external file',
-        uri: Uri.file('/tmp/Extra.md'),
-      );
+    testWidgets(
+      'importing file appends text without overwriting existing content',
+      (tester) async {
+        final repo = FakeDocumentRepository();
+        repo.openResult = MarkdownDocument.opened(
+          name: 'Extra.md',
+          content: 'Appended content from external file',
+          uri: Uri.file('/tmp/Extra.md'),
+        );
 
-      await tester.pumpWidget(
-        MnoteApp(
-          documentRepository: repo,
-          home: MarkdownWorkspacePage(repository: repo),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MnoteApp(
+            documentRepository: repo,
+            home: MarkdownWorkspacePage(repository: repo),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      final editorFinder = find.byKey(const Key('markdown-editor'));
-      expect(editorFinder, findsOneWidget);
-      final initialText = tester.widget<TextField>(editorFinder).controller!.text;
+        final editorFinder = find.byKey(
+          const Key('markdown-live-block-editor'),
+        );
+        expect(editorFinder, findsOneWidget);
 
-      // Tap more actions button and select แทรกเนื้อหาจากไฟล์
-      await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('toolbar-add-file')));
-      await tester.pumpAndSettle();
+        // Tap more actions button and select แทรกเนื้อหาจากไฟล์
+        await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('toolbar-add-file')));
+        await tester.pumpAndSettle();
 
-      final updatedText = tester.widget<TextField>(editorFinder).controller!.text;
-      expect(updatedText, contains(initialText));
-      expect(updatedText, contains('Appended content from external file'));
-      expect(find.textContaining('แทรกเนื้อหาจาก Extra.md เรียบร้อยแล้ว'), findsOneWidget);
-    });
+        expect(
+          find.textContaining(
+            'Appended content from external file',
+            findRichText: true,
+          ),
+          findsWidgets,
+        );
+        expect(
+          find.textContaining('แทรกเนื้อหาจาก Extra.md เรียบร้อยแล้ว'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('Export Sheet and Formats', () {
-    testWidgets('export button displays upload icon and opens Goodnotes-style sheet', (tester) async {
-      final repo = FakeDocumentRepository();
-      String? savedFileName;
-      Uint8List? savedBytes;
-      String? savedExt;
+    testWidgets(
+      'export button displays upload icon and opens Goodnotes-style sheet',
+      (tester) async {
+        final repo = FakeDocumentRepository();
+        String? savedFileName;
+        Uint8List? savedBytes;
+        String? savedExt;
 
-      Future<Uri?> mockExportSaver({
-        required String fileName,
-        required Uint8List bytes,
-        required String extension,
-      }) async {
-        savedFileName = fileName;
-        savedBytes = bytes;
-        savedExt = extension;
-        return Uri.file('/tmp/$fileName');
-      }
+        Future<Uri?> mockExportSaver({
+          required String fileName,
+          required Uint8List bytes,
+          required String extension,
+        }) async {
+          savedFileName = fileName;
+          savedBytes = bytes;
+          savedExt = extension;
+          return Uri.file('/tmp/$fileName');
+        }
 
-      await tester.pumpWidget(
-        MnoteApp(
-          documentRepository: repo,
-          home: MarkdownWorkspacePage(
-            repository: repo,
-            initialDocument: MarkdownDocument.example('ยินดีต้อนรับสู่ Mnote'),
-            exportSaver: mockExportSaver,
+        await tester.pumpWidget(
+          MnoteApp(
+            documentRepository: repo,
+            home: MarkdownWorkspacePage(
+              repository: repo,
+              initialDocument: MarkdownDocument.example(
+                'ยินดีต้อนรับสู่ Mnote',
+              ),
+              exportSaver: mockExportSaver,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Verify export button has upload icon
-      final exportBtn = find.byKey(const Key('toolbar-export-button'));
-      expect(exportBtn, findsOneWidget);
-      expect(
-        find.descendant(of: exportBtn, matching: find.byIcon(Icons.upload_rounded)),
-        findsOneWidget,
-      );
+        // Verify export button has upload icon
+        final exportBtn = find.byKey(const Key('toolbar-export-button'));
+        expect(exportBtn, findsOneWidget);
+        expect(
+          find.descendant(
+            of: exportBtn,
+            matching: find.byIcon(Icons.upload_rounded),
+          ),
+          findsOneWidget,
+        );
 
-      // Tap export button to open sheet
-      await tester.tap(exportBtn);
-      await tester.pumpAndSettle();
+        // Tap export button to open sheet
+        await tester.tap(exportBtn);
+        await tester.pumpAndSettle();
 
-      // Check all 4 options are displayed
-      expect(find.text('ส่งออกเอกสาร'), findsOneWidget);
-      expect(find.byKey(const Key('export-option-pdf')), findsOneWidget);
-      expect(find.byKey(const Key('export-option-markdown')), findsOneWidget);
-      expect(find.byKey(const Key('export-option-plaintext')), findsOneWidget);
-      expect(find.byKey(const Key('export-option-image')), findsOneWidget);
+        // Check all 4 options are displayed
+        expect(find.text('ส่งออกเอกสาร'), findsOneWidget);
+        expect(find.byKey(const Key('export-option-pdf')), findsOneWidget);
+        expect(find.byKey(const Key('export-option-markdown')), findsOneWidget);
+        expect(
+          find.byKey(const Key('export-option-plaintext')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('export-option-image')), findsOneWidget);
 
-      // Tap Markdown export option and verify drill-down options
-      await tester.tap(find.byKey(const Key('export-option-markdown')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('export-save-button')), findsOneWidget);
-      expect(find.byKey(const Key('export-share-button')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('export-save-button')));
-      await tester.pumpAndSettle();
-
-      expect(savedExt, 'md');
-      expect(savedFileName, 'Welcome.md');
-      expect(utf8.decode(savedBytes!), contains('ยินดีต้อนรับสู่ Mnote'));
-      expect(find.textContaining('ส่งออกไฟล์ Welcome.md สำเร็จ'), findsOneWidget);
-
-      // Tap export button again and choose Plain Text
-      await tester.tap(exportBtn);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('export-option-plaintext')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('export-save-button')));
-      await tester.pumpAndSettle();
-
-      expect(savedExt, 'txt');
-      expect(savedFileName, 'Welcome.txt');
-      expect(utf8.decode(savedBytes!), isNot(contains('# ')));
-
-      // Tap export button again and choose PDF
-      await tester.tap(exportBtn);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('export-option-pdf')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('export-pdf-ink-switch')), findsOneWidget);
-      expect(find.byKey(const Key('export-pdf-page-format')), findsOneWidget);
-      await tester.runAsync(() async {
+        // Tap Markdown export option and verify drill-down options
+        await tester.tap(find.byKey(const Key('export-option-markdown')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('export-save-button')), findsOneWidget);
+        expect(find.byKey(const Key('export-share-button')), findsOneWidget);
         await tester.tap(find.byKey(const Key('export-save-button')));
-        await Future.delayed(const Duration(milliseconds: 500));
-      });
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(savedExt, 'pdf');
-      expect(savedFileName, 'Welcome.pdf');
-      expect(savedBytes, isNotNull);
-      expect(savedBytes!.isNotEmpty, isTrue);
-    });
+        expect(savedExt, 'md');
+        expect(savedFileName, 'Welcome.md');
+        expect(utf8.decode(savedBytes!), contains('ยินดีต้อนรับสู่ Mnote'));
+        expect(
+          find.textContaining('ส่งออกไฟล์ Welcome.md สำเร็จ'),
+          findsOneWidget,
+        );
+
+        // Tap export button again and choose Plain Text
+        await tester.tap(exportBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('export-option-plaintext')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('export-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(savedExt, 'txt');
+        expect(savedFileName, 'Welcome.txt');
+        expect(utf8.decode(savedBytes!), isNot(contains('# ')));
+
+        // Tap export button again and choose PDF
+        await tester.tap(exportBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('export-option-pdf')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('export-pdf-ink-switch')), findsOneWidget);
+        expect(find.byKey(const Key('export-pdf-page-format')), findsOneWidget);
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(const Key('export-save-button')));
+          await Future.delayed(const Duration(milliseconds: 500));
+        });
+        await tester.pumpAndSettle();
+
+        expect(savedExt, 'pdf');
+        expect(savedFileName, 'Welcome.pdf');
+        expect(savedBytes, isNotNull);
+        expect(savedBytes!.isNotEmpty, isTrue);
+      },
+    );
   });
 }

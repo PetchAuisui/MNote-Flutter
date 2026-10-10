@@ -40,7 +40,10 @@ class DeviceInkFileStorage implements InkFileStorage {
   }
 
   @override
-  Future<bool> autoSave({required String name, required Uint8List bytes}) async {
+  Future<bool> autoSave({
+    required String name,
+    required Uint8List bytes,
+  }) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final file = File('${appDir.path}/$name.ink.json');

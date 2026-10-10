@@ -473,31 +473,32 @@ class InkToolbar extends StatelessWidget {
                               key: const Key('ink-style-group'),
                               label: 'รูปแบบเส้น',
                               children: [
-                                PopupMenuButton<Object>(
-                                  key: const Key('ink-color'),
-                                  tooltip: 'เลือกสีปากกา',
-                                  initialValue: penColor,
-                                  onSelected: (v) =>
-                                      onColorSelected(v as Color),
-                                  itemBuilder: (menuContext) => [
-                                    _panelItem(
-                                      (_) => _ColorPresetPanel(
-                                        colors: colorPresets,
-                                        selected: penColor,
-                                        onSelect: (v) =>
-                                            Navigator.pop(menuContext, v),
-                                        onEdit: (i) {
-                                          Navigator.pop(menuContext);
-                                          _editColor(context, i);
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                  icon: Icon(
-                                    Icons.circle,
-                                    color: penColor,
-                                    size: 22,
+                                for (var i = 0; i < colorPresets.length; i++)
+                                  _ColorSwatchButton(
+                                    key: Key('ink-color-preset-$i'),
+                                    color: colorPresets[i],
+                                    selected: colorPresets[i] == penColor,
+                                    onTap: () =>
+                                        onColorSelected(colorPresets[i]),
+                                    onLongPress: () => _editColor(context, i),
                                   ),
+                                IconButton(
+                                  key: const Key('ink-color'),
+                                  tooltip: 'สีเพิ่มเติม',
+                                  icon: Icon(
+                                    Icons.palette_outlined,
+                                    color: colorPresets.contains(penColor)
+                                        ? null
+                                        : penColor,
+                                  ),
+                                  onPressed: () async {
+                                    final picked = await showDialog<Color>(
+                                      context: context,
+                                      builder: (_) =>
+                                          _CustomColorDialog(initial: penColor),
+                                    );
+                                    if (picked != null) onColorSelected(picked);
+                                  },
                                 ),
                                 PopupMenuButton<Object>(
                                   key: const Key('ink-width'),
@@ -1006,97 +1007,6 @@ double _panelWidth(BuildContext context, {double ideal = 268}) => ideal.clamp(
   (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 280.0),
 );
 
-class _ColorPresetPanel extends StatelessWidget {
-  const _ColorPresetPanel({
-    required this.colors,
-    required this.selected,
-    required this.onSelect,
-    required this.onEdit,
-  });
-
-  final List<Color> colors;
-  final Color selected;
-  final ValueChanged<Color> onSelect;
-  final ValueChanged<int> onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    const padding = 8.0;
-    const gap = 4.0;
-    const size = 48.0;
-    final width = _panelWidth(
-      context,
-      ideal: colors.length * (size + gap) - gap + padding * 2,
-    );
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.all(padding),
-        child: Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (var i = 0; i < colors.length; i++)
-              SizedBox(
-                width: size,
-                height: size,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Material(
-                        key: Key('ink-color-preset-$i'),
-                        color: colors[i],
-                        shape: CircleBorder(
-                          side: BorderSide(
-                            width: colors[i] == selected ? 3 : 1,
-                            color: colors[i] == selected
-                                ? scheme.primary
-                                : scheme.outlineVariant,
-                          ),
-                        ),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => onSelect(colors[i]),
-                          child: colors[i] == selected
-                              ? Icon(
-                                  Icons.check,
-                                  color: colors[i].computeLuminance() > 0.5
-                                      ? Colors.black
-                                      : Colors.white,
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Material(
-                        color: scheme.surface,
-                        shape: const CircleBorder(),
-                        elevation: 1,
-                        child: InkWell(
-                          key: Key('ink-color-edit-$i'),
-                          customBorder: const CircleBorder(),
-                          onTap: () => onEdit(i),
-                          child: const Padding(
-                            padding: EdgeInsets.all(3),
-                            child: Icon(Icons.edit_outlined, size: 14),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _WidthPresetPanel extends StatelessWidget {
   const _WidthPresetPanel({
     required this.widths,
@@ -1165,6 +1075,60 @@ class _WidthPresetPanel extends StatelessWidget {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A pen-colour swatch in the toolbar. Tap selects it; long-press edits the
+/// preset slot.
+class _ColorSwatchButton extends StatelessWidget {
+  const _ColorSwatchButton({
+    super.key,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: 'แตะเพื่อเลือก · กดค้างเพื่อเปลี่ยนสีพรีเซ็ต',
+      child: InkResponse(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        radius: 24,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(
+                width: selected ? 3 : 1,
+                color: selected ? scheme.primary : scheme.outlineVariant,
+              ),
+            ),
+            child: selected
+                ? Icon(
+                    Icons.check,
+                    size: 16,
+                    color: color.computeLuminance() > 0.5
+                        ? Colors.black
+                        : Colors.white,
+                  )
+                : null,
+          ),
+        ),
       ),
     );
   }

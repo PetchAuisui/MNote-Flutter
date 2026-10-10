@@ -235,12 +235,7 @@ void main() {
     expect(pen.value.selectedWidth, 18);
     expect((pen.value as Drawing).selectedColor, 0x66FFD54F);
 
-    await tester.tap(find.byKey(const Key('ink-color')));
-    await tester.pumpAndSettle();
-    await tester.tapAt(
-      tester.getTopLeft(find.byKey(const Key('ink-color-preset-2'))) +
-          const Offset(10, 10),
-    );
+    await tester.tap(find.byKey(const Key('ink-color-preset-2')));
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
 
@@ -262,9 +257,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 25);
 
-    await tester.tap(find.byKey(const Key('ink-color')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ink-color-edit-2')));
+    await tester.longPress(find.byKey(const Key('ink-color-preset-2')));
     await tester.pumpAndSettle();
     tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
       120,
@@ -316,7 +309,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('preset menus fit narrow and wide screens', (tester) async {
+  testWidgets('color swatches and width menu fit narrow and wide screens', (
+    tester,
+  ) async {
     addTearDown(tester.view.reset);
     for (final size in const [Size(320, 700), Size(1180, 820)]) {
       tester.view.physicalSize = size;
@@ -327,18 +322,18 @@ void main() {
         _inkPage(session: session, storage: FakeInkFileStorage()),
       );
       await tester.pumpAndSettle();
-      for (final key in const ['ink-color', 'ink-width']) {
-        await tester.ensureVisible(find.byKey(Key(key)));
-        await tester.tap(find.byKey(Key(key)));
-        await tester.pumpAndSettle();
-        expect(find.byKey(Key('$key-preset-0')), findsOneWidget);
-        expect(tester.takeException(), isNull);
-        await tester.tapAt(
-          tester.getTopLeft(find.byKey(Key('$key-preset-0'))) +
-              const Offset(10, 10),
-        );
-        await tester.pumpAndSettle();
-      }
+      await tester.ensureVisible(find.byKey(const Key('ink-color-preset-4')));
+      expect(find.byKey(const Key('ink-color-preset-4')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('ink-width')));
+      await tester.tap(find.byKey(const Key('ink-width')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('ink-width-preset-0')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tapAt(
+        tester.getTopLeft(find.byKey(const Key('ink-width-preset-0'))) +
+            const Offset(10, 10),
+      );
+      await tester.pumpAndSettle();
     }
   });
 

@@ -432,7 +432,7 @@ class InkToolbar extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsetsDirectional.only(end: 8),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _InkToolbarGroup(
                               key: const Key('ink-tools-group'),
@@ -469,6 +469,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-style-group'),
                               label: 'รูปแบบเส้น',
@@ -525,6 +526,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-page-group'),
                               label: 'การควบคุมหน้า',
@@ -553,6 +555,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-management-group'),
                               label: 'จัดการหมึก',

@@ -1225,7 +1225,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               .merge(_editorTextStyle)
               .copyWith(color: const Color(0xFF202124));
           final lineCount = '\n'.allMatches(_textController.text).length + 1;
-          final gutterWidth = 28.0 + lineCount.toString().length * 8.0;
+          // Reserve at least 3 digits so the text doesn't shift sideways when
+          // the line count crosses 10 or 100.
+          final gutterDigits = lineCount.toString().length.clamp(3, 99);
+          final gutterWidth = 28.0 + gutterDigits * 8.0;
           const horizontalTextPadding = 28.0;
           final textWidth =
               (constraints.maxWidth - gutterWidth - horizontalTextPadding)

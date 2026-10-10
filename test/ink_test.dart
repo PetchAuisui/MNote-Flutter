@@ -313,6 +313,29 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('preset menus fit narrow and wide screens', (tester) async {
+    addTearDown(tester.view.reset);
+    for (final size in const [Size(320, 700), Size(1180, 820)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      final session = InkSession();
+      addTearDown(session.dispose);
+      await tester.pumpWidget(
+        _inkPage(session: session, storage: FakeInkFileStorage()),
+      );
+      await tester.pumpAndSettle();
+      for (final key in const ['ink-color', 'ink-width']) {
+        await tester.ensureVisible(find.byKey(Key(key)));
+        await tester.tap(find.byKey(Key(key)));
+        await tester.pumpAndSettle();
+        expect(find.byKey(Key('$key-preset-0')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byKey(Key('$key-preset-0')));
+        await tester.pumpAndSettle();
+      }
+    }
+  });
+
   testWidgets('clearing ink asks for confirmation and can be undone', (
     tester,
   ) async {

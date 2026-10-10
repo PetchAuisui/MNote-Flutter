@@ -74,30 +74,36 @@ class InkSession extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Highlighter strokes are translucent; snap each finished one to a clean
-  /// straight segment (exactly horizontal/vertical when nearly so).
+  /// Highlighter strokes are translucent. Normalise each finished one into a
+  /// clean straight segment (exactly horizontal/vertical when nearly so) with
+  /// a constant thickness: scribble simulates pressure from drawing speed when
+  /// every point has the same pressure, which makes strokes and dots uneven. A
+  /// pressure difference too small to see switches that simulation off.
   void _straightenFinishedHighlight() {
     final lines = pen.currentSketch.lines;
     final added = lines.length == _lineCount + 1;
     _lineCount = lines.length;
     if (!added) return;
     final line = lines.last;
-    if (line.points.length <= 2 || (line.color >> 24) & 0xFF == 0xFF) return;
+    if (line.points.isEmpty || (line.color >> 24) & 0xFF == 0xFF) return;
     final first = line.points.first;
     final last = line.points.last;
+    if (line.points.length == 2 && first.pressure != last.pressure) return;
     final dx = last.x - first.x;
     final dy = last.y - first.y;
-    if (dx * dx + dy * dy < 16) return;
-    var endY = last.y;
     var endX = last.x;
-    // Within about 10 degrees of an axis: lock to it.
-    if (dy.abs() < dx.abs() * 0.18) endY = first.y;
-    if (dx.abs() < dy.abs() * 0.18) endX = first.x;
+    var endY = last.y;
+    if (dx * dx + dy * dy < 16) {
+      // A tap: a zero-length stroke renders as a dot as wide as the line.
+      endX = first.x + 0.01;
+      endY = first.y;
+    } else {
+      // Within about 10 degrees of an axis: lock to it.
+      if (dy.abs() < dx.abs() * 0.18) endY = first.y;
+      if (dx.abs() < dy.abs() * 0.18) endX = first.x;
+    }
     final straight = line.copyWith(
-      points: [
-        first,
-        last.copyWith(x: endX, y: endY),
-      ],
+      points: [Point(first.x, first.y), Point(endX, endY, pressure: 0.5001)],
     );
     _straightening = true;
     try {

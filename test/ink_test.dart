@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -443,6 +445,93 @@ void main() {
     transform.value = Matrix4.identity()..setTranslationRaw(-120, 0, 0);
     await tester.pump();
     expect(transform.value.getTranslation().x, closeTo(centred, 0.5));
+  });
+
+  testWidgets('highlighter strokes and dots render with equal thickness', (
+    tester,
+  ) async {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    const color = 0x66FFD54F;
+    session.pen.setSketch(
+      sketch: Sketch(
+        lines: [
+          SketchLine(
+            color: color,
+            width: 18,
+            points: const [Point(40, 60), Point(300, 66)],
+          ),
+        ],
+      ),
+    );
+    void add(List<Point> points) => session.pen.setSketch(
+      sketch: Sketch(
+        lines: [
+          ...session.pen.currentSketch.lines,
+          SketchLine(color: color, width: 18, points: points),
+        ],
+      ),
+    );
+    add(const [Point(400, 150)]);
+    add(const [
+      Point(40, 200),
+      Point(90, 215),
+      Point(150, 190),
+      Point(210, 220),
+      Point(300, 205),
+    ]);
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: RepaintBoundary(
+            key: key,
+            child: SizedBox(
+              width: 500,
+              height: 300,
+              child: ColoredBox(
+                color: const Color(0xFFFFFFFF),
+                child: Scribble(notifier: session.pen, drawPen: false),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final image = await tester.runAsync(() async {
+      final boundary =
+          key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      return boundary.toImage();
+    });
+    final data = (await tester.runAsync(
+      () => image!.toByteData(format: ImageByteFormat.rawRgba),
+    ))!;
+    int thickness(int x, int y) {
+      bool inked(int py) {
+        final i = (py * 500 + x) * 4;
+        return data.getUint8(i + 2) < 250;
+      }
+
+      var top = y;
+      while (top > 0 && inked(top - 1)) {
+        top--;
+      }
+      var bottom = y;
+      while (bottom < 299 && inked(bottom + 1)) {
+        bottom++;
+      }
+      return bottom - top + 1;
+    }
+
+    final lineMiddle = thickness(170, 63);
+    final lineNearEnd = thickness(60, 61);
+    final dot = thickness(400, 150);
+    final wavyMiddle = thickness(170, 200);
+    expect(lineMiddle, closeTo(36, 3));
+    expect(lineNearEnd, closeTo(lineMiddle, 2));
+    expect(dot, closeTo(lineMiddle, 2));
+    expect(wavyMiddle, closeTo(lineMiddle, 2));
   });
 
   test('finished highlighter strokes snap to straight lines', () {

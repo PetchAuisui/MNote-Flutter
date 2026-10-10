@@ -408,6 +408,43 @@ void main() {
     expect(session.colorPresets[1], const Color(0xFF275DAD));
   });
 
+  testWidgets('page stays centred however the transform is disturbed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final transform = TransformationController();
+    addTearDown(transform.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: InkPage(
+            session: session,
+            markdown: '# Notes',
+            name: 'notes.md',
+            fileStorage: FakeInkFileStorage(),
+            transformationController: transform,
+            showToolbar: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final centred = transform.value.getTranslation().x;
+    expect(centred, closeTo((1400 - InkSession.pageWidth) / 2, 0.5));
+
+    transform.value = Matrix4.identity();
+    await tester.pump();
+    expect(transform.value.getTranslation().x, closeTo(centred, 0.5));
+
+    transform.value = Matrix4.identity()..setTranslationRaw(-120, 0, 0);
+    await tester.pump();
+    expect(transform.value.getTranslation().x, closeTo(centred, 0.5));
+  });
+
   test('finished highlighter strokes snap to straight lines', () {
     final session = InkSession();
     addTearDown(session.dispose);

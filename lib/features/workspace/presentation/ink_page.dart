@@ -57,12 +57,14 @@ class _InkPageState extends State<InkPage> {
     final external = widget.transformationController;
     _ownsTransform = external == null;
     _transform = external ?? TransformationController();
+    _transform.addListener(_clampHorizontal);
   }
 
   @override
   void didUpdateWidget(InkPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.transformationController != widget.transformationController) {
+      _transform.removeListener(_clampHorizontal);
       if (_ownsTransform) _transform.dispose();
       _attachTransform();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -73,6 +75,7 @@ class _InkPageState extends State<InkPage> {
 
   @override
   void dispose() {
+    _transform.removeListener(_clampHorizontal);
     if (_ownsTransform) {
       _transform.dispose();
     }
@@ -88,8 +91,9 @@ class _InkPageState extends State<InkPage> {
       ..setTranslationRaw(dx, 0, 0);
   }
 
-  /// Keeps the page horizontally centred (or edge-clamped when zoomed in) so
-  /// stray pan gestures can't shift the margins sideways.
+  /// Keeps the page horizontally centred (or edge-clamped when zoomed in).
+  /// Runs on every transform change, so stale fits, stray pans and viewport
+  /// resizes can never leave the margins shifted.
   void _clampHorizontal() {
     if (_viewportWidth <= 0) return;
     final value = _transform.value;
@@ -237,6 +241,10 @@ class _InkPageState extends State<InkPage> {
           if (_viewportWidth != constraints.maxWidth) {
             _viewportWidth = constraints.maxWidth;
             widget.onViewportWidthChanged?.call(constraints.maxWidth);
+            // Re-centre immediately (also covers rotation / split-view resize).
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _clampHorizontal();
+            });
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) _fit();
             });
@@ -254,8 +262,6 @@ class _InkPageState extends State<InkPage> {
             maxScale: 4,
             panEnabled: !_touch,
             scaleEnabled: !_touch,
-            onInteractionUpdate: (_) => _clampHorizontal(),
-            onInteractionEnd: (_) => _clampHorizontal(),
             // InteractiveViewer already scales the complete page. Keep
             // Scribble's scale at 1 so stroke width is not scaled twice.
             child: SizedBox(

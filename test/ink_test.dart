@@ -246,6 +246,18 @@ void main() {
     await tester.tap(find.text('เส้นหนา'));
     await tester.pumpAndSettle();
     expect(pen.value.selectedWidth, 12);
+
+    await tester.tap(find.byKey(const Key('ink-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ink-color-custom')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      120,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, isNot(0xFFB3261E));
     expect(tester.takeException(), isNull);
   });
 

@@ -470,11 +470,22 @@ class InkToolbar extends StatelessWidget {
                               key: const Key('ink-style-group'),
                               label: 'รูปแบบเส้น',
                               children: [
-                                PopupMenuButton<Color>(
+                                PopupMenuButton<Object>(
                                   key: const Key('ink-color'),
                                   tooltip: 'เลือกสีปากกา',
                                   initialValue: penColor,
-                                  onSelected: onColorSelected,
+                                  onSelected: (value) async {
+                                    if (value is Color) {
+                                      onColorSelected(value);
+                                      return;
+                                    }
+                                    final picked = await showDialog<Color>(
+                                      context: context,
+                                      builder: (_) =>
+                                          _CustomColorDialog(initial: penColor),
+                                    );
+                                    if (picked != null) onColorSelected(picked);
+                                  },
                                   itemBuilder: (context) => [
                                     for (final color in _colors)
                                       PopupMenuItem(
@@ -491,6 +502,18 @@ class InkToolbar extends StatelessWidget {
                                           ],
                                         ),
                                       ),
+                                    const PopupMenuDivider(),
+                                    const PopupMenuItem<Object>(
+                                      key: Key('ink-color-custom'),
+                                      value: _customOption,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.palette_outlined),
+                                          SizedBox(width: 12),
+                                          Text('กำหนดสีเอง…'),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                   icon: Icon(
                                     Icons.circle,
@@ -658,6 +681,8 @@ class InkToolbar extends StatelessWidget {
     selectedIcon: selectedIcon,
   );
 
+  static const _customOption = 'custom';
+
   static String _colorName(Color color) => switch (color.toARGB32()) {
     0xFF202124 => 'ดำ',
     0xFF275DAD => 'น้ำเงิน',
@@ -812,4 +837,100 @@ class _EraserIconPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EraserIconPainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.filled != filled;
+}
+
+class _CustomColorDialog extends StatefulWidget {
+  const _CustomColorDialog({required this.initial});
+
+  final Color initial;
+
+  @override
+  State<_CustomColorDialog> createState() => _CustomColorDialogState();
+}
+
+class _CustomColorDialogState extends State<_CustomColorDialog> {
+  late HSVColor _hsv = HSVColor.fromColor(widget.initial);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsv.toColor();
+    return AlertDialog(
+      title: const Text('กำหนดสีเอง'),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              key: const Key('ink-color-preview'),
+              height: 48,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _slider(
+              'สี',
+              _hsv.hue,
+              360,
+              (v) => _hsv = _hsv.withHue(v),
+              key: const Key('ink-color-hue'),
+              activeColor: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
+            ),
+            _slider(
+              'ความเข้ม',
+              _hsv.saturation,
+              1,
+              (v) => _hsv = _hsv.withSaturation(v),
+              key: const Key('ink-color-saturation'),
+            ),
+            _slider(
+              'ความสว่าง',
+              _hsv.value,
+              1,
+              (v) => _hsv = _hsv.withValue(v),
+              key: const Key('ink-color-value'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ยกเลิก'),
+        ),
+        FilledButton(
+          key: const Key('ink-color-apply'),
+          onPressed: () => Navigator.pop(context, color),
+          child: const Text('ตกลง'),
+        ),
+      ],
+    );
+  }
+
+  Widget _slider(
+    String label,
+    double value,
+    double max,
+    void Function(double) apply, {
+    required Key key,
+    Color? activeColor,
+  }) => Row(
+    children: [
+      SizedBox(width: 72, child: Text(label)),
+      Expanded(
+        child: Slider(
+          key: key,
+          value: value.clamp(0, max),
+          max: max,
+          activeColor: activeColor,
+          onChanged: (v) => setState(() => apply(v)),
+        ),
+      ),
+    ],
+  );
 }

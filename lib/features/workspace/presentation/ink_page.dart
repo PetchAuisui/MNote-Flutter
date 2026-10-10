@@ -83,11 +83,15 @@ class _InkPageState extends State<InkPage> {
     _autoSaveInkTimer?.cancel();
     if (widget.session.isDirty) {
       final snapshot = widget.session.encode();
+      final session = widget.session;
       widget.fileStorage.autoSave(
         name: widget.name,
         bytes: Uint8List.fromList(utf8.encode(snapshot)),
-      );
-      widget.session.markSaved(snapshot);
+      ).then((saved) {
+        if (saved) {
+          session.markSaved(snapshot);
+        }
+      });
     }
     widget.session.pen.removeListener(_onPenChanged);
     _transform.dispose();

@@ -237,7 +237,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('ink-color')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ink-color-preset-2')));
+    await tester.tapAt(
+      tester.getTopLeft(find.byKey(const Key('ink-color-preset-2'))) +
+          const Offset(10, 10),
+    );
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
 
@@ -330,7 +333,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byKey(Key('$key-preset-0')), findsOneWidget);
         expect(tester.takeException(), isNull);
-        await tester.tap(find.byKey(Key('$key-preset-0')));
+        await tester.tapAt(
+          tester.getTopLeft(find.byKey(Key('$key-preset-0'))) +
+              const Offset(10, 10),
+        );
         await tester.pumpAndSettle();
       }
     }

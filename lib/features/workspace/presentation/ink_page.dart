@@ -1004,8 +1004,10 @@ class _CustomWidthDialogState extends State<_CustomWidthDialog> {
 
 /// Popup width follows the screen so it fills the menu on any size and
 /// keeps up with rotation (the panel rebuilds when MediaQuery changes).
-double _panelWidth(BuildContext context) =>
-    (MediaQuery.sizeOf(context).width - 32).clamp(240.0, 380.0);
+double _panelWidth(BuildContext context, {double ideal = 268}) => ideal.clamp(
+  160.0,
+  (MediaQuery.sizeOf(context).width - 32).clamp(160.0, 280.0),
+);
 
 class _ColorPresetPanel extends StatelessWidget {
   const _ColorPresetPanel({
@@ -1022,12 +1024,13 @@ class _ColorPresetPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const padding = 12.0;
-    const gap = 8.0;
-    final width = _panelWidth(context);
-    final inner = width - padding * 2;
-    final perRow = ((inner + gap) / (48 + gap)).floor().clamp(1, colors.length);
-    final size = (inner - gap * (perRow - 1)) / perRow;
+    const padding = 8.0;
+    const gap = 4.0;
+    const size = 48.0;
+    final width = _panelWidth(
+      context,
+      ideal: colors.length * (size + gap) - gap + padding * 2,
+    );
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: width,
@@ -1081,8 +1084,8 @@ class _ColorPresetPanel extends StatelessWidget {
                           customBorder: const CircleBorder(),
                           onTap: () => onEdit(i),
                           child: const Padding(
-                            padding: EdgeInsets.all(5),
-                            child: Icon(Icons.edit_outlined, size: 16),
+                            padding: EdgeInsets.all(3),
+                            child: Icon(Icons.edit_outlined, size: 14),
                           ),
                         ),
                       ),

@@ -337,6 +337,41 @@ void main() {
     }
   });
 
+  testWidgets('tapping the selected swatch or palette edits a preset', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(
+      _inkPage(session: session, storage: FakeInkFileStorage()),
+    );
+    await tester.pumpAndSettle();
+    final original = session.colorPresets[0];
+    await tester.tap(find.byKey(const Key('ink-color-preset-0')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      200,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect(session.colorPresets[0], isNot(original));
+
+    await tester.tap(find.byKey(const Key('ink-color')));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byKey(const Key('ink-color-hue'))).onChanged!(
+      30,
+    );
+    await tester.pump();
+    final before = session.colorPresets[0];
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect(session.colorPresets[0], isNot(before));
+  });
+
   testWidgets('clearing ink asks for confirmation and can be undone', (
     tester,
   ) async {

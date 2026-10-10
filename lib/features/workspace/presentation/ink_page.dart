@@ -479,26 +479,26 @@ class InkToolbar extends StatelessWidget {
                                     key: Key('ink-color-preset-$i'),
                                     color: colorPresets[i],
                                     selected: colorPresets[i] == penColor,
-                                    onTap: () =>
-                                        onColorSelected(colorPresets[i]),
+                                    onTap: () => colorPresets[i] == penColor
+                                        ? _editColor(context, i)
+                                        : onColorSelected(colorPresets[i]),
                                     onLongPress: () => _editColor(context, i),
                                   ),
                                 IconButton(
                                   key: const Key('ink-color'),
-                                  tooltip: 'สีเพิ่มเติม',
-                                  icon: Icon(
-                                    Icons.palette_outlined,
-                                    color: colorPresets.contains(penColor)
-                                        ? null
-                                        : penColor,
-                                  ),
-                                  onPressed: () async {
-                                    final picked = await showDialog<Color>(
-                                      context: context,
-                                      builder: (_) =>
-                                          _CustomColorDialog(initial: penColor),
+                                  tooltip: 'เปลี่ยนสีที่เลือกอยู่',
+                                  icon: const Icon(Icons.palette_outlined),
+                                  onPressed: () {
+                                    final selected = colorPresets.indexOf(
+                                      penColor,
                                     );
-                                    if (picked != null) onColorSelected(picked);
+                                    _editColor(
+                                      context,
+                                      selected < 0
+                                          ? colorPresets.length - 1
+                                          : selected,
+                                      initial: penColor,
+                                    );
                                   },
                                 ),
                                 PopupMenuButton<Object>(
@@ -671,10 +671,15 @@ class InkToolbar extends StatelessWidget {
         child: Builder(builder: builder),
       );
 
-  Future<void> _editColor(BuildContext context, int index) async {
+  Future<void> _editColor(
+    BuildContext context,
+    int index, {
+    Color? initial,
+  }) async {
     final picked = await showDialog<Color>(
       context: context,
-      builder: (_) => _CustomColorDialog(initial: colorPresets[index]),
+      builder: (_) =>
+          _CustomColorDialog(initial: initial ?? colorPresets[index]),
     );
     if (picked == null) return;
     onColorPresetChanged(index, picked);
@@ -1103,7 +1108,7 @@ class _ColorSwatchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: 'แตะเพื่อเลือก · กดค้างเพื่อเปลี่ยนสีพรีเซ็ต',
+      message: 'แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้',
       child: InkResponse(
         onTap: onTap,
         onLongPress: onLongPress,

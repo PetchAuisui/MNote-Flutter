@@ -982,6 +982,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
         onItalic: () =>
             _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+        onStrikethrough: () =>
+            _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
         onList: () => _formatSelectedLines(
           prefixBuilder: (_) => '- ',
           placeholder: 'รายการ',

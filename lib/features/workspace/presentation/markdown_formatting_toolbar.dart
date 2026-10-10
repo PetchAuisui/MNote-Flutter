@@ -10,6 +10,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onHeading,
     required this.onBold,
     required this.onItalic,
+    required this.onStrikethrough,
     required this.onList,
     required this.onOrderedList,
     required this.onIndentList,
@@ -31,6 +32,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final ValueChanged<int> onHeading;
   final VoidCallback onBold;
   final VoidCallback onItalic;
+  final VoidCallback onStrikethrough;
   final VoidCallback onList;
   final VoidCallback onOrderedList;
   final VoidCallback onIndentList;
@@ -125,6 +127,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       label: 'ตัวเอียง',
                       showLabel: showLabels,
                       onPressed: widget.onItalic,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-strikethrough'),
+                      icon: Icons.format_strikethrough_rounded,
+                      label: 'ขีดฆ่า',
+                      showLabel: showLabels,
+                      onPressed: widget.onStrikethrough,
                     ),
                     const _ToolbarDivider(),
                     _ToolbarActionButton(

@@ -13,6 +13,7 @@ void main() {
     var heading = 0;
     var bullets = 0;
     var numbers = 0;
+    var strikes = 0;
     void noop() {}
     await tester.pumpWidget(
       MaterialApp(
@@ -23,6 +24,7 @@ void main() {
             onHeading: (value) => heading = value,
             onBold: noop,
             onItalic: noop,
+            onStrikethrough: () => strikes++,
             onList: () => bullets++,
             onOrderedList: () => numbers++,
             onIndentList: noop,
@@ -48,6 +50,8 @@ void main() {
       expect(heading, level);
       expect(find.text('หัวข้อ $level'), findsOneWidget);
     }
+    await tester.tap(find.byKey(const Key('toolbar-strikethrough')));
+    expect(strikes, 1);
     await tester.tap(find.byKey(const Key('toolbar-list')));
     expect(bullets, 1);
     expect(numbers, 0);

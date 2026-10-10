@@ -13,6 +13,7 @@ void main() {
     var heading = 0;
     var bullets = 0;
     var numbers = 0;
+    var tasks = 0;
     var strikes = 0;
     void noop() {}
     await tester.pumpWidget(
@@ -27,6 +28,7 @@ void main() {
             onStrikethrough: () => strikes++,
             onList: () => bullets++,
             onOrderedList: () => numbers++,
+            onTaskList: () => tasks++,
             onIndentList: noop,
             onOutdentList: noop,
             onQuote: noop,
@@ -57,6 +59,8 @@ void main() {
     expect(numbers, 0);
     await tester.tap(find.byKey(const Key('toolbar-ordered-list')));
     expect(numbers, 1);
+    await tester.tap(find.byKey(const Key('toolbar-task-list')));
+    expect(tasks, 1);
     expect(bullets, 1);
   });
 }

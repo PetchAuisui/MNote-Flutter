@@ -990,6 +990,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           removePattern: '- ',
         ),
         onOrderedList: _formatOrderedList,
+        onTaskList: () => _formatSelectedLines(
+          prefixBuilder: (_) => '- [ ] ',
+          placeholder: 'งานที่ต้องทำ',
+          removePattern: RegExp(r'^- \[[ xX]\] '),
+        ),
         onIndentList: () => _changeListIndent(increase: true),
         onOutdentList: () => _changeListIndent(increase: false),
         onQuote: () => _formatSelectedLines(

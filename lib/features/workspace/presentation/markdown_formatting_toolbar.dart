@@ -13,6 +13,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onStrikethrough,
     required this.onList,
     required this.onOrderedList,
+    required this.onTaskList,
     required this.onIndentList,
     required this.onOutdentList,
     required this.onQuote,
@@ -35,6 +36,7 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final VoidCallback onStrikethrough;
   final VoidCallback onList;
   final VoidCallback onOrderedList;
+  final VoidCallback onTaskList;
   final VoidCallback onIndentList;
   final VoidCallback onOutdentList;
   final VoidCallback onQuote;
@@ -149,6 +151,13 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       label: 'รายการตัวเลข',
                       showLabel: showLabels,
                       onPressed: widget.onOrderedList,
+                    ),
+                    _ToolbarActionButton(
+                      buttonKey: const Key('toolbar-task-list'),
+                      icon: Icons.checklist_rounded,
+                      label: 'รายการงาน',
+                      showLabel: showLabels,
+                      onPressed: widget.onTaskList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),

@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
@@ -11,14 +16,18 @@ class InkPage extends StatefulWidget {
     super.key,
     required this.session,
     required this.markdown,
+    required this.name,
     this.imageDirectory,
+    this.fileStorage = const DeviceInkFileStorage(),
     this.transformationController,
     this.showToolbar = true,
     this.onViewportWidthChanged,
   });
   final InkSession session;
   final String markdown;
+  final String name;
   final String? imageDirectory;
+  final InkFileStorage fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
   final ValueChanged<double>? onViewportWidthChanged;
@@ -37,11 +46,42 @@ class _InkPageState extends State<InkPage> {
   bool get _touch =>
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;
+  Timer? _autoSaveInkTimer;
 
   @override
   void initState() {
     super.initState();
+    widget.session.pen.addListener(_onPenChanged);
+    _autoLoadInkIfAvailable();
     _attachTransform();
+  }
+
+  void _onPenChanged() {
+    if (widget.session.isDirty) {
+      _autoSaveInkTimer?.cancel();
+      _autoSaveInkTimer = Timer(const Duration(milliseconds: 600), () async {
+        if (!mounted) return;
+        final snapshot = widget.session.encode();
+        final saved = await widget.fileStorage.autoSave(
+          name: widget.name,
+          bytes: Uint8List.fromList(utf8.encode(snapshot)),
+        );
+        if (saved && mounted) {
+          widget.session.markSaved(snapshot);
+        }
+      });
+    }
+  }
+
+  Future<void> _autoLoadInkIfAvailable() async {
+    if (widget.session.pen.currentSketch.lines.isEmpty) {
+      final bytes = await widget.fileStorage.autoLoad(name: widget.name);
+      if (bytes != null && mounted) {
+        try {
+          widget.session.load(utf8.decode(bytes));
+        } catch (_) {}
+      }
+    }
   }
 
   void _attachTransform() {
@@ -67,6 +107,22 @@ class _InkPageState extends State<InkPage> {
   @override
   void dispose() {
     _transform.removeListener(_clampHorizontal);
+    _autoSaveInkTimer?.cancel();
+    if (widget.session.isDirty) {
+      final snapshot = widget.session.encode();
+      final session = widget.session;
+      widget.fileStorage
+          .autoSave(
+            name: widget.name,
+            bytes: Uint8List.fromList(utf8.encode(snapshot)),
+          )
+          .then((saved) {
+            if (saved) {
+              session.markSaved(snapshot);
+            }
+          });
+    }
+    widget.session.pen.removeListener(_onPenChanged);
     if (_ownsTransform) {
       _transform.dispose();
     }

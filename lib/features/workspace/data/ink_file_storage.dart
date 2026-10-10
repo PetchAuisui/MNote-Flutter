@@ -1,46 +1,68 @@
 import 'dart:io';
+import 'dart:typed_data';
 
-/// Persists a document's ink next to the document itself, as
-/// `<document>.ink.json`. Only documents backed by a local file have ink on disk.
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+
 abstract interface class InkFileStorage {
-  Future<String?> read(Uri documentUri);
+  Future<bool> save({required String name, required Uint8List bytes});
 
-  Future<void> write(Uri documentUri, String content);
+  Future<Uint8List?> open();
 
-  /// Keeps an existing ink file that could not be read, so new ink written
-  /// next to the document cannot destroy it.
-  Future<void> backup(Uri documentUri);
+  Future<bool> autoSave({required String name, required Uint8List bytes});
+
+  Future<Uint8List?> autoLoad({required String name});
 }
 
 class DeviceInkFileStorage implements InkFileStorage {
   const DeviceInkFileStorage();
 
-  File? _sidecar(Uri documentUri) => documentUri.scheme == 'file'
-      ? File('${File.fromUri(documentUri).path}.ink.json')
-      : null;
-
   @override
-  Future<String?> read(Uri documentUri) async {
-    final file = _sidecar(documentUri);
-    if (file == null || !await file.exists()) return null;
-    return file.readAsString();
+  Future<bool> save({required String name, required Uint8List bytes}) async {
+    final uri = await FilePicker.saveFile(
+      dialogTitle: 'บันทึกหมึกแยกจาก Markdown',
+      fileName: name,
+      bytes: bytes,
+      mimeType: 'application/json',
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+    );
+    return uri != null;
   }
 
   @override
-  Future<void> write(Uri documentUri, String content) async {
-    final file = _sidecar(documentUri);
-    if (file == null) return;
-    // Write beside the target and rename over it, so a crash mid-write leaves
-    // the previous ink intact instead of a truncated file.
-    final temp = File('${file.path}.tmp');
-    await temp.writeAsString(content, flush: true);
-    await temp.rename(file.path);
+  Future<Uint8List?> open() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+    );
+    return file?.readAsBytes();
   }
 
   @override
-  Future<void> backup(Uri documentUri) async {
-    final file = _sidecar(documentUri);
-    if (file == null || !await file.exists()) return;
-    await file.copy('${file.path}.bak');
+  Future<bool> autoSave({
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final file = File('${appDir.path}/$name.ink.json');
+      await file.writeAsBytes(bytes, flush: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<Uint8List?> autoLoad({required String name}) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final file = File('${appDir.path}/$name.ink.json');
+      if (await file.exists()) {
+        return await file.readAsBytes();
+      }
+    } catch (_) {}
+    return null;
   }
 }

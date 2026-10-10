@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
@@ -408,6 +407,7 @@ void main() {
           body: InkPage(
             session: session,
             markdown: '# Notes',
+            name: 'notes.md',
             transformationController: transform,
             showToolbar: false,
           ),
@@ -594,132 +594,19 @@ void main() {
     expect(session.pen.currentSketch, sketch);
   });
 
-  test('device storage writes ink atomically beside the document', () async {
-    final dir = await Directory.systemTemp.createTemp('mnote-ink');
-    addTearDown(() => dir.delete(recursive: true));
-    final uri = Uri.file('${dir.path}/a.md');
-    const storage = DeviceInkFileStorage();
-
-    await storage.write(uri, 'one');
-    await storage.write(uri, 'two');
-
-    expect(await storage.read(uri), 'two');
-    expect(File('${dir.path}/a.md.ink.json.tmp').existsSync(), isFalse);
-    await File('${dir.path}/a.md.ink.json').writeAsString('bad');
-    await storage.backup(uri);
-    expect(File('${dir.path}/a.md.ink.json.bak').readAsStringSync(), 'bad');
-  });
-
-  testWidgets('unreadable ink is backed up and not overwritten', (
+  testWidgets('autosaves ink on stroke and marks session clean', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1024, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final uri = Uri.file('/notes/a.md');
-    final storage = FakeInkFileStorage()..files[uri] = 'not json';
-    final repo = FakeDocumentRepository();
-    await tester.pumpWidget(
-      MnoteApp(
-        documentRepository: repo,
-        home: MarkdownWorkspacePage(
-          repository: repo,
-          inkStorage: storage,
-          initialDocument: MarkdownDocument.opened(
-            name: 'a.md',
-            content: '# Hello',
-            uri: uri,
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(storage.backups, [uri]);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('ink is not saved over a file that could not be backed up', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1024, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final uri = Uri.file('/notes/a.md');
-    final storage = FakeInkFileStorage()
-      ..files[uri] = 'not json'
-      ..failBackup = true;
-    final repo = FakeDocumentRepository();
-    await tester.pumpWidget(
-      MnoteApp(
-        documentRepository: repo,
-        home: MarkdownWorkspacePage(
-          repository: repo,
-          inkStorage: storage,
-          initialDocument: MarkdownDocument.opened(
-            name: 'a.md',
-            content: '# Hello',
-            uri: uri,
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.byTooltip('เขียน'));
-    await tester.pumpAndSettle();
-    final pen =
-        tester.widget<Scribble>(find.byType(Scribble)).notifier
-            as ScribbleNotifier;
-    pen.setSketch(sketch: sketch);
-    await tester.pump(const Duration(seconds: 1));
-
-    expect(storage.files[uri], 'not json');
-  });
-
-  testWidgets('ink autosaves next to a saved document and reloads with it', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1024, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final uri = Uri.file('/notes/a.md');
+    final session = InkSession();
     final storage = FakeInkFileStorage();
-    final repo = FakeDocumentRepository();
-    Widget app() => MnoteApp(
-      documentRepository: repo,
-      home: MarkdownWorkspacePage(
-        repository: repo,
-        inkStorage: storage,
-        initialDocument: MarkdownDocument.opened(
-          name: 'a.md',
-          content: '# Hello',
-          uri: uri,
-        ),
-      ),
-    );
+    addTearDown(session.dispose);
 
-    await tester.pumpWidget(app());
-    await tester.tap(find.byTooltip('เขียน'));
-    await tester.pumpAndSettle();
-    final pen =
-        tester.widget<Scribble>(find.byType(Scribble)).notifier
-            as ScribbleNotifier;
-    pen.setSketch(sketch: sketch);
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    session.pen.setSketch(sketch: sketch);
+    await tester.pump(const Duration(milliseconds: 700));
 
-    final saved = storage.files[uri];
-    expect(jsonDecode(saved!)['format'], 'mnote-ink');
-
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(app());
-    await tester.tap(find.byTooltip('เขียน'));
-    await tester.pumpAndSettle();
-    expect(
-      (tester.widget<Scribble>(find.byType(Scribble)).notifier
-              as ScribbleNotifier)
-          .currentSketch,
-      sketch,
-    );
-    expect(tester.takeException(), isNull);
+    expect(storage.savedBytes, isNotNull);
+    expect(session.isDirty, isFalse);
   });
 
   testWidgets('ink menu only offers clearing', (tester) async {
@@ -776,6 +663,48 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('dispose does not mark session saved if autoSave returns false', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = false;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isTrue);
+  });
+
+  testWidgets('dispose marks session saved when autoSave succeeds', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = true;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isFalse);
+  });
 }
 
 Future<void> _chooseInkManagementAction(
@@ -788,31 +717,51 @@ Future<void> _chooseInkManagementAction(
   await tester.pumpAndSettle();
 }
 
-Widget _inkPage({required InkSession session}) {
+Widget _inkPage({required InkSession session, InkFileStorage? storage}) {
   return MaterialApp(
     home: Scaffold(
-      body: InkPage(session: session, markdown: '# Notes'),
+      body: InkPage(
+        session: session,
+        markdown: '# Notes',
+        name: 'notes.md',
+        fileStorage: storage ?? FakeInkFileStorage(),
+      ),
     ),
   );
 }
 
 class FakeInkFileStorage implements InkFileStorage {
-  final files = <Uri, String>{};
+  FakeInkFileStorage({this.openBytes});
+
+  Uint8List? openBytes;
+  Uint8List? savedBytes;
+  String? savedName;
+  bool saveResult = true;
+  int openCalls = 0;
 
   @override
-  Future<String?> read(Uri documentUri) async => files[documentUri];
-
-  @override
-  Future<void> write(Uri documentUri, String content) async {
-    files[documentUri] = content;
+  Future<Uint8List?> open() async {
+    openCalls += 1;
+    return openBytes;
   }
 
-  final backups = <Uri>[];
-  bool failBackup = false;
+  @override
+  Future<bool> save({required String name, required Uint8List bytes}) async {
+    savedName = name;
+    savedBytes = bytes;
+    return saveResult;
+  }
 
   @override
-  Future<void> backup(Uri documentUri) async {
-    if (failBackup) throw const FileSystemException('backup failed');
-    backups.add(documentUri);
+  Future<bool> autoSave({
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    savedName = name;
+    savedBytes = bytes;
+    return saveResult;
   }
+
+  @override
+  Future<Uint8List?> autoLoad({required String name}) async => openBytes;
 }

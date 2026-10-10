@@ -13,7 +13,7 @@ class InkSession extends ChangeNotifier {
   late final ScribbleNotifier pen = ScribbleNotifier(
     allowedPointersMode: ScribblePointerMode.penOnly,
     widths: const [3, 6, 12],
-  )..addListener(notifyListeners);
+  )..addListener(_onPenChanged);
   final List<Color> colorPresets = [
     const Color(0xFF202124),
     const Color(0xFF275DAD),
@@ -32,6 +32,52 @@ class InkSession extends ChangeNotifier {
   void setWidthPreset(int index, double width) {
     widthPresets[index] = width;
     notifyListeners();
+  }
+
+  int _lineCount = 0;
+  bool _straightening = false;
+
+  void _onPenChanged() {
+    if (!_straightening) _straightenFinishedHighlight();
+    notifyListeners();
+  }
+
+  /// Highlighter strokes are translucent; snap each finished one to a clean
+  /// straight segment (exactly horizontal/vertical when nearly so).
+  void _straightenFinishedHighlight() {
+    final lines = pen.currentSketch.lines;
+    final added = lines.length == _lineCount + 1;
+    _lineCount = lines.length;
+    if (!added) return;
+    final line = lines.last;
+    if (line.points.length <= 2 || (line.color >> 24) & 0xFF == 0xFF) return;
+    final first = line.points.first;
+    final last = line.points.last;
+    final dx = last.x - first.x;
+    final dy = last.y - first.y;
+    if (dx * dx + dy * dy < 16) return;
+    var endY = last.y;
+    var endX = last.x;
+    // Within about 10 degrees of an axis: lock to it.
+    if (dy.abs() < dx.abs() * 0.18) endY = first.y;
+    if (dx.abs() < dy.abs() * 0.18) endX = first.x;
+    final straight = line.copyWith(
+      points: [
+        first,
+        last.copyWith(x: endX, y: endY),
+      ],
+    );
+    _straightening = true;
+    try {
+      pen.setSketch(
+        sketch: Sketch(
+          lines: [...lines.sublist(0, lines.length - 1), straight],
+        ),
+        addToUndoHistory: false,
+      );
+    } finally {
+      _straightening = false;
+    }
   }
 
   bool get isDirty => jsonEncode(pen.currentSketch.toJson()) != _savedSketch;

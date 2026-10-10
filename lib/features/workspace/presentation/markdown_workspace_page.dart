@@ -618,9 +618,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       final metadata = await widget.repository.loadMetadata();
       if (metadata != null) {
         final docUri = _workspace.document.uri;
-        final docName = _workspace.document.name;
         final updatedDocs = metadata.documents.map((d) {
-          if ((docUri != null && d.uri == docUri) || d.name == docName) {
+          if (docUri != null && (d.uri == docUri || d.id == docUri.toString())) {
             return d.copyWith(isTrash: true);
           }
           return d;

@@ -7,6 +7,8 @@ import 'package:mnote/features/workspace/presentation/markdown_workspace_page.da
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/models/note_item.dart';
 
 import 'helpers/fakes.dart';
 
@@ -537,6 +539,68 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.openCalls, 1);
+  });
+
+  testWidgets('moving document to trash only trashes the matching document by uri', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    final uri1 = Uri.file('/tmp/folder1/note.md');
+    final uri2 = Uri.file('/tmp/folder2/note.md');
+
+    repo.storedMetadata = LibraryMetadata(
+      documents: [
+        DocumentItem(
+          id: uri1.toString(),
+          name: 'note.md',
+          content: 'content 1',
+          updatedAt: DateTime.now(),
+          uri: uri1,
+          isTrash: false,
+        ),
+        DocumentItem(
+          id: uri2.toString(),
+          name: 'note.md',
+          content: 'content 2',
+          updatedAt: DateTime.now(),
+          uri: uri2,
+          isTrash: false,
+        ),
+      ],
+    );
+
+    final currentDoc = MarkdownDocument.opened(
+      name: 'note.md',
+      content: 'content 1',
+      uri: uri1,
+    );
+
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: currentDoc,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ย้ายไปถังขยะ'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'ย้ายไปถังขยะ'));
+    await tester.pumpAndSettle();
+
+    final docs = repo.storedMetadata!.documents;
+    final doc1 = docs.firstWhere((d) => d.uri == uri1);
+    final doc2 = docs.firstWhere((d) => d.uri == uri2);
+
+    expect(doc1.isTrash, isTrue);
+    expect(doc2.isTrash, isFalse);
   });
 }
 

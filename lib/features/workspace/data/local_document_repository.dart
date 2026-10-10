@@ -61,12 +61,15 @@ class LocalDocumentRepository implements DocumentRepository {
     try {
       await _storage.write(uri, _encode(document.content));
     } catch (_) {
-      final newUri = await _storage.createDocument(
-        name: targetFileName,
-        bytes: _encode(document.content),
-      );
-      if (newUri != null) {
+      try {
+        final newUri = await _storage.createDocument(
+          name: targetFileName,
+          bytes: _encode(document.content),
+        );
+        if (newUri == null) return null;
         uri = newUri;
+      } catch (_) {
+        return null;
       }
     }
 

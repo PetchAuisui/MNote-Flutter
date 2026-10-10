@@ -88,6 +88,22 @@ class _InkPageState extends State<InkPage> {
       ..setTranslationRaw(dx, 0, 0);
   }
 
+  /// Keeps the page horizontally centred (or edge-clamped when zoomed in) so
+  /// stray pan gestures can't shift the margins sideways.
+  void _clampHorizontal() {
+    if (_viewportWidth <= 0) return;
+    final value = _transform.value;
+    final scale = value.getMaxScaleOnAxis();
+    final scaledWidth = InkSession.pageWidth * scale;
+    final tx = value.getTranslation().x;
+    final target = scaledWidth <= _viewportWidth
+        ? (_viewportWidth - scaledWidth) / 2
+        : tx.clamp(_viewportWidth - scaledWidth, 0.0);
+    if ((target - tx).abs() < 0.01) return;
+    _transform.value = value.clone()
+      ..setTranslationRaw(target, value.getTranslation().y, 0);
+  }
+
   void _selectTool(InkTool tool) {
     final pen = widget.session.pen;
     setState(() => _tool = tool);
@@ -228,6 +244,8 @@ class _InkPageState extends State<InkPage> {
             maxScale: 4,
             panEnabled: !_touch,
             scaleEnabled: !_touch,
+            onInteractionUpdate: (_) => _clampHorizontal(),
+            onInteractionEnd: (_) => _clampHorizontal(),
             // InteractiveViewer already scales the complete page. Keep
             // Scribble's scale at 1 so stroke width is not scaled twice.
             child: SizedBox(

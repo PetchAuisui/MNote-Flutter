@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
@@ -277,7 +278,11 @@ class _InkPageState extends State<InkPage> {
                     builders: {'code': MermaidElementBuilder()},
                   ),
                   Positioned.fill(
-                    child: Scribble(notifier: pen, drawPen: false),
+                    // Multiply keeps the page text on top of translucent
+                    // highlighter strokes, like a real highlighter.
+                    child: _MultiplyBlend(
+                      child: Scribble(notifier: pen, drawPen: false),
+                    ),
                   ),
                 ],
               ),
@@ -1167,5 +1172,23 @@ class _ColorSwatchButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Paints [child] into a layer that is multiplied with what is behind it.
+class _MultiplyBlend extends SingleChildRenderObjectWidget {
+  const _MultiplyBlend({super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderMultiply();
+}
+
+class _RenderMultiply extends RenderProxyBox {
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final rect = offset & size;
+    context.canvas.saveLayer(rect, Paint()..blendMode = BlendMode.multiply);
+    super.paint(context, offset);
+    context.canvas.restore();
   }
 }

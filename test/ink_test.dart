@@ -534,7 +534,7 @@ void main() {
     expect(wavyMiddle, closeTo(lineMiddle, 2));
   });
 
-  test('finished highlighter strokes snap to straight lines', () {
+  test('finished highlighter strokes stay free-form', () {
     final session = InkSession();
     addTearDown(session.dispose);
     SketchLine wavy(int color) => SketchLine(
@@ -549,17 +549,10 @@ void main() {
       ],
     );
     session.pen.setSketch(sketch: Sketch(lines: [wavy(0x66FFD54F)]));
-    final snapped = session.pen.currentSketch.lines.single;
-    expect(snapped.points, hasLength(2));
-    expect(snapped.points.first.y, snapped.points.last.y);
-    expect(snapped.points.last.x, 210);
-
-    session.pen.setSketch(
-      sketch: Sketch(
-        lines: [...session.pen.currentSketch.lines, wavy(0xFF202124)],
-      ),
-    );
-    expect(session.pen.currentSketch.lines.last.points, hasLength(5));
+    final stroke = session.pen.currentSketch.lines.single;
+    expect(stroke.points, hasLength(5));
+    expect(stroke.points[2].y, 95);
+    expect(stroke.points.map((p) => p.pressure).toSet().length, greaterThan(1));
   });
 
   testWidgets('clearing ink asks for confirmation and can be undone', (

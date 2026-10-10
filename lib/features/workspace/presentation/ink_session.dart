@@ -74,11 +74,11 @@ class InkSession extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Highlighter strokes are translucent. Normalise each finished one into a
-  /// clean straight segment (exactly horizontal/vertical when nearly so) with
-  /// a constant thickness: scribble simulates pressure from drawing speed when
-  /// every point has the same pressure, which makes strokes and dots uneven. A
-  /// pressure difference too small to see switches that simulation off.
+  /// Highlighter strokes are translucent and free-form. Keep the path as
+  /// drawn but give it a constant thickness: scribble simulates pressure from
+  /// drawing speed when every point has the same pressure, which makes strokes
+  /// and dots uneven. A pressure difference too small to see switches that
+  /// simulation off.
   void _straightenFinishedHighlight() {
     final lines = pen.currentSketch.lines;
     final added = lines.length == _lineCount + 1;
@@ -88,23 +88,28 @@ class InkSession extends ChangeNotifier {
     if (line.points.isEmpty || (line.color >> 24) & 0xFF == 0xFF) return;
     final first = line.points.first;
     final last = line.points.last;
-    if (line.points.length == 2 && first.pressure != last.pressure) return;
-    final dx = last.x - first.x;
-    final dy = last.y - first.y;
-    var endX = last.x;
-    var endY = last.y;
-    if (dx * dx + dy * dy < 16) {
+    final List<Point> points;
+    if (line.points.length == 1 ||
+        (line.points.length == 2 &&
+            (last.x - first.x) * (last.x - first.x) +
+                    (last.y - first.y) * (last.y - first.y) <
+                16)) {
       // A tap: a zero-length stroke renders as a dot as wide as the line.
-      endX = first.x + 0.01;
-      endY = first.y;
+      points = [
+        Point(first.x, first.y),
+        Point(first.x + 0.01, first.y, pressure: 0.5001),
+      ];
     } else {
-      // Within about 10 degrees of an axis: lock to it.
-      if (dy.abs() < dx.abs() * 0.18) endY = first.y;
-      if (dx.abs() < dy.abs() * 0.18) endX = first.x;
+      if (line.points.skip(1).every((p) => p.pressure == 0.5001) &&
+          first.pressure == 0.5) {
+        return;
+      }
+      points = [
+        Point(first.x, first.y),
+        for (final p in line.points.skip(1)) Point(p.x, p.y, pressure: 0.5001),
+      ];
     }
-    final straight = line.copyWith(
-      points: [Point(first.x, first.y), Point(endX, endY, pressure: 0.5001)],
-    );
+    final straight = line.copyWith(points: points);
     _straightening = true;
     try {
       pen.setSketch(

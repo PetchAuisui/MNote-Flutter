@@ -6,6 +6,10 @@ abstract interface class InkFileStorage {
   Future<String?> read(Uri documentUri);
 
   Future<void> write(Uri documentUri, String content);
+
+  /// Keeps an existing ink file that could not be read, so new ink written
+  /// next to the document cannot destroy it.
+  Future<void> backup(Uri documentUri);
 }
 
 class DeviceInkFileStorage implements InkFileStorage {
@@ -24,6 +28,19 @@ class DeviceInkFileStorage implements InkFileStorage {
 
   @override
   Future<void> write(Uri documentUri, String content) async {
-    await _sidecar(documentUri)?.writeAsString(content, flush: true);
+    final file = _sidecar(documentUri);
+    if (file == null) return;
+    // Write beside the target and rename over it, so a crash mid-write leaves
+    // the previous ink intact instead of a truncated file.
+    final temp = File('${file.path}.tmp');
+    await temp.writeAsString(content, flush: true);
+    await temp.rename(file.path);
+  }
+
+  @override
+  Future<void> backup(Uri documentUri) async {
+    final file = _sidecar(documentUri);
+    if (file == null || !await file.exists()) return;
+    await file.copy('${file.path}.bak');
   }
 }

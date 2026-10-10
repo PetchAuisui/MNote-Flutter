@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -593,6 +594,87 @@ void main() {
     expect(session.pen.currentSketch, sketch);
   });
 
+  test('device storage writes ink atomically beside the document', () async {
+    final dir = await Directory.systemTemp.createTemp('mnote-ink');
+    addTearDown(() => dir.delete(recursive: true));
+    final uri = Uri.file('${dir.path}/a.md');
+    const storage = DeviceInkFileStorage();
+
+    await storage.write(uri, 'one');
+    await storage.write(uri, 'two');
+
+    expect(await storage.read(uri), 'two');
+    expect(File('${dir.path}/a.md.ink.json.tmp').existsSync(), isFalse);
+    await File('${dir.path}/a.md.ink.json').writeAsString('bad');
+    await storage.backup(uri);
+    expect(File('${dir.path}/a.md.ink.json.bak').readAsStringSync(), 'bad');
+  });
+
+  testWidgets('unreadable ink is backed up and not overwritten', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final uri = Uri.file('/notes/a.md');
+    final storage = FakeInkFileStorage()..files[uri] = 'not json';
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          inkStorage: storage,
+          initialDocument: MarkdownDocument.opened(
+            name: 'a.md',
+            content: '# Hello',
+            uri: uri,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(storage.backups, [uri]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ink is not saved over a file that could not be backed up', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final uri = Uri.file('/notes/a.md');
+    final storage = FakeInkFileStorage()
+      ..files[uri] = 'not json'
+      ..failBackup = true;
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          inkStorage: storage,
+          initialDocument: MarkdownDocument.opened(
+            name: 'a.md',
+            content: '# Hello',
+            uri: uri,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byTooltip('เขียน'));
+    await tester.pumpAndSettle();
+    final pen =
+        tester.widget<Scribble>(find.byType(Scribble)).notifier
+            as ScribbleNotifier;
+    pen.setSketch(sketch: sketch);
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(storage.files[uri], 'not json');
+  });
+
   testWidgets('ink autosaves next to a saved document and reloads with it', (
     tester,
   ) async {
@@ -723,5 +805,14 @@ class FakeInkFileStorage implements InkFileStorage {
   @override
   Future<void> write(Uri documentUri, String content) async {
     files[documentUri] = content;
+  }
+
+  final backups = <Uri>[];
+  bool failBackup = false;
+
+  @override
+  Future<void> backup(Uri documentUri) async {
+    if (failBackup) throw const FileSystemException('backup failed');
+    backups.add(documentUri);
   }
 }

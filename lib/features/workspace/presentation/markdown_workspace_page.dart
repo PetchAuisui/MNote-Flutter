@@ -61,7 +61,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   double _inkPenWidth = 3;
   bool _inkTouch = false;
   double _inkViewportWidth = 0;
-  Timer? _inkSaveTimer;
+  Future<void> _inkWrite = Future.value();
+  // Ink is only written once the document's existing ink has been loaded (or
+  // found missing/backed up), so autosave can never overwrite unread ink.
+  bool _inkReady = false;
+  int _inkLinesSeen = 0;
 
   @override
   void initState() {
@@ -190,6 +194,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<bool> _confirmDiscardChanges() async {
+    // Let an autosave that is still writing finish, so it is not mistaken for
+    // unsaved ink.
+    await _inkWrite;
+    if (!mounted) return false;
     if (!_workspace.document.isDirty && !_ink.isDirty) return true;
     return await showDialog<bool>(
           context: context,
@@ -214,6 +222,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Future<void> _openDocument() async {
     if (!await _confirmDiscardChanges()) return;
+    await _saveInk();
     final opened = await _runFileAction(
       _workspace.openDocument,
       successMessage: 'เปิดเอกสารแล้ว',
@@ -227,9 +236,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Future<void> _newDocument() async {
     if (!await _confirmDiscardChanges()) return;
+    await _saveInk();
     _workspace.newDocument();
     _resetInk();
     _resetUndoHistory();
+    _inkReady = true;
   }
 
   Future<void> _saveDocument({bool saveAs = false}) async {
@@ -237,12 +248,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       saveAs ? _workspace.saveAs : _workspace.save,
       successMessage: 'บันทึกเอกสารแล้ว',
     );
-    unawaited(_saveInk());
+    // A new location needs its own ink file even if the ink itself is clean.
+    unawaited(_saveInk(force: true));
   }
 
   void _resetInk() {
     final previous = _ink..removeListener(_scheduleInkSave);
-    _inkSaveTimer?.cancel();
+    _inkReady = false;
+    _inkLinesSeen = 0;
     setState(() => _ink = InkSession()..addListener(_scheduleInkSave));
     WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
@@ -635,39 +648,49 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _workspace.mode == WorkspaceMode.edit ||
       _workspace.mode == WorkspaceMode.split;
 
+  /// Formatting shortcuts act on the document body, not on the title field.
+  VoidCallback _unlessTitleFocused(VoidCallback action) => () {
+    if (!_titleFocusNode.hasFocus) action();
+  };
+
   Map<ShortcutActivator, VoidCallback> get _formattingShortcuts => {
     for (final control in [true, false]) ...{
       SingleActivator(
         LogicalKeyboardKey.keyB,
         control: control,
         meta: !control,
-      ): () =>
-          _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+      ),
       SingleActivator(
         LogicalKeyboardKey.keyI,
         control: control,
         meta: !control,
-      ): () =>
-          _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+      ),
       SingleActivator(
         LogicalKeyboardKey.keyE,
         control: control,
         meta: !control,
-      ): () =>
-          _toggleInlineFormat('`', '`', placeholder: 'code'),
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('`', '`', placeholder: 'code'),
+      ),
       SingleActivator(
         LogicalKeyboardKey.keyK,
         control: control,
         meta: !control,
-      ): () =>
-          _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+      ): _unlessTitleFocused(
+        () => _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+      ),
       SingleActivator(
         LogicalKeyboardKey.keyX,
         control: control,
         meta: !control,
         shift: true,
-      ): () =>
-          _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+      ): _unlessTitleFocused(
+        () => _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+      ),
     },
   };
 
@@ -1155,38 +1178,61 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (clear == true) _ink.pen.clear();
   }
 
-  /// Ink autosaves next to the Markdown file; a document that has no file yet
-  /// keeps its ink in memory until it is first saved.
+  /// Ink autosaves next to the Markdown file as soon as a stroke is finished;
+  /// a document that has no file yet keeps its ink in memory until it is first
+  /// saved.
   void _scheduleInkSave() {
-    _inkSaveTimer?.cancel();
-    _inkSaveTimer = Timer(const Duration(milliseconds: 800), _saveInk);
+    // Only react when strokes are added or removed (stroke end, erase, undo,
+    // redo, clear), not on every pointer move: the eraser rebuilds the sketch
+    // on each move, so object identity would not be enough.
+    final lines = _ink.pen.currentSketch.lines.length;
+    if (lines == _inkLinesSeen) return;
+    _inkLinesSeen = lines;
+    unawaited(_saveInk());
   }
 
-  Future<void> _saveInk() async {
-    _inkSaveTimer?.cancel();
+  /// Writes are queued so a slow write never overlaps (and is never overtaken
+  /// by) a later one. [force] also writes clean, non-empty ink, e.g. after
+  /// Save As.
+  Future<void> _saveInk({bool force = false}) {
     final uri = _workspace.document.uri;
-    if (uri == null || !_ink.isDirty) return;
     final session = _ink;
-    final snapshot = session.encode();
-    try {
-      await widget.inkStorage.write(uri, snapshot);
-      session.markSaved(snapshot);
-    } catch (_) {
-      // The next stroke retries; the ink stays in memory meanwhile.
-    }
+    if (uri == null || !_inkReady) return _inkWrite;
+    return _inkWrite = _inkWrite.then((_) async {
+      // Nothing here may throw: a failed link would stop every later save.
+      try {
+        final empty = session.pen.currentSketch.lines.isEmpty;
+        if (!session.isDirty && (!force || empty)) return;
+        final snapshot = session.encode();
+        await widget.inkStorage.write(uri, snapshot);
+        session.markSaved(snapshot);
+      } catch (_) {
+        // The next stroke retries; the ink stays in memory meanwhile.
+      }
+    });
   }
 
   Future<void> _loadInk() async {
     final uri = _workspace.document.uri;
-    if (uri == null) return;
     final session = _ink;
+    var safeToSave = true;
     try {
-      final source = await widget.inkStorage.read(uri);
-      if (source == null || !mounted || session != _ink) return;
-      session.load(source);
+      if (uri != null) {
+        final source = await widget.inkStorage.read(uri);
+        if (!mounted || session != _ink) return;
+        if (source != null) session.load(source);
+      }
     } catch (_) {
-      // An unreadable ink file leaves the page blank rather than blocking it.
+      // An unreadable ink file leaves the page blank rather than blocking it;
+      // keep the file aside so the first new stroke does not overwrite it. If
+      // it cannot be kept, ink stays unsaved rather than replacing the file.
+      try {
+        await widget.inkStorage.backup(uri!);
+      } catch (_) {
+        safeToSave = false;
+      }
     }
+    if (safeToSave && mounted && session == _ink) _inkReady = true;
   }
 
   Widget _buildInkToolbar() {

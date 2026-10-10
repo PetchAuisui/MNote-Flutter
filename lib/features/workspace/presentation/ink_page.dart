@@ -114,8 +114,8 @@ class _InkPageState extends State<InkPage> {
           ..setStrokeWidth(_penWidth);
       case InkTool.highlighter:
         pen
-          ..setColor(const Color(0x66FFD54F))
-          ..setStrokeWidth(18);
+          ..setColor(InkSession.highlightInk(widget.session.highlightColor))
+          ..setStrokeWidth(widget.session.highlightWidth);
       case InkTool.eraser:
         pen
           ..setEraser()
@@ -124,6 +124,11 @@ class _InkPageState extends State<InkPage> {
   }
 
   void _selectColor(Color color) {
+    if (_tool == InkTool.highlighter) {
+      widget.session.selectHighlight(color: color);
+      widget.session.pen.setColor(InkSession.highlightInk(color));
+      return;
+    }
     setState(() {
       _penColor = color;
       _tool = InkTool.pen;
@@ -134,6 +139,11 @@ class _InkPageState extends State<InkPage> {
   }
 
   void _selectWidth(double width) {
+    if (_tool == InkTool.highlighter) {
+      widget.session.selectHighlight(width: width);
+      widget.session.pen.setStrokeWidth(width);
+      return;
+    }
     setState(() {
       _penWidth = width;
       _tool = InkTool.pen;
@@ -276,17 +286,29 @@ class _InkPageState extends State<InkPage> {
         children: [
           InkToolbar(
             selectedTool: _tool,
-            penColor: _penColor,
-            penWidth: _penWidth,
+            penColor: _tool == InkTool.highlighter
+                ? widget.session.highlightColor
+                : _penColor,
+            penWidth: _tool == InkTool.highlighter
+                ? widget.session.highlightWidth
+                : _penWidth,
             touchEnabled: _touch,
             busy: _busy,
             onToolSelected: _selectTool,
             onColorSelected: _selectColor,
             onWidthSelected: _selectWidth,
-            colorPresets: widget.session.colorPresets,
-            widthPresets: widget.session.widthPresets,
-            onColorPresetChanged: widget.session.setColorPreset,
-            onWidthPresetChanged: widget.session.setWidthPreset,
+            colorPresets: _tool == InkTool.highlighter
+                ? widget.session.highlightPresets
+                : widget.session.colorPresets,
+            widthPresets: _tool == InkTool.highlighter
+                ? widget.session.highlightWidthPresets
+                : widget.session.widthPresets,
+            onColorPresetChanged: _tool == InkTool.highlighter
+                ? widget.session.setHighlightPreset
+                : widget.session.setColorPreset,
+            onWidthPresetChanged: _tool == InkTool.highlighter
+                ? widget.session.setHighlightWidthPreset
+                : widget.session.setWidthPreset,
             onUndo: pen.canUndo ? pen.undo : null,
             onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,

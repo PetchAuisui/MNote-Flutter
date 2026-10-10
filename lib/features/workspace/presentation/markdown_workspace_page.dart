@@ -1078,8 +1078,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           ..setStrokeWidth(_inkPenWidth);
       case InkTool.highlighter:
         pen
-          ..setColor(const Color(0x66FFD54F))
-          ..setStrokeWidth(18);
+          ..setColor(InkSession.highlightInk(_ink.highlightColor))
+          ..setStrokeWidth(_ink.highlightWidth);
       case InkTool.eraser:
         pen
           ..setEraser()
@@ -1088,6 +1088,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _selectInkColor(Color color) {
+    if (_inkTool == InkTool.highlighter) {
+      _ink.selectHighlight(color: color);
+      _ink.pen.setColor(InkSession.highlightInk(color));
+      return;
+    }
     setState(() {
       _inkPenColor = color;
       _inkTool = InkTool.pen;
@@ -1098,6 +1103,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   void _selectInkWidth(double width) {
+    if (_inkTool == InkTool.highlighter) {
+      _ink.selectHighlight(width: width);
+      _ink.pen.setStrokeWidth(width);
+      return;
+    }
     setState(() {
       _inkPenWidth = width;
       _inkTool = InkTool.pen;
@@ -1193,17 +1203,29 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       listenable: _ink,
       builder: (context, _) => InkToolbar(
         selectedTool: _inkTool,
-        penColor: _inkPenColor,
-        penWidth: _inkPenWidth,
+        penColor: _inkTool == InkTool.highlighter
+            ? _ink.highlightColor
+            : _inkPenColor,
+        penWidth: _inkTool == InkTool.highlighter
+            ? _ink.highlightWidth
+            : _inkPenWidth,
         touchEnabled: _inkTouch,
         busy: _inkBusy,
         onToolSelected: _selectInkTool,
         onColorSelected: _selectInkColor,
         onWidthSelected: _selectInkWidth,
-        colorPresets: _ink.colorPresets,
-        widthPresets: _ink.widthPresets,
-        onColorPresetChanged: _ink.setColorPreset,
-        onWidthPresetChanged: _ink.setWidthPreset,
+        colorPresets: _inkTool == InkTool.highlighter
+            ? _ink.highlightPresets
+            : _ink.colorPresets,
+        widthPresets: _inkTool == InkTool.highlighter
+            ? _ink.highlightWidthPresets
+            : _ink.widthPresets,
+        onColorPresetChanged: _inkTool == InkTool.highlighter
+            ? _ink.setHighlightPreset
+            : _ink.setColorPreset,
+        onWidthPresetChanged: _inkTool == InkTool.highlighter
+            ? _ink.setHighlightWidthPreset
+            : _ink.setWidthPreset,
         onUndo: _ink.pen.canUndo ? _ink.pen.undo : null,
         onRedo: _ink.pen.canRedo ? _ink.pen.redo : null,
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,

@@ -22,6 +22,38 @@ class InkSession extends ChangeNotifier {
     const Color(0xFF7B4BA0),
   ];
   final List<double> widthPresets = [3, 6, 12];
+
+  /// Highlighter settings are kept apart from the pen's. Colours are stored
+  /// opaque (so swatches read clearly); [highlightInk] applies the translucency.
+  final List<Color> highlightPresets = [
+    const Color(0xFFFFD54F),
+    const Color(0xFF81C784),
+    const Color(0xFFF48FB1),
+    const Color(0xFF64B5F6),
+    const Color(0xFFFFB74D),
+  ];
+  final List<double> highlightWidthPresets = [12, 18, 28];
+  Color highlightColor = const Color(0xFFFFD54F);
+  double highlightWidth = 18;
+
+  static Color highlightInk(Color color) => color.withValues(alpha: 0.4);
+
+  void setHighlightPreset(int index, Color color) {
+    highlightPresets[index] = color;
+    notifyListeners();
+  }
+
+  void setHighlightWidthPreset(int index, double width) {
+    highlightWidthPresets[index] = width;
+    notifyListeners();
+  }
+
+  void selectHighlight({Color? color, double? width}) {
+    highlightColor = color ?? highlightColor;
+    highlightWidth = width ?? highlightWidth;
+    notifyListeners();
+  }
+
   String _savedSketch = jsonEncode(const Sketch(lines: []).toJson());
 
   void setColorPreset(int index, Color color) {

@@ -235,6 +235,8 @@ void main() {
     expect(pen.value.selectedWidth, 18);
     expect((pen.value as Drawing).selectedColor, 0x66FFD54F);
 
+    await tester.tap(find.byKey(const Key('ink-pen')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('ink-color-preset-2')));
     await tester.pumpAndSettle();
     expect((pen.value as Drawing).selectedColor, 0xFFB3261E);
@@ -370,6 +372,40 @@ void main() {
     await tester.tap(find.byKey(const Key('ink-color-apply')));
     await tester.pumpAndSettle();
     expect(session.colorPresets[0], isNot(before));
+  });
+
+  testWidgets('highlighter keeps its own colors, separate from the pen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(
+      _inkPage(session: session, storage: FakeInkFileStorage()),
+    );
+    await tester.pumpAndSettle();
+    final pen = session.pen;
+
+    await tester.tap(find.byKey(const Key('ink-color-preset-1')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, 0xFF275DAD);
+
+    await tester.tap(find.byKey(const Key('ink-highlighter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ink-color-preset-1')));
+    await tester.pumpAndSettle();
+    expect(session.highlightColor, session.highlightPresets[1]);
+    expect(
+      (pen.value as Drawing).selectedColor,
+      InkSession.highlightInk(session.highlightPresets[1]).toARGB32(),
+    );
+
+    await tester.tap(find.byKey(const Key('ink-pen')));
+    await tester.pumpAndSettle();
+    expect((pen.value as Drawing).selectedColor, 0xFF275DAD);
+    expect(session.colorPresets[1], const Color(0xFF275DAD));
   });
 
   test('finished highlighter strokes snap to straight lines', () {

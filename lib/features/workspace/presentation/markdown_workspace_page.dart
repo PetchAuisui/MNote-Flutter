@@ -732,7 +732,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       if (metadata != null) {
         final docUri = _workspace.document.uri;
         final updatedDocs = metadata.documents.map((d) {
-          if (docUri != null && d.uri == docUri) {
+          if (docUri != null &&
+              (d.uri == docUri || d.id == docUri.toString())) {
             return d.copyWith(isTrash: true);
           }
           return d;
@@ -741,16 +742,15 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           metadata.copyWith(documents: updatedDocs),
         );
       }
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ย้ายไปถังขยะไม่สำเร็จ')));
-      return;
-    }
-
-    if (mounted) {
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้')),
+        );
+      }
     }
   }
 

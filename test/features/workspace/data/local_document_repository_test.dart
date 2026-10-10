@@ -139,4 +139,36 @@ void main() {
     expect(loaded?.documents.first.name, 'test.md');
     expect(loaded?.documents.first.uri, Uri.file('/tmp/test.md'));
   });
+
+  test(
+    'returns null when write throws and fallback createDocument returns null',
+    () async {
+      final failingStorage = _FailingDocumentStorage();
+      final repo = LocalDocumentRepository(failingStorage);
+      final doc = MarkdownDocument.opened(
+        name: 'notes.md',
+        content: 'hello',
+        uri: Uri.file('/tmp/notes.md'),
+      ).edit('changed');
+
+      final result = await repo.save(doc);
+
+      expect(result, isNull);
+    },
+  );
+}
+
+class _FailingDocumentStorage extends FakeDocumentStorage {
+  @override
+  Future<void> write(Uri uri, Uint8List bytes) async {
+    throw Exception('Disk error');
+  }
+
+  @override
+  Future<Uri?> createDocument({
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    return null;
+  }
 }

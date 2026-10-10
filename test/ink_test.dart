@@ -447,6 +447,48 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('dispose does not mark session saved if autoSave returns false', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = false;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isTrue);
+  });
+
+  testWidgets('dispose marks session saved when autoSave succeeds', (
+    tester,
+  ) async {
+    final session = InkSession();
+    session.pen.setSketch(sketch: sketch);
+    expect(session.isDirty, isTrue);
+
+    final storage = FakeInkFileStorage();
+    storage.saveResult = true;
+
+    await tester.pumpWidget(_inkPage(session: session, storage: storage));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(session.isDirty, isFalse);
+  });
 }
 
 Future<void> _chooseInkManagementAction(

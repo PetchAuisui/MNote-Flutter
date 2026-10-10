@@ -115,7 +115,9 @@ class _InkPageState extends State<InkPage> {
             bytes: Uint8List.fromList(utf8.encode(snapshot)),
           )
           .then((saved) {
-            if (saved) session.markSaved(snapshot);
+            if (saved) {
+              session.markSaved(snapshot);
+            }
           });
     }
     widget.session.pen.removeListener(_onPenChanged);

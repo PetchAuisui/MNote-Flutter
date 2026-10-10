@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/models/note_item.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -331,4 +332,116 @@ void main() {
       expect(repo.openCalls, 1);
     },
   );
+
+  testWidgets(
+    'moving document to trash only trashes the matching document by uri',
+    (tester) async {
+      final repo = FakeDocumentRepository();
+      final uri1 = Uri.file('/tmp/folder1/note.md');
+      final uri2 = Uri.file('/tmp/folder2/note.md');
+
+      repo.storedMetadata = LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: uri1.toString(),
+            name: 'note.md',
+            content: 'content 1',
+            updatedAt: DateTime.now(),
+            uri: uri1,
+            isTrash: false,
+          ),
+          DocumentItem(
+            id: uri2.toString(),
+            name: 'note.md',
+            content: 'content 2',
+            updatedAt: DateTime.now(),
+            uri: uri2,
+            isTrash: false,
+          ),
+        ],
+      );
+
+      final currentDoc = MarkdownDocument.opened(
+        name: 'note.md',
+        content: 'content 1',
+        uri: uri1,
+      );
+
+      await tester.pumpWidget(
+        MnoteApp(
+          documentRepository: repo,
+          home: MarkdownWorkspacePage(
+            repository: repo,
+            initialDocument: currentDoc,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('ย้ายไปถังขยะ'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'ย้ายไปถังขยะ'));
+      await tester.pumpAndSettle();
+
+      final docs = repo.storedMetadata!.documents;
+      final doc1 = docs.firstWhere((d) => d.uri == uri1);
+      final doc2 = docs.firstWhere((d) => d.uri == uri2);
+
+      expect(doc1.isTrash, isTrue);
+      expect(doc2.isTrash, isFalse);
+    },
+  );
+
+  testWidgets('showing snackbar and not popping when moving to trash fails', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    final uri = Uri.file('/tmp/folder1/note.md');
+    repo.storedMetadata = LibraryMetadata(
+      documents: [
+        DocumentItem(
+          id: uri.toString(),
+          name: 'note.md',
+          content: 'content',
+          updatedAt: DateTime.now(),
+          uri: uri,
+          isTrash: false,
+        ),
+      ],
+    );
+    repo.metadataError = Exception('Storage failure');
+
+    final currentDoc = MarkdownDocument.opened(
+      name: 'note.md',
+      content: 'content',
+      uri: uri,
+    );
+
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: currentDoc,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ย้ายไปถังขยะ'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'ย้ายไปถังขยะ'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้'), findsOneWidget);
+    expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+  });
 }

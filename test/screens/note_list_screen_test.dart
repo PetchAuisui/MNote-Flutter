@@ -157,7 +157,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Title checks
-      expect(find.text('เอกสาร'), findsOneWidget);
+      expect(find.text('Mnote'), findsOneWidget);
 
       // Initial Folders
       expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
@@ -201,8 +201,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
     await tester.pumpAndSettle();
 
-    // Returned to root "เอกสาร"
-    expect(find.text('เอกสาร'), findsOneWidget);
+    // Returned to root "Mnote"
+    expect(find.text('Mnote'), findsOneWidget);
     expect(find.text('ใบประกอบวิชาชีพครู'), findsOneWidget);
   });
 

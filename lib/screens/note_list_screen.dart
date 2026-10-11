@@ -1191,14 +1191,36 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   });
                 },
               )
-            : Text(
-                isTrashView
-                    ? 'ถังขยะ'
-                    : (isRoot ? 'เอกสาร' : _currentFolder?.name ?? 'โฟลเดอร์'),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isRoot && !isTrashView) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  Flexible(
+                    child: Text(
+                      isTrashView
+                          ? 'ถังขยะ'
+                          : (isRoot
+                                ? 'Mnote'
+                                : _currentFolder?.name ?? 'โฟลเดอร์'),
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
         actions: [
           IconButton(

@@ -80,22 +80,6 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  build-web:
-    name: Build Web
-    needs: [analyze, test]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-
-      - run: flutter pub get
-      - run: flutter build web --release
-
   build-android:
     name: Build Android (debug APK)
     needs: [analyze, test]

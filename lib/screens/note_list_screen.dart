@@ -720,6 +720,102 @@ class _NoteListScreenState extends State<NoteListScreen> {
     }
   }
 
+  Future<void> _moveDocument(DocumentItem doc) async {
+    final availableFolders = _folders
+        .where((f) => !f.isTrash && f.id != doc.folderId)
+        .toList();
+
+    // หากอยู่หน้าหลักและยังไม่มีโฟลเดอร์ให้ย้ายไป
+    if (doc.folderId == null && availableFolders.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'ยังไม่มีโฟลเดอร์สำหรับย้ายเอกสาร กรุณาสร้างโฟลเดอร์ก่อน',
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+      }
+      return;
+    }
+
+    final selected = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('ย้ายเอกสารไปที่...'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320, maxHeight: 350),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (doc.folderId != null)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.home_outlined,
+                      color: Colors.blue,
+                    ),
+                    title: const Text('หน้าหลัก (นอกสุด)'),
+                    onTap: () => Navigator.pop(ctx, '__root__'),
+                  ),
+                ...availableFolders.map(
+                  (f) => ListTile(
+                    leading: const Icon(
+                      Icons.folder_outlined,
+                      color: Colors.amber,
+                    ),
+                    title: Text(f.name),
+                    onTap: () => Navigator.pop(ctx, f.id),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ยกเลิก'),
+          ),
+        ],
+      ),
+    );
+
+    if (selected == null || !mounted) return;
+
+    final newFolderId = selected == '__root__' ? null : selected;
+    final targetFolder = _folders.where((f) => f.id == newFolderId).firstOrNull;
+    final destName = newFolderId == null
+        ? 'หน้าหลัก'
+        : (targetFolder?.name ?? 'โฟลเดอร์');
+
+    setState(() {
+      final idx = _documents.indexWhere((d) => d.id == doc.id);
+      if (idx != -1) {
+        _documents[idx] = doc.moveToFolder(newFolderId);
+      }
+    });
+
+    await _persistLibrary();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('ย้าย "${doc.displayName}" ไปที่ "$destName" แล้ว'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
+  }
+
   Future<void> _renameFolder(FolderItem folder) async {
     final controller = TextEditingController(text: folder.name);
     final formKey = GlobalKey<FormState>();
@@ -1717,6 +1813,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     },
                   ),
                   ListTile(
+                    leading: const Icon(Icons.drive_file_move_outlined),
+                    title: const Text('ย้ายไปยังโฟลเดอร์'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _moveDocument(doc);
+                    },
+                  ),
+                  ListTile(
                     leading: const Icon(Icons.upload_rounded),
                     title: const Text('ส่งออก'),
                     onTap: () {
@@ -2283,6 +2387,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   onSelected: (val) {
                     if (val == 'open') _openDocument(doc);
                     if (val == 'rename') _renameDocument(doc);
+                    if (val == 'move') _moveDocument(doc);
                     if (val == 'export') _exportDocument(doc);
                     if (val == 'trash') _moveToTrashDocument(doc);
                     if (val == 'restore') _restoreDocument(doc);
@@ -2330,6 +2435,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 Icon(Icons.edit_outlined, size: 18),
                                 SizedBox(width: 8),
                                 Text('เปลี่ยนชื่อไฟล์'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'move',
+                            child: Row(
+                              children: [
+                                Icon(Icons.drive_file_move_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('ย้ายไปยังโฟลเดอร์'),
                               ],
                             ),
                           ),
@@ -2610,6 +2725,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     onSelected: (val) {
                       if (val == 'open') _openDocument(item);
                       if (val == 'rename') _renameDocument(item);
+                      if (val == 'move') _moveDocument(item);
                       if (val == 'export') _exportDocument(item);
                       if (val == 'trash') _moveToTrashDocument(item);
                       if (val == 'restore') _restoreDocument(item);
@@ -2669,6 +2785,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(Icons.edit_outlined, size: 18),
                                   SizedBox(width: 8),
                                   Text('เปลี่ยนชื่อไฟล์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'move',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.drive_file_move_outlined,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('ย้ายไปยังโฟลเดอร์'),
                                 ],
                               ),
                             ),

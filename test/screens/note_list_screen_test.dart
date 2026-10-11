@@ -812,4 +812,87 @@ void main() {
       expect(find.text('เอกสารทั้งหมด'), findsOneWidget);
     },
   );
+
+  testWidgets('moves document to folder and back to root successfully', (
+    tester,
+  ) async {
+    final fakeRepo = FakeDocumentRepository();
+    final folder = FolderItem(
+      id: 'f_work',
+      name: 'โฟลเดอร์งาน',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+    final doc = DocumentItem(
+      id: 'd_test',
+      name: 'เอกสารสำคัญ.md',
+      content: 'ทดสอบเนื้อหา',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [folder],
+          initialDocuments: [doc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Initially both folder and doc are in root
+    expect(find.text('โฟลเดอร์งาน'), findsOneWidget);
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+
+    // Open doc menu
+    final docMenu = find.byKey(Key('doc-menu-${doc.id}'));
+    expect(docMenu, findsOneWidget);
+    await tester.tap(docMenu);
+    await tester.pumpAndSettle();
+
+    // Tap 'ย้ายไปยังโฟลเดอร์'
+    expect(find.text('ย้ายไปยังโฟลเดอร์'), findsOneWidget);
+    await tester.tap(find.text('ย้ายไปยังโฟลเดอร์'));
+    await tester.pumpAndSettle();
+
+    // Destination dialog shows folder option
+    expect(find.text('ย้ายเอกสารไปที่...'), findsOneWidget);
+    expect(find.text('โฟลเดอร์งาน'), findsWidgets);
+
+    // Tap 'โฟลเดอร์งาน' in dialog
+    await tester.tap(find.widgetWithText(ListTile, 'โฟลเดอร์งาน'));
+    await tester.pumpAndSettle();
+
+    // Doc should now be moved out of root view
+    expect(find.text('เอกสารสำคัญ'), findsNothing);
+
+    // Enter the folder
+    await tester.tap(find.text('โฟลเดอร์งาน'));
+    await tester.pumpAndSettle();
+
+    // Inside folder, doc should now be visible
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+
+    // Move it back to root
+    final insideMenu = find.byKey(Key('doc-menu-${doc.id}'));
+    await tester.tap(insideMenu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ย้ายไปยังโฟลเดอร์'));
+    await tester.pumpAndSettle();
+
+    // Option 'หน้าหลัก (นอกสุด)' should appear
+    expect(find.text('หน้าหลัก (นอกสุด)'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, 'หน้าหลัก (นอกสุด)'));
+    await tester.pumpAndSettle();
+
+    // Inside folder, doc should disappear
+    expect(find.text('เอกสารสำคัญ'), findsNothing);
+
+    // Back to root
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.pumpAndSettle();
+
+    // Back in root, doc should be visible again
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+  });
 }

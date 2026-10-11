@@ -1,0 +1,449 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import '../../workspace/presentation/mermaid/mermaid.dart';
+import '../domain/chat_message.dart';
+import 'assistant_chat_controller.dart';
+
+Future<void> showAssistantChat(
+  BuildContext context, {
+  required AssistantChatController controller,
+}) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+
+  if (screenWidth < 600) {
+    return showDialog<void>(
+      context: context,
+      useSafeArea: false,
+      builder: (dialogContext) => Dialog.fullscreen(
+        key: const Key('assistant-chat-dialog'),
+        child: SafeArea(
+          child: AssistantChatPanel(
+            controller: controller,
+            onClose: () => Navigator.of(dialogContext).pop(),
+          ),
+        ),
+      ),
+    );
+  } else {
+    final colorScheme = Theme.of(context).colorScheme;
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'ปิดผู้ช่วย AI',
+      barrierColor: colorScheme.scrim.withValues(alpha: 0.32),
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            key: const Key('assistant-side-sheet'),
+            elevation: 1,
+            color: colorScheme.surfaceContainerLow,
+            child: SizedBox(
+              width: 400,
+              height: double.infinity,
+              child: SafeArea(
+                child: AssistantChatPanel(
+                  controller: controller,
+                  onClose: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final slideTween = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+        return SlideTransition(
+          position: animation.drive(slideTween),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class AssistantChatPanel extends StatefulWidget {
+  final AssistantChatController controller;
+  final VoidCallback? onClose;
+
+  const AssistantChatPanel({super.key, required this.controller, this.onClose});
+
+  @override
+  State<AssistantChatPanel> createState() => _AssistantChatPanelState();
+}
+
+class _AssistantChatPanelState extends State<AssistantChatPanel> {
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  int _previousMessageCount = 0;
+  int _previousLastMessageLength = 0;
+
+  static const List<String> _suggestions = [
+    'อธิบาย Markdown แบบเข้าใจง่าย',
+    'เขียน flowchart ขั้นตอนการสมัครสมาชิก',
+    'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextChanged);
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant AssistantChatPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+    }
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  void _onControllerChanged() {
+    final messages = widget.controller.messages;
+    final currentCount = messages.length;
+    final currentLastLength = messages.isNotEmpty
+        ? messages.last.text.length
+        : 0;
+
+    if (currentCount != _previousMessageCount ||
+        currentLastLength != _previousLastMessageLength) {
+      _previousMessageCount = currentCount;
+      _previousLastMessageLength = currentLastLength;
+      _scrollToBottom();
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void _sendMessage([String? textOverride]) {
+    final text = textOverride ?? _textController.text;
+    if (text.trim().isEmpty || widget.controller.isResponding) return;
+
+    _textController.clear();
+    widget.controller.send(text);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    _textController.removeListener(_onTextChanged);
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final messages = widget.controller.messages;
+        final isResponding = widget.controller.isResponding;
+        final errorMessage = widget.controller.errorMessage;
+        final canSend = _textController.text.trim().isNotEmpty && !isResponding;
+        final canClear = messages.isNotEmpty && !isResponding;
+
+        return Material(
+          key: const Key('assistant-chat-panel'),
+          type: MaterialType.transparency,
+          child: Column(
+            children: [
+              // 1. ส่วนหัว สูง 64
+              SizedBox(
+                height: 64,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'ผู้ช่วย AI',
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        key: const Key('assistant-clear'),
+                        icon: const Icon(Icons.delete_sweep_outlined),
+                        tooltip: 'ล้างบทสนทนา',
+                        onPressed: canClear ? widget.controller.clear : null,
+                      ),
+                      if (widget.onClose != null)
+                        IconButton(
+                          key: const Key('assistant-close'),
+                          icon: const Icon(Icons.close),
+                          tooltip: 'ปิด',
+                          onPressed: widget.onClose,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 2. แถบความเป็นส่วนตัว
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ',
+                  key: const Key('assistant-privacy-note'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+              const Divider(height: 1),
+
+              // 3. รายการข้อความ หรือ หน้าว่าง
+              Expanded(
+                child: messages.isEmpty
+                    ? _buildEmptyState(theme, colorScheme)
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[index];
+                          final isLast = index == messages.length - 1;
+                          final showTyping =
+                              isLast &&
+                              msg.role == ChatRole.assistant &&
+                              msg.text.isEmpty &&
+                              isResponding;
+
+                          return _MessageBubble(
+                            message: msg,
+                            showTypingIndicator: showTyping,
+                          );
+                        },
+                      ),
+              ),
+
+              // 4. แถบ error
+              if (errorMessage != null)
+                Container(
+                  key: const Key('assistant-error'),
+                  width: double.infinity,
+                  color: colorScheme.errorContainer,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    errorMessage,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+
+              const Divider(height: 1),
+
+              // 5. ช่องพิมพ์ข้อความ
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('assistant-input'),
+                        controller: _textController,
+                        minLines: 1,
+                        maxLines: 5,
+                        maxLength: AssistantChatController.maxInputLength,
+                        textInputAction: TextInputAction.send,
+                        decoration: const InputDecoration(
+                          hintText: 'ถามอะไรก็ได้…',
+                          counterText: '',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                        onSubmitted: (_) {
+                          if (canSend) _sendMessage();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      key: const Key('assistant-send'),
+                      icon: const Icon(Icons.arrow_upward_rounded),
+                      tooltip: 'ส่ง',
+                      onPressed: canSend ? () => _sendMessage() : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+    return SingleChildScrollView(
+      key: const Key('assistant-empty'),
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 24),
+            Icon(Icons.auto_awesome, size: 40, color: colorScheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              'เริ่มคุยกับผู้ช่วย AI',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: List.generate(_suggestions.length, (index) {
+                final suggestion = _suggestions[index];
+                return ActionChip(
+                  key: Key('assistant-suggestion-$index'),
+                  label: Text(suggestion),
+                  onPressed: () => _sendMessage(suggestion),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final ChatMessage message;
+  final bool showTypingIndicator;
+
+  const _MessageBubble({
+    required this.message,
+    this.showTypingIndicator = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isUser = message.role == ChatRole.user;
+
+    final bubbleColor = isUser
+        ? colorScheme.primaryContainer
+        : colorScheme.surfaceContainerHigh;
+    final textColor = isUser
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurface;
+
+    final borderRadius = BorderRadius.only(
+      topLeft: const Radius.circular(16),
+      topRight: const Radius.circular(16),
+      bottomLeft: Radius.circular(isUser ? 16 : 4),
+      bottomRight: Radius.circular(isUser ? 4 : 16),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) => Align(
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          key: Key(isUser ? 'assistant-message-user' : 'assistant-message-ai'),
+          constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.85),
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: borderRadius,
+          ),
+          child: showTypingIndicator
+              ? const _TypingIndicator()
+              : isUser
+              ? SelectableText(
+                  message.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                )
+              : MarkdownBody(
+                  data: message.text,
+                  selectable: true,
+                  builders: {'code': MermaidElementBuilder()},
+                  onTapLink: null,
+                  imageBuilder: (uri, title, alt) => Text(alt ?? ''),
+                  styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                    p: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TypingIndicator extends StatelessWidget {
+  const _TypingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      key: const Key('assistant-typing'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'กำลังคิด…',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -20,6 +20,7 @@ import 'export_sheet.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
+import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
   const MarkdownWorkspacePage({
@@ -29,7 +30,7 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
     this.exportSaver,
-    this.assistant,
+    this.assistant = const FirebaseAiAssistant(),
   });
 
   final DocumentRepository repository;

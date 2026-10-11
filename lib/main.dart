@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +6,7 @@ import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/core/app_check.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,14 @@ Future<void> main() async {
     runApp(const FirebaseSetupErrorApp());
     return;
   }
+
+  // ไม่ await: ถ้า App Check มีปัญหา แอปยังเปิดได้ปกติ
+  // ฟีเจอร์ที่ต้องใช้ (เช่น AI) จะเรียก ensureAppCheckActivated() ซ้ำเอง
+  unawaited(
+    ensureAppCheckActivated().catchError(
+      (Object error) => debugPrint('App Check activation failed: $error'),
+    ),
+  );
 
   runApp(MnoteApp(authRepository: authRepository));
 }

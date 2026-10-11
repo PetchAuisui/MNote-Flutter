@@ -85,7 +85,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                       ],
                       selected: {currentMode},
                       onSelectionChanged: (newSelection) {
-                        MnoteApp.themeModeNotifier.value = newSelection.first;
+                        MnoteApp.setThemeMode(newSelection.first);
                       },
                     ),
                   ),

@@ -7,6 +7,7 @@ import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MnoteApp extends StatelessWidget {
   const MnoteApp({
@@ -31,6 +32,35 @@ class MnoteApp extends StatelessWidget {
   /// Global notifier to switch app font family
   static final ValueNotifier<AppFontFamily> fontNotifier =
       ValueNotifier<AppFontFamily>(AppFontFamily.prompt);
+
+  static const _themePrefKey = 'mnote_theme_mode';
+
+  static Future<void> loadThemeMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_themePrefKey);
+      if (saved == 'light') {
+        themeModeNotifier.value = ThemeMode.light;
+      } else if (saved == 'dark') {
+        themeModeNotifier.value = ThemeMode.dark;
+      } else if (saved == 'system') {
+        themeModeNotifier.value = ThemeMode.system;
+      }
+    } catch (_) {}
+  }
+
+  static Future<void> setThemeMode(ThemeMode mode) async {
+    themeModeNotifier.value = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = switch (mode) {
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+        ThemeMode.system => 'system',
+      };
+      await prefs.setString(_themePrefKey, val);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {

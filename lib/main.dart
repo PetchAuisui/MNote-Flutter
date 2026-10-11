@@ -8,7 +8,7 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await MnoteApp.loadThemeMode();
   GoogleFonts.config.allowRuntimeFetching = false;
 
   final AuthRepository authRepository;

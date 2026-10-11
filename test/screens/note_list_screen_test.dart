@@ -256,6 +256,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ListView), findsOneWidget);
+
+    // Long press on document in ListView opens bottom sheet
+    await tester.longPress(find.text('2569-01-CT05-report02'));
+    await tester.pumpAndSettle();
+    expect(find.text('ย้ายไปยังโฟลเดอร์'), findsOneWidget);
   });
 
   testWidgets(

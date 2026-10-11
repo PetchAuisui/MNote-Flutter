@@ -2680,6 +2680,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ],
               ),
               onTap: () => _handleFolderTap(item),
+              onLongPress: () => _showFolderOptions(item),
             )
           else
             ListTile(
@@ -2833,6 +2834,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ],
               ),
               onTap: () => _openDocument(item),
+              onLongPress: () => _showDocumentOptions(item),
             ),
       ],
     );

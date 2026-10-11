@@ -813,53 +813,52 @@ void main() {
     },
   );
 
-  testWidgets(
-    'sorts items when sort mode is selected from sort menu',
-    (tester) async {
-      final fakeRepo = FakeDocumentRepository();
-      final docB = DocumentItem(
-        id: 'doc_b',
-        name: 'B_Note.md',
-        content: 'content',
-        updatedAt: DateTime(2026, 1, 10),
-        isStarred: false,
-        isTrash: false,
-      );
-      final docA = DocumentItem(
-        id: 'doc_a',
-        name: 'A_Note.md',
-        content: 'content',
-        updatedAt: DateTime(2026, 1, 1),
-        isStarred: false,
-        isTrash: false,
-      );
+  testWidgets('sorts items when sort mode is selected from sort menu', (
+    tester,
+  ) async {
+    final fakeRepo = FakeDocumentRepository();
+    final docB = DocumentItem(
+      id: 'doc_b',
+      name: 'B_Note.md',
+      content: 'content',
+      updatedAt: DateTime(2026, 1, 10),
+      isStarred: false,
+      isTrash: false,
+    );
+    final docA = DocumentItem(
+      id: 'doc_a',
+      name: 'A_Note.md',
+      content: 'content',
+      updatedAt: DateTime(2026, 1, 1),
+      isStarred: false,
+      isTrash: false,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: NoteListScreen(
-            repository: fakeRepo,
-            initialFolders: [],
-            initialDocuments: [docB, docA],
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [docB, docA],
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      // Open sort menu
-      await tester.tap(find.byTooltip('จัดเรียงตาม'));
-      await tester.pumpAndSettle();
+    // Open sort menu
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('แก้ไขล่าสุด'), findsOneWidget);
-      expect(find.text('เก่าที่สุด'), findsOneWidget);
-      expect(find.text('ชื่อ (ก - ฮ)'), findsOneWidget);
-      expect(find.text('ชื่อ (ฮ - ก)'), findsOneWidget);
+    expect(find.text('แก้ไขล่าสุด'), findsOneWidget);
+    expect(find.text('เก่าที่สุด'), findsOneWidget);
+    expect(find.text('ชื่อ (ก - ฮ)'), findsOneWidget);
+    expect(find.text('ชื่อ (ฮ - ก)'), findsOneWidget);
 
-      // Select 'เก่าที่สุด'
-      await tester.tap(find.text('เก่าที่สุด'));
-      await tester.pumpAndSettle();
+    // Select 'เก่าที่สุด'
+    await tester.tap(find.text('เก่าที่สุด'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('A_Note'), findsOneWidget);
-      expect(find.text('B_Note'), findsOneWidget);
-    },
-  );
+    expect(find.text('A_Note'), findsOneWidget);
+    expect(find.text('B_Note'), findsOneWidget);
+  });
 }

@@ -1854,8 +1854,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               ),
             ),
           ),
-          if (isSelected)
-            Icon(Icons.check_rounded, size: 18, color: primary),
+          if (isSelected) Icon(Icons.check_rounded, size: 18, color: primary),
         ],
       ),
     );

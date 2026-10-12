@@ -43,7 +43,7 @@
 - **หน้าว่าง:** คำแนะนำ 3 อันกดแล้วส่งทันที (ช่วยผู้ใช้ครั้งแรก และใช้เป็นงานใน Usability Testing ได้)
 - **ฟองข้อความ:** ผู้ใช้ชิดขวาสี `primaryContainer` / AI ชิดซ้ายสี `surfaceContainerHigh` (สีจาก theme ทั้งหมด)
 - **คำตอบทยอยขึ้นทีละส่วน** (streaming) ระหว่างรอแสดง "กำลังคิด…"
-- **คำตอบแสดงเป็น Markdown** และถ้า AI ตอบเป็นบล็อก ` ```mermaid ` จะเห็นเป็นภาพไดอะแกรม (ใช้ `MermaidElementBuilder` เดิมของทีม)
+- **คำตอบแสดงเป็น Markdown** และถ้า AI ตอบเป็นบล็อก ` ```mermaid ` จะเห็นเป็นการ์ดไดอะแกรม: เริ่มต้นแสดง**ภาพ** (ใช้ `MermaidDiagramView` เดิม) มีปุ่มสลับ **ภาพ / โค้ด** (โค้ดกดค้างเลือกคัดลอกได้) และปุ่ม **คัดลอก** ที่คัดลอกโค้ดพร้อมรั้ว ` ```mermaid ` วางในโน้ตแล้วเป็นผังทันที (ไอคอนเปลี่ยนเป็น ✓ 2 วินาที ไม่ใช้ SnackBar เพราะจะโดนหน้าต่างแชทบัง)
 - **แถบความเป็นส่วนตัว:** "ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ"
 - ปุ่มล้างบทสนทนา, แถบ error สี `errorContainer`, จำกัดข้อความ 2000 ตัวอักษร
 
@@ -67,7 +67,8 @@ lib/
 │   │   └── firebase_ai_assistant.dart       ตัวจริง: เรียก Gemini ผ่าน Firebase AI Logic
 │   └── presentation/
 │       ├── assistant_chat_controller.dart   state ของแชท (ChangeNotifier)
-│       └── assistant_chat_panel.dart        หน้าแชท + showAssistantChat()
+│       ├── assistant_chat_panel.dart        หน้าแชท + showAssistantChat()
+│       └── assistant_code_block_builder.dart การ์ดไดอะแกรม ภาพ/โค้ด/คัดลอก (เฉพาะในแชท)
 ├── main.dart                                แก้ +10 บรรทัด: เรียก ensureAppCheckActivated()
 └── features/workspace/presentation/
     └── markdown_workspace_page.dart         แก้ +28/-1: ปุ่ม ✨ + พารามิเตอร์ assistant
@@ -76,9 +77,10 @@ test/
 ├── helpers/fake_ai_assistant.dart           ตัวปลอมสำหรับ test (ไม่ต่อเน็ต)
 └── features/assistant/
     ├── assistant_chat_controller_test.dart  12 test
-    ├── assistant_chat_panel_test.dart       13 test
+    ├── assistant_chat_panel_test.dart       14 test
     ├── assistant_entry_test.dart             6 test
-    └── firebase_ai_assistant_test.dart       5 test
+    ├── firebase_ai_assistant_test.dart       5 test
+    └── assistant_code_block_builder_test.dart 5 test
 ```
 
 แพ็กเกจที่เพิ่มใน `pubspec.yaml`: `firebase_ai: ^4.0.0`, `firebase_app_check: ^0.4.8` (ต้องการ `firebase_core ^4.14.0` ซึ่งทีมใช้ `^4.15.0` อยู่แล้ว)
@@ -128,16 +130,16 @@ test/
 
 ## 6. ความปลอดภัย
 
-| ความเสี่ยง                                       | การป้องกัน                                                                                                             | หลักฐาน                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| API key หลุด                                     | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic (`firebase_options.dart` มีแค่ค่า config ซึ่งไม่ใช่ความลับ) | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ key        |
-| คนนอกใช้โควตา                                    | App Check (ตอนนี้โหมด Monitoring ดูหัวข้อ 7)                                                                           | —                                       |
-| ส่งข้อความยาวมากเพื่อผลาญโควตา                   | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller                                                                        | test (Security) 2 ข้อ                   |
-| ประวัติแชทยาวไม่สิ้นสุด                          | ส่งแค่ 20 ข้อความล่าสุด                                                                                                | test (Security)                         |
-| **เนื้อหาโน้ตหลุดไปให้ AI**                      | controller ส่ง `document: null` เสมอ และ `FirebaseAiAssistant` มี `assert` กันไว้                                      | test (Security) ใน controller และ entry |
-| **คำตอบ AI ใช้ติดตามผู้ใช้** (รูปจาก URL ภายนอก) | `imageBuilder` แสดงข้อความ alt แทน ไม่โหลดรูป                                                                          | test (Security): ไม่มี `Image`          |
-| คำตอบ AI มีลิงก์อันตราย                          | ไม่ใส่ `onTapLink` ลิงก์ในคำตอบกดไม่ได้                                                                                | —                                       |
-| log หลุดข้อมูล                                   | `debugPrint` แค่ชนิดของ error ไม่พิมพ์ข้อความผู้ใช้                                                                    | —                                       |
+| ความเสี่ยง | การป้องกัน | หลักฐาน |
+|---|---|---|
+| API key หลุด | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic (`firebase_options.dart` มีแค่ค่า config ซึ่งไม่ใช่ความลับ) | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ key |
+| คนนอกใช้โควตา | App Check (ตอนนี้โหมด Monitoring ดูหัวข้อ 7) | — |
+| ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller | test (Security) 2 ข้อ |
+| ประวัติแชทยาวไม่สิ้นสุด | ส่งแค่ 20 ข้อความล่าสุด | test (Security) |
+| **เนื้อหาโน้ตหลุดไปให้ AI** | controller ส่ง `document: null` เสมอ และ `FirebaseAiAssistant` มี `assert` กันไว้ | test (Security) ใน controller และ entry |
+| **คำตอบ AI ใช้ติดตามผู้ใช้** (รูปจาก URL ภายนอก) | `imageBuilder` แสดงข้อความ alt แทน ไม่โหลดรูป | test (Security): ไม่มี `Image` |
+| คำตอบ AI มีลิงก์อันตราย | ไม่ใส่ `onTapLink` ลิงก์ในคำตอบกดไม่ได้ | — |
+| log หลุดข้อมูล | `debugPrint` แค่ชนิดของ error ไม่พิมพ์ข้อความผู้ใช้ | — |
 
 ผู้ใช้ถูกแจ้งตลอดเวลาว่าข้อความถูกส่งไป Google Gemini (แถบความเป็นส่วนตัวด้านบนของแชท)
 
@@ -223,6 +225,8 @@ Firebase เปิดบังคับให้อัตโนมัติต�
 
 แก้ `FirebaseAiAssistant.modelName` และ `_systemPrompt` ในไฟล์เดียว
 
+`_systemPrompt` บอก AI ไว้ว่ามองไม่เห็นและแก้โน้ตไม่ได้ (เคยเจอ AI ตอบว่า "แก้โน้ตให้แล้ว" ทั้งที่ทำไม่ได้) ถ้าทำฟีเจอร์แนบโน้ตตามหัวข้อ 8.1 ต้องแก้ข้อความนี้ด้วย
+
 ### 8.4 ใช้ผู้ช่วย AI ในหน้าอื่น
 
 ```dart
@@ -243,16 +247,17 @@ showAssistantChat(context, controller: _chat);
 
 ## 9. การทดสอบ
 
-**อัตโนมัติ:** 36 test ใหม่ (รวมทั้งโปรเจกต์ 308) `flutter analyze --fatal-infos` ไม่มีปัญหา CI ผ่านทั้ง 4 งาน
+**อัตโนมัติ:** 42 test ใหม่ (รวมทั้งโปรเจกต์ 314) `flutter analyze --fatal-infos` ไม่มีปัญหา CI ผ่านทั้ง 4 งาน
 
 | ไฟล์ | ครอบคลุม |
 |---|---|
 | `assistant_chat_controller_test.dart` | ส่ง/รับทีละส่วน, ข้อความว่าง, ส่งซ้ำระหว่างตอบ, error, ล้าง, dispose กลางคำตอบ, (Security) 2001 ตัวอักษร, (Security) ประวัติ 20, (Security) ไม่ส่งโน้ต |
-| `assistant_chat_panel_test.dart` | หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, "กำลังคิด", ล้าง, (Security) ไม่โหลดรูป, (Security) maxLength, fullscreen 320 / side sheet 1024 |
+| `assistant_chat_panel_test.dart` | หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, "กำลังคิด", ล้าง, (Security) ไม่โหลดรูป, (Security) maxLength, fullscreen 320 / side sheet 1024, ช่องพิมพ์อยู่เหนือแป้นพิมพ์ |
+| `assistant_code_block_builder_test.dart` | เริ่มต้นเป็นภาพ, สลับเป็นโค้ดและกลับ, คัดลอกได้โค้ดพร้อมรั้ว ` ```mermaid ` และไอคอน ✓ กลับเป็นปกติใน 2 วินาที, บล็อกภาษาอื่นไม่ถูกแตะ |
 | `assistant_entry_test.dart` | ไม่มี assistant ไม่มีปุ่ม, เปิดบนแท็บเล็ต/มือถือ, บทสนทนายังอยู่, (Security) โน้ตไม่ถูกส่ง, ออกจากหน้าไม่ error |
 | `firebase_ai_assistant_test.dart` | `buildGeminiHistory` 4 กรณี และสร้างตัวจริงได้โดยไม่ต้องเปิด Firebase |
 
-**บนเครื่องจริง (Samsung SM-T735):** คุยได้, คำตอบทยอยขึ้น, ไดอะแกรมจาก AI แสดงเป็นภาพ, ปิด/เปิดแผงบทสนทนายังอยู่, Firestore/Auth ทำงานปกติระหว่างที่ App Check ทำงาน
+**บนเครื่องจริง (Samsung SM-T735):** คุยได้, คำตอบทยอยขึ้น, ไดอะแกรมจาก AI แสดงเป็นภาพ, ปิด/เปิดแผงบทสนทนายังอยู่, ช่องพิมพ์ไม่โดนแป้นพิมพ์บัง, ขอให้แก้โน้ตแล้ว AI แจ้งว่าทำไม่ได้, Firestore/Auth ทำงานปกติระหว่างที่ App Check ทำงาน
 
 **ไม่ได้ทดสอบอัตโนมัติ:** การเรียก Gemini จริง (ต้องใช้เน็ตและโควตา) จึงทดสอบด้วยมือ
 

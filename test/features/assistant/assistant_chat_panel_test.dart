@@ -322,5 +322,40 @@ void main() {
         expect(find.byKey(const Key('assistant-side-sheet')), findsNothing);
       },
     );
+
+    testWidgets('14. side sheet keeps the input above the keyboard', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1024, 768);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+
+      final controller = AssistantChatController(FakeAiAssistant());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () =>
+                    showAssistantChat(context, controller: controller),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final inputBottom = tester
+          .getBottomLeft(find.byKey(const Key('assistant-input')))
+          .dy;
+      expect(inputBottom, lessThanOrEqualTo(768 - 300));
+    });
   });
 }

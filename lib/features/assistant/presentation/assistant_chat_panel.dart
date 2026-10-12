@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import '../../workspace/presentation/mermaid/mermaid.dart';
 import '../domain/chat_message.dart';
 import 'assistant_chat_controller.dart';
+import 'assistant_code_block_builder.dart';
 
 Future<void> showAssistantChat(
   BuildContext context, {
@@ -409,7 +409,7 @@ class _MessageBubble extends StatelessWidget {
               : MarkdownBody(
                   data: message.text,
                   selectable: true,
-                  builders: {'code': MermaidElementBuilder()},
+                  builders: {'code': AssistantCodeBlockBuilder()},
                   onTapLink: null,
                   imageBuilder: (uri, title, alt) => Text(alt ?? ''),
                   styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(

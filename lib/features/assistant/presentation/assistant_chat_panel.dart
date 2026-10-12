@@ -33,19 +33,25 @@ Future<void> showAssistantChat(
       barrierColor: colorScheme.scrim.withValues(alpha: 0.32),
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        return Align(
-          alignment: Alignment.centerRight,
-          child: Material(
-            key: const Key('assistant-side-sheet'),
-            elevation: 1,
-            color: colorScheme.surfaceContainerLow,
-            child: SizedBox(
-              width: 400,
-              height: double.infinity,
-              child: SafeArea(
-                child: AssistantChatPanel(
-                  controller: controller,
-                  onClose: () => Navigator.of(dialogContext).pop(),
+        return Padding(
+          // side sheet ไม่หลบแป้นพิมพ์เองเหมือน Dialog ต้องดันขึ้นเอง
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+          ),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              key: const Key('assistant-side-sheet'),
+              elevation: 1,
+              color: colorScheme.surfaceContainerLow,
+              child: SizedBox(
+                width: 400,
+                height: double.infinity,
+                child: SafeArea(
+                  child: AssistantChatPanel(
+                    controller: controller,
+                    onClose: () => Navigator.of(dialogContext).pop(),
+                  ),
                 ),
               ),
             ),

@@ -123,12 +123,22 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
         ? messages.last.text.length
         : 0;
 
-    if (currentCount != _previousMessageCount ||
-        currentLastLength != _previousLastMessageLength) {
-      _previousMessageCount = currentCount;
-      _previousLastMessageLength = currentLastLength;
-      _scrollToBottom();
+    if (currentCount == _previousMessageCount &&
+        currentLastLength == _previousLastMessageLength) {
+      return;
     }
+    // มีข้อความใหม่ (ผู้ใช้เพิ่งส่ง) เลื่อนลงเสมอ
+    // ถ้าแค่ AI ตอบต่อ เลื่อนเฉพาะตอนที่ผู้ใช้อยู่ใกล้ท้ายรายการ
+    final hasNewMessage = currentCount > _previousMessageCount;
+    _previousMessageCount = currentCount;
+    _previousLastMessageLength = currentLastLength;
+    if (hasNewMessage || _isNearBottom()) _scrollToBottom();
+  }
+
+  bool _isNearBottom() {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    return position.maxScrollExtent - position.pixels < 80;
   }
 
   void _scrollToBottom() {

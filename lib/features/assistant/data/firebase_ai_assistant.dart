@@ -48,6 +48,12 @@ class FirebaseAiAssistant implements AiAssistant {
       throw const AiAssistantException(
         'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
       );
+    } on Exception catch (error) {
+      // เน็ตหลุด, App Check ล้ม และอื่น ๆ
+      debugPrint('AI request failed: ${error.runtimeType}');
+      throw const AiAssistantException(
+        'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+      );
     }
   }
 }

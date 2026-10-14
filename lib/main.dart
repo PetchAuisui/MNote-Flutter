@@ -1,12 +1,12 @@
-import 'dart:async';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
-import 'package:mnote/core/app_check.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +18,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await _activateAppCheck();
     authRepository = FirebaseAuthRepository();
   } catch (e) {
     // Login is mandatory, so without Firebase the app cannot be used.
@@ -26,15 +27,28 @@ Future<void> main() async {
     return;
   }
 
-  // ไม่ await: ถ้า App Check มีปัญหา แอปยังเปิดได้ปกติ
-  // ฟีเจอร์ที่ต้องใช้ (เช่น AI) จะเรียก ensureAppCheckActivated() ซ้ำเอง
-  unawaited(
-    ensureAppCheckActivated().catchError(
-      (Object error) => debugPrint('App Check activation failed: $error'),
-    ),
-  );
-
   runApp(MnoteApp(authRepository: authRepository));
+}
+
+/// Debug builds use the Debug provider (token is printed in the native log and
+/// must be registered in the Firebase Console). Release builds use Play
+/// Integrity on Android and App Attest (DeviceCheck fallback) on Apple.
+Future<void> _activateAppCheck() async {
+  // No web provider (reCAPTCHA) is configured for this app.
+  if (kIsWeb) return;
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    );
+  } catch (e) {
+    // Enforcement is off, so a failure here must not block the app.
+    debugPrint('Firebase App Check activation failed: $e');
+  }
 }
 
 class FirebaseSetupErrorApp extends StatelessWidget {

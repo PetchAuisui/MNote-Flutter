@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 class GoogleSignInButton extends StatelessWidget {
   const GoogleSignInButton({
@@ -14,6 +15,7 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = BrandPalette.of(context);
     return SizedBox(
       width: double.infinity,
       child: Material(
@@ -21,13 +23,13 @@ class GoogleSignInButton extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
-          side: const BorderSide(color: Color(0xFF9EBFDC), width: 1.2),
+          side: BorderSide(color: palette.border, width: 1.2),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: isLoading ? null : onPressed,
-          splashColor: const Color(0x209EBFDC),
-          highlightColor: const Color(0x109EBFDC),
+          splashColor: palette.border.withValues(alpha: 0.125),
+          highlightColor: palette.border.withValues(alpha: 0.063),
           child: Container(
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -36,13 +38,13 @@ class GoogleSignInButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isLoading)
-                  const SizedBox(
+                  SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF4A89DC),
+                        palette.primary,
                       ),
                     ),
                   )

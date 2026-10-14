@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 enum AppFontFamily {
   prompt('Prompt (โมเดิร์น)', 'Prompt'),
@@ -153,6 +154,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      extensions: [BrandPalette.fromAccent(accent)],
       textTheme: textTheme,
       fontFamily: font.familyName,
       scaffoldBackgroundColor: scheme.surfaceContainerLowest,

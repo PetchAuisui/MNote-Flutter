@@ -83,8 +83,7 @@ void main() {
       final theme = AppTheme.theme(Brightness.light, accent: AppAccent.green);
       expect(
         theme.colorScheme.primary,
-        AppTheme.colorScheme(Brightness.light, accent: AppAccent.green)
-            .primary,
+        AppTheme.colorScheme(Brightness.light, accent: AppAccent.green).primary,
       );
     });
   });

@@ -1663,7 +1663,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     doc.isTxt
                         ? Icons.text_snippet_rounded
                         : Icons.description_rounded,
-                    color: doc.isTxt ? Colors.teal : Theme.of(context).colorScheme.primary,
+                    color: doc.isTxt
+                        ? Colors.teal
+                        : Theme.of(context).colorScheme.primary,
                     size: 28,
                   ),
                   title: Text(
@@ -1799,7 +1801,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: 'new_md',
           child: Row(
             children: [
-              Icon(Icons.description_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
+              Icon(
+                Icons.description_outlined,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
               SizedBox(width: 12),
               Expanded(child: Text('เอกสาร Markdown ใหม่ (.md)')),
             ],
@@ -2173,8 +2179,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               vertical: 2.5,
                             ),
                             decoration: BoxDecoration(
-                              color: (isTxt ? Colors.teal : Theme.of(context).colorScheme.primary)
-                                  .withValues(alpha: 0.15),
+                              color:
+                                  (isTxt
+                                          ? Colors.teal
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.primary)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
@@ -2183,7 +2194,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
-                                color: isTxt ? Colors.teal : Theme.of(context).colorScheme.primary,
+                                color: isTxt
+                                    ? Colors.teal
+                                    : Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ),
@@ -2497,7 +2510,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(
                                     Icons.restore_from_trash_rounded,
                                     size: 18,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                   SizedBox(width: 8),
                                   Text('กู้คืน'),
@@ -2572,7 +2587,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 (item as DocumentItem).isTxt
                     ? Icons.text_snippet_rounded
                     : Icons.description_rounded,
-                color: item.isTxt ? Colors.teal : Theme.of(context).colorScheme.primary,
+                color: item.isTxt
+                    ? Colors.teal
+                    : Theme.of(context).colorScheme.primary,
                 size: 32,
               ),
               title: Text(
@@ -2626,7 +2643,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(
                                     Icons.restore_from_trash_rounded,
                                     size: 18,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                   SizedBox(width: 8),
                                   Text('กู้คืน'),

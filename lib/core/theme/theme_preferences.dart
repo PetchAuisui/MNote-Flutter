@@ -17,9 +17,7 @@ abstract final class ThemePreferences {
   static Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      MnoteApp.themeModeNotifier.value = modeFromName(
-        prefs.getString(modeKey),
-      );
+      MnoteApp.themeModeNotifier.value = modeFromName(prefs.getString(modeKey));
       MnoteApp.accentNotifier.value = accentFromName(
         prefs.getString(accentKey),
       );

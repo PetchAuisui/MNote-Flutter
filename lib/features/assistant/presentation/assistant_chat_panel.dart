@@ -143,8 +143,12 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
     final text = textOverride ?? _textController.text;
     if (text.trim().isEmpty || widget.controller.isResponding) return;
 
-    _textController.clear();
     widget.controller.send(text);
+    // controller ตรวจความยาวและเริ่มตอบทันทีก่อน await แรก
+    // ถ้าถูกปฏิเสธ isResponding จะเป็น false ข้อความจึงยังอยู่ให้แก้
+    if (textOverride == null && widget.controller.isResponding) {
+      _textController.clear();
+    }
   }
 
   @override

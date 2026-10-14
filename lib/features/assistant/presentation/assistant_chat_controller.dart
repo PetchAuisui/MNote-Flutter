@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show StringCharacters;
 import '../domain/ai_assistant.dart';
 import '../domain/chat_message.dart';
 
@@ -28,7 +29,8 @@ class AssistantChatController extends ChangeNotifier {
       return;
     }
 
-    if (trimmedText.length > maxInputLength) {
+    // นับแบบเดียวกับ TextField (ตัวอักษรที่เห็น) สระไทยจะไม่ถูกนับซ้ำ
+    if (trimmedText.characters.length > maxInputLength) {
       _errorMessage = 'ข้อความยาวเกินไป (สูงสุด 2000 ตัวอักษร)';
       _notifySafely();
       return;

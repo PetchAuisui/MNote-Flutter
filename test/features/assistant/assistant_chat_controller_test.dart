@@ -222,5 +222,19 @@ void main() {
         expect(fakeAssistant.lastDocument, isNull);
       },
     );
+
+    test(
+      '13. (Security) Thai text counts visible characters, not code units',
+      () async {
+        final fake = FakeAiAssistant();
+        final controller = AssistantChatController(fake);
+        final thai = 'กี' * 2000; // เห็น 2000 ตัว แต่ length = 4000
+
+        await controller.send(thai);
+
+        expect(fake.callCount, 1);
+        expect(controller.errorMessage, isNull);
+      },
+    );
   });
 }

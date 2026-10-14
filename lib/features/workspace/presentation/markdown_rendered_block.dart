@@ -299,6 +299,9 @@ class MarkdownRenderedBlock extends StatelessWidget {
         onTapLink: onTapLink,
         fitContent: false,
         styleSheet: MarkdownDocumentStyle.sheet(theme),
+        syntaxHighlighter: MarkdownDocumentStyle.codeBlockHighlighter(
+          MarkdownDocumentStyle.sheet(theme),
+        ),
         bulletBuilder: (parameters) {
           if (parameters.style == BulletStyle.orderedList) {
             return Text(

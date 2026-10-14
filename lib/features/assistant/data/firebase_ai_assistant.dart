@@ -1,14 +1,13 @@
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../core/app_check.dart';
 import '../domain/ai_assistant.dart';
 import '../domain/chat_message.dart';
 
 /// เรียก Gemini ผ่าน Firebase AI Logic
 ///
 /// API key อยู่ฝั่งเซิร์ฟเวอร์ของ Firebase ไม่อยู่ในแอป
-/// และ AI Logic บังคับ App Check จึงรับเฉพาะคำขอจากแอปที่ผ่านการยืนยัน
+/// App Check เปิดให้ทั้งแอปใน main.dart AI Logic จึงรับเฉพาะคำขอจากแอปที่ผ่านการยืนยัน
 class FirebaseAiAssistant implements AiAssistant {
   const FirebaseAiAssistant();
 
@@ -33,7 +32,6 @@ class FirebaseAiAssistant implements AiAssistant {
   }) async* {
     assert(document == null, 'ยังไม่รองรับการส่งเนื้อหาโน้ต');
     try {
-      await ensureAppCheckActivated();
       final model = _model ??= FirebaseAI.googleAI().generativeModel(
         model: modelName,
         systemInstruction: Content.system(_systemPrompt),

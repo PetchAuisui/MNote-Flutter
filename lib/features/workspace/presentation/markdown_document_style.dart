@@ -87,7 +87,9 @@ abstract final class MarkdownDocumentStyle {
   /// background would otherwise paint a stroke behind every line of text.
   static SyntaxHighlighter codeBlockHighlighter(MarkdownStyleSheet sheet) =>
       _PlainCodeHighlighter(
-        sheet.code!.copyWith(backgroundColor: Colors.transparent),
+        (sheet.code ?? const TextStyle()).copyWith(
+          backgroundColor: Colors.transparent,
+        ),
       );
 }
 

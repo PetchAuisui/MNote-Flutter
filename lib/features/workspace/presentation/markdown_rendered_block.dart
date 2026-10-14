@@ -285,6 +285,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
     final list = RegExp(r'^( *)(?:[-*+]|\d+[.)])\s+').firstMatch(markdown);
     final indent = list?.group(1)?.length ?? 0;
     final depth = (indent / 2).ceil();
+    final sheet = MarkdownDocumentStyle.sheet(theme);
     return Padding(
       padding: EdgeInsets.only(top: 8, bottom: 8, left: depth * 32.0),
       child: MarkdownBody(
@@ -298,15 +299,13 @@ class MarkdownRenderedBlock extends StatelessWidget {
         selectable: selectable,
         onTapLink: onTapLink,
         fitContent: false,
-        styleSheet: MarkdownDocumentStyle.sheet(theme),
-        syntaxHighlighter: MarkdownDocumentStyle.codeBlockHighlighter(
-          MarkdownDocumentStyle.sheet(theme),
-        ),
+        styleSheet: sheet,
+        syntaxHighlighter: MarkdownDocumentStyle.codeBlockHighlighter(sheet),
         bulletBuilder: (parameters) {
           if (parameters.style == BulletStyle.orderedList) {
             return Text(
               '${orderedNumber ?? parameters.index + 1}.',
-              style: MarkdownDocumentStyle.sheet(theme).listBullet,
+              style: sheet.listBullet,
             );
           }
           final diameter = depth == 0 ? 8.0 : 6.0;

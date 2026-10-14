@@ -253,15 +253,16 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                         itemBuilder: (context, index) {
                           final msg = messages[index];
                           final isLast = index == messages.length - 1;
-                          final showTyping =
+                          final isStreaming =
                               isLast &&
                               msg.role == ChatRole.assistant &&
-                              msg.text.isEmpty &&
                               isResponding;
+                          final showTyping = isStreaming && msg.text.isEmpty;
 
                           return _MessageBubble(
                             message: msg,
                             showTypingIndicator: showTyping,
+                            isStreaming: isStreaming,
                           );
                         },
                       ),
@@ -375,10 +376,12 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool showTypingIndicator;
+  final bool isStreaming;
 
   const _MessageBubble({
     required this.message,
     this.showTypingIndicator = false,
+    this.isStreaming = false,
   });
 
   @override
@@ -421,9 +424,15 @@ class _MessageBubble extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
                 )
               : MarkdownBody(
+                  // MarkdownBody แปลงใหม่เฉพาะตอน data เปลี่ยน
+                  // พอสตรีมจบ data เท่าเดิม จึงต้องเปลี่ยน key ให้สร้างใหม่
+                  // การ์ด Mermaid จะได้เปลี่ยนจากโค้ดเป็นภาพ
+                  key: ValueKey(isStreaming),
                   data: message.text,
                   selectable: true,
-                  builders: {'code': AssistantCodeBlockBuilder()},
+                  builders: {
+                    'code': AssistantCodeBlockBuilder(isStreaming: isStreaming),
+                  },
                   onTapLink: null,
                   imageBuilder: (uri, title, alt) => Text(alt ?? ''),
                   styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(

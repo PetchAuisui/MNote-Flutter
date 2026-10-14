@@ -31,13 +31,17 @@ void main() {
         .setMockMethodCallHandler(SystemChannels.platform, null);
   });
 
-  Widget buildTestWidget({required String data}) {
+  Widget buildTestWidget({required String data, bool isStreaming = false}) {
     return MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
           child: MarkdownBody(
+            // เหมือน _MessageBubble: เปลี่ยน key ตาม isStreaming
+            key: ValueKey(isStreaming),
             data: data,
-            builders: {'code': AssistantCodeBlockBuilder()},
+            builders: {
+              'code': AssistantCodeBlockBuilder(isStreaming: isStreaming),
+            },
           ),
         ),
       ),
@@ -140,6 +144,29 @@ void main() {
 
         expect(find.byKey(const Key('assistant-mermaid-card')), findsNothing);
         expect(find.textContaining('void main() {}'), findsOneWidget);
+      },
+    );
+
+    // 6. ระหว่างสตรีมแสดงเป็นโค้ด พอจบสตรีมสลับเป็นภาพอัตโนมัติ
+    testWidgets(
+      '6. displays code while streaming and switches to diagram when streaming ends',
+      (tester) async {
+        final data = buildMermaidFencedBlock('flowchart TD\nA-->B');
+        await tester.pumpWidget(buildTestWidget(data: data, isStreaming: true));
+
+        expect(find.byKey(const Key('assistant-mermaid-code')), findsOneWidget);
+        expect(find.byKey(const Key('mermaid-diagram-fallback')), findsNothing);
+
+        await tester.pumpWidget(
+          buildTestWidget(data: data, isStreaming: false),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('mermaid-diagram-fallback')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('assistant-mermaid-code')), findsNothing);
       },
     );
   });

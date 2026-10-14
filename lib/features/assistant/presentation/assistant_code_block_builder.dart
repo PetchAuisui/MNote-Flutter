@@ -13,6 +13,10 @@ import '../../workspace/presentation/mermaid/mermaid.dart';
 /// ใช้เฉพาะในแชท หน้าโน้ตยังใช้ [MermaidElementBuilder] เดิม
 /// บล็อกภาษาอื่นและโค้ดในบรรทัดคืน null ให้แพ็กเกจวาดตามปกติ
 class AssistantCodeBlockBuilder extends MarkdownElementBuilder {
+  AssistantCodeBlockBuilder({this.isStreaming = false});
+
+  final bool isStreaming;
+
   @override
   Widget? visitElementAfterWithContext(
     BuildContext context,
@@ -23,14 +27,20 @@ class AssistantCodeBlockBuilder extends MarkdownElementBuilder {
     if (!isMermaidCodeClass(element.attributes['class'])) return null;
     return AssistantMermaidCard(
       source: normalizeMermaidSource(element.textContent),
+      isStreaming: isStreaming,
     );
   }
 }
 
 class AssistantMermaidCard extends StatefulWidget {
-  const AssistantMermaidCard({super.key, required this.source});
+  const AssistantMermaidCard({
+    super.key,
+    required this.source,
+    this.isStreaming = false,
+  });
 
   final String source;
+  final bool isStreaming;
 
   @override
   State<AssistantMermaidCard> createState() => _AssistantMermaidCardState();
@@ -63,6 +73,8 @@ class _AssistantMermaidCardState extends State<AssistantMermaidCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    // ระหว่างที่ AI ยังพิมพ์ไม่จบ ให้แสดงเป็นโค้ดก่อนเพื่อไม่ให้ตัววาดผังพัง
+    final effectiveShowCode = widget.isStreaming || _showCode;
 
     return Container(
       key: const Key('assistant-mermaid-card'),
@@ -102,9 +114,11 @@ class _AssistantMermaidCardState extends State<AssistantMermaidCard> {
                       ),
                     ),
                   ],
-                  selected: {_showCode},
-                  onSelectionChanged: (selection) =>
-                      setState(() => _showCode = selection.first),
+                  selected: {effectiveShowCode},
+                  onSelectionChanged: widget.isStreaming
+                      ? null
+                      : (selection) =>
+                            setState(() => _showCode = selection.first),
                 ),
                 const Spacer(),
                 IconButton(
@@ -120,7 +134,7 @@ class _AssistantMermaidCardState extends State<AssistantMermaidCard> {
             ),
           ),
           const Divider(height: 1),
-          if (_showCode)
+          if (effectiveShowCode)
             Container(
               key: const Key('assistant-mermaid-code'),
               color: colorScheme.surfaceContainerHighest,

@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "544925751012-sm0ipoib2d7v1v727k1h3j9m6oa2i9a9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.petchauisui.mnote",
+            "certificate_hash": "2858979f0ce66aa871f1139100042c7f9873955e"
+          }
+        },
+        {
           "client_id": "544925751012-6evn9vorijcoem83vjma04g7t8udfa0i.apps.googleusercontent.com",
           "client_type": 3
         }

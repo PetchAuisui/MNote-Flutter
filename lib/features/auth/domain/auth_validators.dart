@@ -52,6 +52,8 @@ class AuthValidators {
         return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้';
       case AuthErrorCode.cancelled:
         return 'ยกเลิกการเข้าสู่ระบบ';
+      case AuthErrorCode.configuration:
+        return 'เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง';
       case AuthErrorCode.unknown:
         return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
     }

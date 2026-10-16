@@ -39,27 +39,25 @@ class MnoteApp extends StatelessWidget {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_themePrefKey);
-      if (saved == 'light') {
-        themeModeNotifier.value = ThemeMode.light;
-      } else if (saved == 'dark') {
-        themeModeNotifier.value = ThemeMode.dark;
-      } else if (saved == 'system') {
-        themeModeNotifier.value = ThemeMode.system;
+      if (saved != null) {
+        themeModeNotifier.value = ThemeMode.values.firstWhere(
+          (m) => m.name == saved,
+          orElse: () => ThemeMode.system,
+        );
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to load theme mode: $e');
+    }
   }
 
   static Future<void> setThemeMode(ThemeMode mode) async {
     themeModeNotifier.value = mode;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final val = switch (mode) {
-        ThemeMode.light => 'light',
-        ThemeMode.dark => 'dark',
-        ThemeMode.system => 'system',
-      };
-      await prefs.setString(_themePrefKey, val);
-    } catch (_) {}
+      await prefs.setString(_themePrefKey, mode.name);
+    } catch (e) {
+      debugPrint('Failed to save theme mode: $e');
+    }
   }
 
   @override

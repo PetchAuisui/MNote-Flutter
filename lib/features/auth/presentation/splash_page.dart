@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -98,7 +99,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFB9D7F2),
+      backgroundColor: BrandPalette.of(context).splashBackground,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _navigateToAuth,

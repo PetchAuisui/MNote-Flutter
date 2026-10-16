@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 class AuthTextField extends StatefulWidget {
   const AuthTextField({
@@ -39,6 +40,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = BrandPalette.of(context);
     return TextFormField(
       controller: widget.controller,
       obscureText: _hidden,
@@ -62,8 +64,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
             : null,
         filled: true,
         fillColor: Colors.white,
-        enabledBorder: _border(const Color(0xFF9EBFDC)),
-        focusedBorder: _border(const Color(0xFF4A89DC), 1.8),
+        enabledBorder: _border(palette.border),
+        focusedBorder: _border(palette.primary, 1.8),
         errorBorder: _border(const Color(0xFFD9534F)),
         focusedErrorBorder: _border(const Color(0xFFD9534F), 1.8),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
@@ -132,7 +133,7 @@ class _AuthPageState extends State<AuthPage>
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF4A89DC),
+          backgroundColor: BrandPalette.of(context).primary,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
@@ -222,7 +223,7 @@ class _AuthPageState extends State<AuthPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEBF3FA),
+      backgroundColor: BrandPalette.of(context).background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

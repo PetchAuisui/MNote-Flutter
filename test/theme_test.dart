@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUpAll(() {
@@ -50,5 +52,59 @@ void main() {
         theme.colorScheme.surfaceContainerLowest,
       );
     });
+  });
+
+  group('Theme Persistence', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      MnoteApp.themeModeNotifier.value = ThemeMode.system;
+    });
+
+    test(
+      'loadThemeMode loads saved theme mode from SharedPreferences',
+      () async {
+        SharedPreferences.setMockInitialValues({'mnote_theme_mode': 'dark'});
+        await MnoteApp.loadThemeMode();
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.dark);
+
+        SharedPreferences.setMockInitialValues({'mnote_theme_mode': 'light'});
+        await MnoteApp.loadThemeMode();
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.light);
+
+        SharedPreferences.setMockInitialValues({'mnote_theme_mode': 'system'});
+        await MnoteApp.loadThemeMode();
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.system);
+      },
+    );
+
+    test(
+      'loadThemeMode defaults to system when saved value is unknown or absent',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'mnote_theme_mode': 'unknown_mode',
+        });
+        await MnoteApp.loadThemeMode();
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.system);
+
+        SharedPreferences.setMockInitialValues({});
+        await MnoteApp.loadThemeMode();
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.system);
+      },
+    );
+
+    test(
+      'setThemeMode updates notifier and persists value to SharedPreferences',
+      () async {
+        await MnoteApp.setThemeMode(ThemeMode.dark);
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.dark);
+
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('mnote_theme_mode'), 'dark');
+
+        await MnoteApp.setThemeMode(ThemeMode.light);
+        expect(MnoteApp.themeModeNotifier.value, ThemeMode.light);
+        expect(prefs.getString('mnote_theme_mode'), 'light');
+      },
+    );
   });
 }

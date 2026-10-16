@@ -46,7 +46,7 @@ class NoteListScreen extends StatefulWidget {
 class _NoteListScreenState extends State<NoteListScreen> {
   bool _isGridView = true;
   ViewFilter _filter = ViewFilter.all;
-  final SortMode _sortMode = SortMode.newest;
+  SortMode _sortMode = SortMode.newest;
   String? _currentFolderId; // null = root directory
   String _searchQuery = '';
   bool _isSearching = false;
@@ -1374,6 +1374,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             else
                               _buildNewButton(context),
                             const SizedBox(width: 4),
+                            _buildSortButton(theme),
                             _buildViewModeButton(),
                           ],
                         ),
@@ -1387,6 +1388,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                           else
                             _buildNewButton(context),
                           const SizedBox(width: 8),
+                          _buildSortButton(theme),
                           _buildViewModeButton(),
                         ],
                       ),
@@ -1878,6 +1880,87 @@ class _NoteListScreenState extends State<NoteListScreen> {
           _isGridView = !_isGridView;
         });
       },
+    );
+  }
+
+  // ปุ่มเมนูจัดเรียงลำดับ
+  Widget _buildSortButton(ThemeData theme) {
+    return PopupMenuButton<SortMode>(
+      tooltip: 'จัดเรียงตาม',
+      initialValue: _sortMode,
+      icon: const Icon(Icons.swap_vert_rounded),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      onSelected: (mode) {
+        setState(() {
+          _sortMode = mode;
+        });
+      },
+      itemBuilder: (context) => [
+        _buildSortMenuItem(
+          value: SortMode.newest,
+          icon: Icons.schedule_rounded,
+          title: 'แก้ไขล่าสุด',
+          theme: theme,
+        ),
+        _buildSortMenuItem(
+          value: SortMode.oldest,
+          icon: Icons.history_rounded,
+          title: 'เก่าที่สุด',
+          theme: theme,
+        ),
+        _buildSortMenuItem(
+          value: SortMode.nameAsc,
+          icon: Icons.sort_by_alpha_rounded,
+          title: 'ชื่อ (ก - ฮ)',
+          theme: theme,
+        ),
+        _buildSortMenuItem(
+          value: SortMode.nameDesc,
+          icon: Icons.sort_by_alpha_rounded,
+          title: 'ชื่อ (ฮ - ก)',
+          theme: theme,
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<SortMode> _buildSortMenuItem({
+    required SortMode value,
+    required IconData icon,
+    required String title,
+    required ThemeData theme,
+  }) {
+    final isSelected = _sortMode == value;
+    final primary = theme.colorScheme.primary;
+
+    return PopupMenuItem<SortMode>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isSelected ? primary : theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? primary : theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          if (isSelected) Icon(Icons.check_rounded, size: 18, color: primary),
+        ],
+      ),
     );
   }
 

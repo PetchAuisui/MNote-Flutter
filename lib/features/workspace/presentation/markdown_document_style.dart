@@ -82,4 +82,22 @@ abstract final class MarkdownDocumentStyle {
       ),
     );
   }
+
+  /// Fenced blocks already get [codeblockDecoration]; the inline `code`
+  /// background would otherwise paint a stroke behind every line of text.
+  static SyntaxHighlighter codeBlockHighlighter(MarkdownStyleSheet sheet) =>
+      _PlainCodeHighlighter(
+        (sheet.code ?? const TextStyle()).copyWith(
+          backgroundColor: Colors.transparent,
+        ),
+      );
+}
+
+class _PlainCodeHighlighter extends SyntaxHighlighter {
+  _PlainCodeHighlighter(this.style);
+
+  final TextStyle style;
+
+  @override
+  TextSpan format(String source) => TextSpan(text: source, style: style);
 }

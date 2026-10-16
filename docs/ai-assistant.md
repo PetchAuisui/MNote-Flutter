@@ -76,11 +76,11 @@ lib/
 test/
 ├── helpers/fake_ai_assistant.dart           ตัวปลอมสำหรับ test (ไม่ต่อเน็ต)
 └── features/assistant/
-    ├── assistant_chat_controller_test.dart  12 test
+    ├── assistant_chat_controller_test.dart  13 test
     ├── assistant_chat_panel_test.dart       14 test
     ├── assistant_entry_test.dart             6 test
     ├── firebase_ai_assistant_test.dart       5 test
-    └── assistant_code_block_builder_test.dart 5 test
+    └── assistant_code_block_builder_test.dart 6 test
 ```
 
 แพ็กเกจที่เพิ่มใน `pubspec.yaml`: `firebase_ai: ^4.0.0`, `firebase_app_check: ^0.4.8` (ต้องการ `firebase_core ^4.14.0` ซึ่งทีมใช้ `^4.15.0` อยู่แล้ว)
@@ -108,7 +108,7 @@ test/
   ← คำตอบทีละชิ้น (Stream<String>) ← controller ต่อข้อความ ← หน้าจอวาดใหม่
 ```
 
-**ถ้าผิดพลาด:** `FirebaseAiAssistant` แปลง error ของ Firebase เป็น `AiAssistantException` ข้อความไทย controller แสดงในแถบ error และลบฟองคำตอบที่ว่างทิ้ง แอปไม่ค้างหรือเด้ง
+**ถ้าผิดพลาด:** `FirebaseAiAssistant` แปลง error ของ Firebase และ error อื่น (เน็ตหลุด, App Check ล้ม) เป็น `AiAssistantException` ข้อความไทย controller แสดงในแถบ error และลบฟองคำตอบที่ว่างทิ้ง แอปไม่ค้างหรือเด้ง
 
 **ถ้าออกจากหน้าแก้ไขระหว่าง AI กำลังตอบ:** `dispose()` ของหน้าเรียก `_assistantChat?.dispose()` ซึ่งยกเลิกการรับคำตอบทันที ไม่มีการเชื่อมต่อค้างในพื้นหลัง
 
@@ -122,7 +122,11 @@ test/
 | **พารามิเตอร์ `assistant` ค่าเริ่มต้น `const FirebaseAiAssistant()`** | หน้าแก้ไขถูกสร้างจาก 4 จุดในไฟล์ของเพื่อน ใช้ค่าเริ่มต้นทำให้ปุ่มขึ้นทุกหน้าโดยไม่ต้องแก้ไฟล์เหล่านั้น ส่ง `null` เพื่อซ่อนปุ่มได้ |
 | **side sheet แบบลอย ไม่ใช่แผงแทรกในหน้า** | ไม่ต้องรื้อโครง `build()` ของหน้าแก้ไข (ไฟล์ที่ทุกคนแก้) และเป็นรูปแบบที่ MD3 มี |
 | **App Check เปิดใน `main()` แบบไม่ `await` และ AI เรียกซ้ำ** | แอปเป็น local-first ถ้า App Check ช้าหรือพัง แอปต้องยังเปิดได้ และ AI ลองเปิดใหม่ได้เองถ้าครั้งแรกล้มเหลว (`ensureAppCheckActivated()` ใช้ `??=` จึงเปิดจริงครั้งเดียว) |
-| **debug provider เฉพาะ debug build** | ถ้าปล่อยไปถึงแอปจริง ใครก็ขอ token ผ่านได้ ทำให้ App Check ไร้ประโยชน์ |
+| **debug provider เฉพาะ debug build (`kDebugMode`)** | ถ้าปล่อยไปถึงแอปจริง ใครก็ขอ token ผ่านได้ ทำให้ App Check ไร้ประโยชน์ ใช้ `kDebugMode` ไม่ใช่ `kReleaseMode` เพื่อให้ profile build ใช้ provider จริงด้วย profile/release ใช้ Play Integrity (Android) และ App Attest + DeviceCheck สำรอง (iOS/macOS) |
+| **นับความยาวข้อความตามตัวอักษรที่เห็น (`characters`)** | ช่องพิมพ์นับแบบนี้ ถ้า controller นับ `String.length` ภาษาไทยที่มีสระบน/ล่างจะนับเกิน ผู้ใช้โดนปฏิเสธทั้งที่ยังพิมพ์ไม่ถึง 2000 |
+| **ล้างช่องพิมพ์เฉพาะเมื่อส่งสำเร็จ** | ถ้าข้อความถูกปฏิเสธ ผู้ใช้ต้องแก้ต่อได้ ไม่ต้องพิมพ์ใหม่ |
+| **เลื่อนลงเองเฉพาะตอนอยู่ท้ายรายการหรือเพิ่งส่ง** | ผู้ใช้เลื่อนขึ้นไปอ่านระหว่างที่ AI ตอบได้โดยไม่ถูกดึงลง |
+| **Mermaid แสดงเป็นโค้ดระหว่าง AI พิมพ์ แล้วค่อยวาดตอนจบ** | โค้ดที่ยังพิมพ์ไม่จบทำให้ตัววาดผังขึ้น Syntax error `MarkdownBody` ใช้ `key: ValueKey(isStreaming)` เพราะมันแปลงใหม่เฉพาะตอน `data` เปลี่ยน ถ้าไม่มี key การ์ดจะค้างที่โค้ด |
 | **`buildGeminiHistory()` ส่งเฉพาะคู่ที่สมบูรณ์** | ถ้า AI เคยตอบพลาด ประวัติจะมีข้อความผู้ใช้ติดกัน 2 อัน Gemini อาจปฏิเสธคำขอ |
 | **ไม่แสดง error ดิบของ Google** | อาจมีรายละเอียดภายในของโปรเจกต์ และผู้ใช้อ่านไม่เข้าใจ |
 
@@ -134,7 +138,7 @@ test/
 |---|---|---|
 | API key หลุด | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic (`firebase_options.dart` มีแค่ค่า config ซึ่งไม่ใช่ความลับ) | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ key |
 | คนนอกใช้โควตา | App Check (ตอนนี้โหมด Monitoring ดูหัวข้อ 7) | — |
-| ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller | test (Security) 2 ข้อ |
+| ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller (นับแบบเดียวกัน) | test (Security) 3 ข้อ |
 | ประวัติแชทยาวไม่สิ้นสุด | ส่งแค่ 20 ข้อความล่าสุด | test (Security) |
 | **เนื้อหาโน้ตหลุดไปให้ AI** | controller ส่ง `document: null` เสมอ และ `FirebaseAiAssistant` มี `assert` กันไว้ | test (Security) ใน controller และ entry |
 | **คำตอบ AI ใช้ติดตามผู้ใช้** (รูปจาก URL ภายนอก) | `imageBuilder` แสดงข้อความ alt แทน ไม่โหลดรูป | test (Security): ไม่มี `Image` |
@@ -243,17 +247,18 @@ showAssistantChat(context, controller: _chat);
 
 ใน test ใช้ `FakeAiAssistant` จาก `test/helpers/fake_ai_assistant.dart` แทน
 
+
 ---
 
 ## 9. การทดสอบ
 
-**อัตโนมัติ:** 42 test ใหม่ (รวมทั้งโปรเจกต์ 314) `flutter analyze --fatal-infos` ไม่มีปัญหา CI ผ่านทั้ง 4 งาน
+**อัตโนมัติ:** 44 test ใหม่ (รวมทั้งโปรเจกต์ 316) `flutter analyze --fatal-infos` ไม่มีปัญหา CI ผ่านทั้ง 4 งาน
 
 | ไฟล์ | ครอบคลุม |
 |---|---|
-| `assistant_chat_controller_test.dart` | ส่ง/รับทีละส่วน, ข้อความว่าง, ส่งซ้ำระหว่างตอบ, error, ล้าง, dispose กลางคำตอบ, (Security) 2001 ตัวอักษร, (Security) ประวัติ 20, (Security) ไม่ส่งโน้ต |
+| `assistant_chat_controller_test.dart` | ส่ง/รับทีละส่วน, ข้อความว่าง, ส่งซ้ำระหว่างตอบ, error, ล้าง, dispose กลางคำตอบ, (Security) 2001 ตัวอักษร, (Security) ภาษาไทยนับตามตัวที่เห็น, (Security) ประวัติ 20, (Security) ไม่ส่งโน้ต |
 | `assistant_chat_panel_test.dart` | หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, "กำลังคิด", ล้าง, (Security) ไม่โหลดรูป, (Security) maxLength, fullscreen 320 / side sheet 1024, ช่องพิมพ์อยู่เหนือแป้นพิมพ์ |
-| `assistant_code_block_builder_test.dart` | เริ่มต้นเป็นภาพ, สลับเป็นโค้ดและกลับ, คัดลอกได้โค้ดพร้อมรั้ว ` ```mermaid ` และไอคอน ✓ กลับเป็นปกติใน 2 วินาที, บล็อกภาษาอื่นไม่ถูกแตะ |
+| `assistant_code_block_builder_test.dart` | เริ่มต้นเป็นภาพ, สลับเป็นโค้ดและกลับ, คัดลอกได้โค้ดพร้อมรั้ว ` ```mermaid ` และไอคอน ✓ กลับเป็นปกติใน 2 วินาที, บล็อกภาษาอื่นไม่ถูกแตะ, ระหว่างสตรีมแสดงโค้ดแล้วเปลี่ยนเป็นภาพเมื่อจบ |
 | `assistant_entry_test.dart` | ไม่มี assistant ไม่มีปุ่ม, เปิดบนแท็บเล็ต/มือถือ, บทสนทนายังอยู่, (Security) โน้ตไม่ถูกส่ง, ออกจากหน้าไม่ error |
 | `firebase_ai_assistant_test.dart` | `buildGeminiHistory` 4 กรณี และสร้างตัวจริงได้โดยไม่ต้องเปิด Firebase |
 

@@ -2,7 +2,7 @@
 
 แอปใช้ `google_sign_in` (Credential Manager) ซึ่งต้องมี **Android OAuth client (type 1)** ที่ผูกกับ package `com.petchauisui.mnote` และ SHA-1 ของ keystore ที่ใช้ build
 
-อาการเมื่อขาด: กด "Continue with Google" แล้วไม่ล็อกอิน หรือขึ้นข้อความตั้งค่าไม่ถูกต้อง
+อาการเมื่อขาด: กด "Continue with Google" แล้วไม่ล็อกอิน หรือขึ้นข้อความ "เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้" (รายละเอียดจริงดูได้ใน log: `Google sign-in failed: ...`)
 
 ## วิธีแก้
 

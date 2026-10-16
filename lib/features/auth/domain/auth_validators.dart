@@ -53,7 +53,7 @@ class AuthValidators {
       case AuthErrorCode.cancelled:
         return 'ยกเลิกการเข้าสู่ระบบ';
       case AuthErrorCode.configuration:
-        return 'ตั้งค่า Google Sign-In ของแอปไม่ถูกต้อง (ตรวจสอบ SHA-1 ใน Firebase)';
+        return 'เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง';
       case AuthErrorCode.unknown:
         return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
     }

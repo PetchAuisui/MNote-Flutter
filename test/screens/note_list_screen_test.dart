@@ -845,6 +845,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // ค่าเริ่มต้นเป็น newest: B_Note (10 ม.ค.) ต้องมาก่อน A_Note (1 ม.ค.)
+    // ใน GridView รายการแรกจะอยู่ทางซ้าย (dx น้อยกว่า)
+    expect(
+      tester.getTopLeft(find.text('B_Note')).dx <
+          tester.getTopLeft(find.text('A_Note')).dx,
+      isTrue,
+      reason: 'B_Note ควรอยู่ก่อน A_Note ตามเวลาแก้ไขล่าสุด',
+    );
+
     // Open sort menu
     await tester.tap(find.byTooltip('จัดเรียงตาม'));
     await tester.pumpAndSettle();
@@ -854,11 +863,41 @@ void main() {
     expect(find.text('ชื่อ (ก - ฮ)'), findsOneWidget);
     expect(find.text('ชื่อ (ฮ - ก)'), findsOneWidget);
 
-    // Select 'เก่าที่สุด'
+    // 1. เลือก 'เก่าที่สุด' -> A_Note (1 ม.ค.) ต้องสลับมาอยู่ก่อน B_Note (10 ม.ค.)
     await tester.tap(find.text('เก่าที่สุด'));
     await tester.pumpAndSettle();
 
-    expect(find.text('A_Note'), findsOneWidget);
-    expect(find.text('B_Note'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('A_Note')).dx <
+          tester.getTopLeft(find.text('B_Note')).dx,
+      isTrue,
+      reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงตามเก่าที่สุด',
+    );
+
+    // 2. เลือก 'ชื่อ (ฮ - ก)' -> B_Note ต้องมาก่อน A_Note
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ชื่อ (ฮ - ก)'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('B_Note')).dx <
+          tester.getTopLeft(find.text('A_Note')).dx,
+      isTrue,
+      reason: 'B_Note ควรอยู่ก่อน A_Note เมื่อเรียงชื่อ ฮ - ก',
+    );
+
+    // 3. เลือก 'ชื่อ (ก - ฮ)' -> A_Note ต้องกลับมาอยู่ก่อน B_Note
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ชื่อ (ก - ฮ)'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('A_Note')).dx <
+          tester.getTopLeft(find.text('B_Note')).dx,
+      isTrue,
+      reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงชื่อ ก - ฮ',
+    );
   });
 }

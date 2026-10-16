@@ -52,6 +52,8 @@ class AuthValidators {
         return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้';
       case AuthErrorCode.cancelled:
         return 'ยกเลิกการเข้าสู่ระบบ';
+      case AuthErrorCode.configuration:
+        return 'ตั้งค่า Google Sign-In ของแอปไม่ถูกต้อง (ตรวจสอบ SHA-1 ใน Firebase)';
       case AuthErrorCode.unknown:
         return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
     }

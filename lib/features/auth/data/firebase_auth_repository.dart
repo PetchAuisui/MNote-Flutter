@@ -102,15 +102,22 @@ class FirebaseAuthRepository implements AuthRepository {
       throw AuthException(mapErrorCode(e.code), e.message);
     } on GoogleSignInException catch (e) {
       debugPrint('Google sign-in failed: ${e.code} ${e.description}');
-      throw AuthException(
-        e.code == GoogleSignInExceptionCode.canceled
-            ? AuthErrorCode.cancelled
-            : AuthErrorCode.unknown,
-        e.description,
-      );
+      throw AuthException(_googleErrorCode(e.code), e.description);
     } on FirebaseException catch (e) {
       debugPrint('Google sign-in failed: ${e.code} ${e.message}');
       throw AuthException(AuthErrorCode.unknown, e.message);
+    }
+  }
+
+  static AuthErrorCode _googleErrorCode(GoogleSignInExceptionCode code) {
+    switch (code) {
+      case GoogleSignInExceptionCode.canceled:
+        return AuthErrorCode.cancelled;
+      case GoogleSignInExceptionCode.clientConfigurationError:
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return AuthErrorCode.configuration;
+      default:
+        return AuthErrorCode.unknown;
     }
   }
 

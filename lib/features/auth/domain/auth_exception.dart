@@ -8,6 +8,7 @@ enum AuthErrorCode {
   tooManyRequests,
   network,
   cancelled,
+  configuration,
   unknown,
 }
 

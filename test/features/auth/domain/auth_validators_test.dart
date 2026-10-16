@@ -27,6 +27,11 @@ void main() {
     });
   });
 
+  test('configuration error has its own message', () {
+    const e = AuthException(AuthErrorCode.configuration);
+    expect(AuthValidators.messageFor(e), contains('SHA-1'));
+  });
+
   group('FirebaseAuthRepository.mapErrorCode', () {
     test('maps known Firebase codes', () {
       expect(

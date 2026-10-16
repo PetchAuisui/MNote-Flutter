@@ -797,7 +797,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
     setState(() {
       final idx = _documents.indexWhere((d) => d.id == doc.id);
       if (idx != -1) {
-        _documents[idx] = doc.moveToFolder(newFolderId);
+        _documents[idx] = _documents[idx].moveToFolder(newFolderId);
       }
     });
 

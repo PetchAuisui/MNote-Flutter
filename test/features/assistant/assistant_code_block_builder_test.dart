@@ -135,14 +135,21 @@ void main() {
       },
     );
 
-    // 5. บล็อกภาษาอื่นไม่ถูกแตะ: data: '```dart\nvoid main() {}\n```' → ไม่เจอ assistant-mermaid-card และเจอข้อความ void main() {}
+    // 5. บล็อกภาษาอื่นแสดงเป็นการ์ดโค้ด พร้อมชื่อภาษา
     testWidgets(
-      '5. non-mermaid code blocks fallback to default markdown rendering',
+      '5. non-mermaid fenced block shows code card with language label',
       (tester) async {
         const data = '```dart\nvoid main() {}\n```';
         await tester.pumpWidget(buildTestWidget(data: data));
 
         expect(find.byKey(const Key('assistant-mermaid-card')), findsNothing);
+        expect(find.byKey(const Key('assistant-code-card')), findsOneWidget);
+        expect(
+          tester
+              .widget<Text>(find.byKey(const Key('assistant-code-language')))
+              .data,
+          'dart',
+        );
         expect(find.textContaining('void main() {}'), findsOneWidget);
       },
     );
@@ -169,5 +176,49 @@ void main() {
         expect(find.byKey(const Key('assistant-mermaid-code')), findsNothing);
       },
     );
+    // 7. คัดลอกจากการ์ดโค้ดได้โค้ดล้วน ไม่มีรั้ว ```
+    testWidgets('7. code card copy button copies plain code without fences', (
+      tester,
+    ) async {
+      const data = '```dart\nvoid main() {}\n```';
+      await tester.pumpWidget(buildTestWidget(data: data));
+
+      await tester.tap(find.byKey(const Key('assistant-code-copy')));
+      await tester.pump();
+
+      expect(clipboardContent, 'void main() {}');
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
+    });
+
+    // 8. บล็อกที่ไม่ระบุภาษาขึ้นป้ายว่า "โค้ด"
+    testWidgets('8. fenced block without language shows default label', (
+      tester,
+    ) async {
+      const data = '```\nhello\n```';
+      await tester.pumpWidget(buildTestWidget(data: data));
+
+      expect(find.byKey(const Key('assistant-code-card')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('assistant-code-language')))
+            .data,
+        'โค้ด',
+      );
+    });
+
+    // 9. โค้ดในบรรทัดไม่กลายเป็นการ์ด
+    testWidgets('9. inline code is not wrapped in a code card', (tester) async {
+      const data = 'ใช้ `print()` เพื่อแสดงผล';
+      await tester.pumpWidget(buildTestWidget(data: data));
+
+      expect(find.byKey(const Key('assistant-code-card')), findsNothing);
+      expect(
+        find.textContaining('print()', findRichText: true),
+        findsOneWidget,
+      );
+    });
   });
 }

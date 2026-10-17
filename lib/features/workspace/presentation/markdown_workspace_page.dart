@@ -17,6 +17,10 @@ import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
 import 'export_sheet.dart';
+import 'package:mnote/features/assistant/domain/ai_assistant.dart';
+import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
+import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
+import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
   const MarkdownWorkspacePage({
@@ -26,6 +30,7 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
     this.exportSaver,
+    this.assistant = const FirebaseAiAssistant(),
   });
 
   final DocumentRepository repository;
@@ -33,6 +38,9 @@ class MarkdownWorkspacePage extends StatefulWidget {
   final DeviceImagePicker imagePicker;
   final MermaidFileSource mermaidFileSource;
   final ExportSaver? exportSaver;
+
+  /// ผู้ช่วย AI ถ้าเป็น null จะไม่แสดงปุ่ม AI บนแถบหัว
+  final AiAssistant? assistant;
 
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
@@ -62,6 +70,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   double _inkPenWidth = 3;
   bool _inkTouch = false;
   double _inkViewportWidth = 0;
+
+  /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่
+  AssistantChatController? _assistantChat;
 
   @override
   void initState() {
@@ -108,6 +119,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   @override
   void dispose() {
+    _assistantChat?.dispose();
     _autoSaveTimer?.cancel();
     _inkTransform.dispose();
     _ink.dispose();
@@ -1094,10 +1106,25 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  void _openAssistant() {
+    final assistant = widget.assistant;
+    if (assistant == null) return;
+    final chat = _assistantChat ??= AssistantChatController(assistant);
+    showAssistantChat(context, controller: chat);
+  }
+
   Widget _buildDocumentActions() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (widget.assistant != null)
+          IconButton(
+            key: const Key('toolbar-assistant-button'),
+            onPressed: _openAssistant,
+            visualDensity: VisualDensity.compact,
+            tooltip: 'ผู้ช่วย AI',
+            icon: const Icon(Icons.auto_awesome),
+          ),
         IconButton(
           key: const Key('toolbar-export-button'),
           onPressed: _workspace.isBusy ? null : _openExportSheet,

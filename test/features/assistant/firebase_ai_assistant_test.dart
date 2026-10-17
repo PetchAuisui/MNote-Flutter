@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
@@ -70,6 +73,47 @@ void main() {
     test('5. FirebaseAiAssistant implements AiAssistant interface', () {
       const assistant = FirebaseAiAssistant();
       expect(assistant, isA<AiAssistant>());
+    });
+  });
+
+  group('aiErrorToException', () {
+    test('quota exceeded tells the user the quota is used up', () {
+      final result = aiErrorToException(QuotaExceeded('Quota exceeded'));
+      expect(result.message, contains('โควตา'));
+    });
+
+    test('other Firebase AI errors show the unavailable message', () {
+      final result = aiErrorToException(ServerException('boom'));
+      expect(result.message, contains('ไม่พร้อมใช้งาน'));
+    });
+
+    test('App Check failure shows the app verification message', () {
+      final error = FirebaseException(
+        plugin: 'firebase_app_check',
+        code: 'unknown',
+        message: '403 App attestation failed',
+      );
+      final result = aiErrorToException(error);
+      expect(result.message, contains('ยืนยันความปลอดภัย'));
+      expect(result.message, isNot(contains('อินเทอร์เน็ต')));
+    });
+
+    test('network errors show the connection message', () {
+      final result = aiErrorToException(const SocketException('offline'));
+      expect(result.message, contains('อินเทอร์เน็ต'));
+    });
+
+    test('(Security) log text never includes the error message', () {
+      final appCheck = FirebaseException(
+        plugin: 'firebase_app_check',
+        code: 'unknown',
+        message: 'internal project detail',
+      );
+      expect(describeAiError(appCheck), 'firebase_app_check/unknown');
+      expect(
+        describeAiError(QuotaExceeded('internal project detail')),
+        isNot(contains('internal')),
+      );
     });
   });
 }

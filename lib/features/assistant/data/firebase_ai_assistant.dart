@@ -1,4 +1,5 @@
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/foundation.dart';
 
 import '../domain/ai_assistant.dart';
@@ -41,17 +42,9 @@ class FirebaseAiAssistant implements AiAssistant {
         final part = chunk.text;
         if (part != null && part.isNotEmpty) yield part;
       }
-    } on FirebaseAIException catch (error) {
-      debugPrint('Firebase AI error: ${error.runtimeType}');
-      throw const AiAssistantException(
-        'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
-      );
     } on Exception catch (error) {
-      // เน็ตหลุด, App Check ล้ม และอื่น ๆ
-      debugPrint('AI request failed: ${error.runtimeType}');
-      throw const AiAssistantException(
-        'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
-      );
+      debugPrint('AI request failed: ${describeAiError(error)}');
+      throw aiErrorToException(error);
     }
   }
 }
@@ -76,4 +69,38 @@ List<Content> buildGeminiHistory(List<ChatMessage> messages) {
     }
   }
   return result;
+}
+
+/// ข้อความสั้น ๆ สำหรับ log บอกแค่ชนิดของ error
+///
+/// ไม่พิมพ์ข้อความเต็ม เพราะอาจมีรายละเอียดภายในของโปรเจกต์
+/// error ของ Firebase บอก plugin/code เช่น `firebase_app_check/unknown`
+@visibleForTesting
+String describeAiError(Object error) => error is FirebaseException
+    ? '${error.plugin}/${error.code}'
+    : error.runtimeType.toString();
+
+/// แปลง error เป็นข้อความภาษาไทยที่บอกผู้ใช้ว่าเกิดอะไรขึ้น
+@visibleForTesting
+AiAssistantException aiErrorToException(Object error) {
+  // QuotaExceeded เป็นลูกของ FirebaseAIException ต้องเช็กก่อน
+  if (error is QuotaExceeded) {
+    return const AiAssistantException(
+      'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ '
+      'ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้',
+    );
+  }
+  if (error is FirebaseAIException) {
+    return const AiAssistantException(
+      'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
+    );
+  }
+  if (error is FirebaseException && error.plugin == 'firebase_app_check') {
+    return const AiAssistantException(
+      'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้',
+    );
+  }
+  return const AiAssistantException(
+    'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+  );
 }

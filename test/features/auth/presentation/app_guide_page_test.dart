@@ -21,8 +21,8 @@ void main() {
       expect(find.text('ข้าม'), findsOneWidget);
 
       // Slide 1 text
-      expect(find.text('เขียนและจัดรูปแบบ Markdown'), findsOneWidget);
-      expect(find.text('ขั้นตอน 01 / 03'), findsOneWidget);
+      expect(find.text('เขียน & จัดรูปแบบ Markdown'), findsOneWidget);
+      expect(find.text('ขั้นตอน 01 / 06'), findsOneWidget);
 
       // Previous button should be disabled on first slide
       final prevButton = tester.widget<IconButton>(
@@ -56,7 +56,7 @@ void main() {
     });
 
     testWidgets(
-      'can navigate forward through all 3 slides and then enter Mnote',
+      'can navigate forward through all 6 slides and then enter Mnote',
       (tester) async {
         final repo = FakeDocumentRepository();
         await tester.pumpWidget(
@@ -70,19 +70,38 @@ void main() {
         await tester.pumpAndSettle();
 
         // Slide 1
-        expect(find.text('เขียนและจัดรูปแบบ Markdown'), findsOneWidget);
+        expect(find.text('เขียน & จัดรูปแบบ Markdown'), findsOneWidget);
+        expect(find.text('ขั้นตอน 01 / 06'), findsOneWidget);
 
         // Tap Next to Slide 2
         await tester.tap(find.byKey(const Key('app-guide-next-button')));
         await tester.pumpAndSettle();
-        expect(find.text('วาดเขียน & จดโน้ตด้วยปากกา'), findsOneWidget);
-        expect(find.text('ขั้นตอน 02 / 03'), findsOneWidget);
+        expect(find.text('วาดเขียนด้วยปากกาดิจิทัล'), findsOneWidget);
+        expect(find.text('ขั้นตอน 02 / 06'), findsOneWidget);
 
-        // Tap Next to Slide 3 (Last slide)
+        // Tap Next to Slide 3
         await tester.tap(find.byKey(const Key('app-guide-next-button')));
         await tester.pumpAndSettle();
         expect(find.text('สร้างไดอะแกรม Mermaid ทันใจ'), findsOneWidget);
-        expect(find.text('ขั้นตอน 03 / 03'), findsOneWidget);
+        expect(find.text('ขั้นตอน 03 / 06'), findsOneWidget);
+
+        // Tap Next to Slide 4
+        await tester.tap(find.byKey(const Key('app-guide-next-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('จัดระเบียบโน้ตและค้นหาด่วน'), findsOneWidget);
+        expect(find.text('ขั้นตอน 04 / 06'), findsOneWidget);
+
+        // Tap Next to Slide 5
+        await tester.tap(find.byKey(const Key('app-guide-next-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('ส่งออกและแชร์ได้หลากหลาย'), findsOneWidget);
+        expect(find.text('ขั้นตอน 05 / 06'), findsOneWidget);
+
+        // Tap Next to Slide 6 (Last slide)
+        await tester.tap(find.byKey(const Key('app-guide-next-button')));
+        await tester.pumpAndSettle();
+        expect(find.text('ออฟไลน์ ปลอดภัย & ปรับแต่งได้'), findsOneWidget);
+        expect(find.text('ขั้นตอน 06 / 06'), findsOneWidget);
 
         // On last slide: "เข้าสู่ Mnote" button is shown
         expect(find.byKey(const Key('app-guide-enter-button')), findsOneWidget);
@@ -108,12 +127,12 @@ void main() {
       // Go to Slide 2
       await tester.tap(find.byKey(const Key('app-guide-next-button')));
       await tester.pumpAndSettle();
-      expect(find.text('วาดเขียน & จดโน้ตด้วยปากกา'), findsOneWidget);
+      expect(find.text('วาดเขียนด้วยปากกาดิจิทัล'), findsOneWidget);
 
       // Tap Previous button
       await tester.tap(find.byKey(const Key('app-guide-prev-button')));
       await tester.pumpAndSettle();
-      expect(find.text('เขียนและจัดรูปแบบ Markdown'), findsOneWidget);
+      expect(find.text('เขียน & จัดรูปแบบ Markdown'), findsOneWidget);
     });
   });
 }

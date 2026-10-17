@@ -5,7 +5,7 @@ import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 
-/// หน้าแนะนำการใช้งาน Mnote (3 หน้า)
+/// หน้าแนะนำการใช้งาน Mnote (6 หน้า)
 /// แสดงผลแบบ Presentation Carousel มีเอฟเฟกต์เบลอที่การ์ดด้านข้าง
 /// และมีปุ่ม "ข้าม" กับ "เข้าสู่ Mnote" เพื่อนำทางไปยัง NoteListScreen
 class AppGuidePage extends StatefulWidget {
@@ -26,18 +26,18 @@ class _AppGuidePageState extends State<AppGuidePage> {
   final List<_GuideItem> _guides = const [
     _GuideItem(
       step: '01',
-      title: 'เขียนและจัดรูปแบบ Markdown',
+      title: 'เขียน & จัดรูปแบบ Markdown',
       description:
-          'เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที',
+          'เขียนโน้ตด้วย Markdown พร้อมแถบเครื่องมือด่วน (หัวข้อ, รายการ, ตาราง, บล็อกโค้ด และแทรกรูปภาพ) พรีวิวผลลัพธ์ได้ทันที',
       featureLabel: 'Markdown Editor',
       icon: Icons.edit_note_rounded,
       badgeColor: Color(0xFF4A89DC),
     ),
     _GuideItem(
       step: '02',
-      title: 'วาดเขียน & จดโน้ตด้วยปากกา',
+      title: 'วาดเขียนด้วยปากกาดิจิทัล',
       description:
-          'ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน',
+          'ขีดเขียน ไฮไลต์ข้อความลงบนเอกสารได้อย่างอิสระ มีระบบป้องกันอุ้งมือสัมผัสจอ (Palm Rejection) รองรับปากกา Stylus เต็มรูปแบบ',
       featureLabel: 'Ink & Stylus Drawing',
       icon: Icons.draw_rounded,
       badgeColor: Color(0xFF5C9BD1),
@@ -46,10 +46,37 @@ class _AppGuidePageState extends State<AppGuidePage> {
       step: '03',
       title: 'สร้างไดอะแกรม Mermaid ทันใจ',
       description:
-          'แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน',
+          'สร้าง Flowchart และไดอะแกรมได้อัตโนมัติจากโค้ด พร้อมคลังเทมเพลตสำเร็จรูป และนำเข้าไฟล์ไดอะแกรมได้ในคลิกเดียว',
       featureLabel: 'Mermaid & Live Preview',
       icon: Icons.account_tree_rounded,
       badgeColor: Color(0xFF388E3C),
+    ),
+    _GuideItem(
+      step: '04',
+      title: 'จัดระเบียบโน้ตและค้นหาด่วน',
+      description:
+          'แยกหมวดหมู่ด้วยโฟลเดอร์ ติดดาวโน้ตสำคัญ ค้นหาเนื้อหาได้ทันใจ พร้อมระบบถังขยะที่ช่วยให้กู้คืนไฟล์ได้เสมอ',
+      featureLabel: 'Library & Organization',
+      icon: Icons.folder_special_rounded,
+      badgeColor: Color(0xFFF57C00),
+    ),
+    _GuideItem(
+      step: '05',
+      title: 'ส่งออกและแชร์ได้หลากหลาย',
+      description:
+          'แปลงโน้ตพร้อมภาพวาดเป็น PDF หรือ รูปภาพ PNG ส่งออกเป็นไฟล์ .md / .txt หรือแชร์ต่อไปยังแอปอื่นได้สะดวก',
+      featureLabel: 'Export & Share',
+      icon: Icons.ios_share_rounded,
+      badgeColor: Color(0xFF7E57C2),
+    ),
+    _GuideItem(
+      step: '06',
+      title: 'ออฟไลน์ ปลอดภัย & ปรับแต่งได้',
+      description:
+          'ทำงานแบบ Local-First ข้อมูลอยู่ในเครื่องคุณ ปลอดภัย ใช้งานได้แม้ออฟไลน์ พร้อมปรับแต่ง Dark Mode และธีมสีได้ตามสไตล์',
+      featureLabel: 'Local-First & Themes',
+      icon: Icons.palette_rounded,
+      badgeColor: Color(0xFFEC407A),
     ),
   ];
 
@@ -388,7 +415,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'ขั้นตอน ${item.step} / 03',
+                    'ขั้นตอน ${item.step} / 06',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

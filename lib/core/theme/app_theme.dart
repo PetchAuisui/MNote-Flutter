@@ -51,18 +51,24 @@ abstract final class AppTheme {
     Brightness brightness, {
     AppAccent accent = AppAccent.blue,
   }) {
-    // Blue is the original brand palette, with hand-tuned secondary/tertiary.
-    // Every other accent derives its whole scheme from its seed color.
-    if (accent != AppAccent.blue) {
-      return ColorScheme.fromSeed(
-        seedColor: accent.seed,
-        brightness: brightness,
-      );
-    }
     final isDark = brightness == Brightness.dark;
+    final isLightPrimary =
+        ThemeData.estimateBrightnessForColor(accent.swatch) == Brightness.light;
+
+    // In light mode, yellow's seed produces a dull olive-brown tone 40 primary.
+    // We override it with the vivid swatch so ColorScheme and BrandPalette match.
+    final Color? primaryOverride = (accent == AppAccent.yellow && !isDark)
+        ? accent.swatch
+        : null;
+    final Color? onPrimaryOverride = (accent == AppAccent.yellow && !isDark)
+        ? (isLightPrimary ? const Color(0xDD000000) : Colors.white)
+        : null;
+
     return ColorScheme.fromSeed(
       seedColor: accent.seed,
       brightness: brightness,
+      primary: primaryOverride,
+      onPrimary: onPrimaryOverride,
       secondary: isDark ? const Color(0xFFC1C6DA) : const Color(0xFF595E6F),
       secondaryContainer: isDark
           ? const Color(0xFF414657)
@@ -154,7 +160,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      extensions: [BrandPalette.fromAccent(accent)],
+      extensions: [BrandPalette.fromAccent(accent, brightness: brightness)],
       textTheme: textTheme,
       fontFamily: font.familyName,
       scaffoldBackgroundColor: scheme.surfaceContainerLowest,

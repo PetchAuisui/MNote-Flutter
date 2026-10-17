@@ -43,7 +43,7 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
   /// Strong title text tinted with the accent.
   final Color headline;
 
-  static const BrandPalette _blue = BrandPalette(
+  static const BrandPalette _blueLight = BrandPalette(
     primary: Color(0xFF4A89DC),
     onPrimary: Colors.white,
     primaryDisabled: Color(0xFF9EBFDC),
@@ -56,14 +56,47 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
     headline: Color(0xFF1E3A5F),
   );
 
-  factory BrandPalette.fromAccent(AppAccent accent) {
-    if (accent == AppAccent.blue) return _blue;
+  static const BrandPalette _blueDark = BrandPalette(
+    primary: Color(0xFF4A89DC),
+    onPrimary: Colors.white,
+    primaryDisabled: Color(0xFF2E4663),
+    background: Color(0xFF12161C),
+    splashBackground: Color(0xFF161E28),
+    border: Color(0xFF2E3E52),
+    mid: Color(0xFF7BA6D6),
+    soft: Color(0xFF1B232E),
+    softBorder: Color(0xFF2E3E52),
+    headline: Color(0xFFE3EBF5),
+  );
+
+  factory BrandPalette.fromAccent(
+    AppAccent accent, {
+    Brightness brightness = Brightness.light,
+  }) {
+    final isDark = brightness == Brightness.dark;
+    if (accent == AppAccent.blue) {
+      return isDark ? _blueDark : _blueLight;
+    }
     final hue = HSLColor.fromColor(accent.swatch).hue;
     Color tone(double saturation, double lightness) =>
         HSLColor.fromAHSL(1, hue, saturation, lightness).toColor();
     final primary = accent.swatch;
     final isLightPrimary =
         ThemeData.estimateBrightnessForColor(primary) == Brightness.light;
+    if (isDark) {
+      return BrandPalette(
+        primary: primary,
+        onPrimary: isLightPrimary ? const Color(0xDD000000) : Colors.white,
+        primaryDisabled: tone(0.35, 0.30),
+        background: tone(0.12, 0.09),
+        splashBackground: tone(0.18, 0.13),
+        border: tone(0.22, 0.26),
+        mid: tone(0.42, 0.65),
+        soft: tone(0.18, 0.16),
+        softBorder: tone(0.22, 0.26),
+        headline: tone(0.18, 0.92),
+      );
+    }
     return BrandPalette(
       primary: primary,
       onPrimary: isLightPrimary ? const Color(0xDD000000) : Colors.white,
@@ -80,8 +113,11 @@ class BrandPalette extends ThemeExtension<BrandPalette> {
 
   /// The palette of the current theme, or the default blue when the theme
   /// was not built through [AppTheme] (e.g. a bare `MaterialApp` in tests).
-  static BrandPalette of(BuildContext context) =>
-      Theme.of(context).extension<BrandPalette>() ?? _blue;
+  static BrandPalette of(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.extension<BrandPalette>() ??
+        (theme.brightness == Brightness.dark ? _blueDark : _blueLight);
+  }
 
   @override
   BrandPalette copyWith({

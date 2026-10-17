@@ -82,4 +82,36 @@ void main() {
     );
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
   });
+
+  testWidgets('light swatch (yellow) uses dark check icon for high contrast', (
+    tester,
+  ) async {
+    await openSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('accent_yellow')));
+    await tester.pumpAndSettle();
+
+    final icon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const ValueKey('accent_yellow')),
+        matching: find.byIcon(Icons.check_rounded),
+      ),
+    );
+    expect(icon.color, const Color(0xDD000000));
+  });
+
+  testWidgets('dark swatch (purple) uses white check icon for high contrast', (
+    tester,
+  ) async {
+    await openSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('accent_purple')));
+    await tester.pumpAndSettle();
+
+    final icon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const ValueKey('accent_purple')),
+        matching: find.byIcon(Icons.check_rounded),
+      ),
+    );
+    expect(icon.color, Colors.white);
+  });
 }

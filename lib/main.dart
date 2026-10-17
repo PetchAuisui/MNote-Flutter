@@ -12,14 +12,15 @@ Future<void> main() async {
 
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  // Restore the saved accent color / theme mode before the first frame.
-  await ThemePreferences.load();
-
   final AuthRepository authRepository;
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // Restore saved theme and initialize Firebase concurrently to speed up launch.
+    await Future.wait([
+      ThemePreferences.load(),
+      Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
+    ]);
     authRepository = FirebaseAuthRepository();
   } catch (e) {
     // Login is mandatory, so without Firebase the app cannot be used.

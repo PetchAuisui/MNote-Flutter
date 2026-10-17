@@ -259,14 +259,14 @@ class _AuthPageState extends State<AuthPage>
                     opacity: _titleFade,
                     child: SlideTransition(
                       position: _titleSlide,
-                      child: const Text(
+                      child: Text(
                         'Welcome to Mnote',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
                           fontSize: 32,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2B3A),
+                          color: Theme.of(context).colorScheme.onSurface,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -286,7 +286,8 @@ class _AuthPageState extends State<AuthPage>
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.45,
-                          color: Color(0xFF5A6C80),
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.normal,
                         ),
                       ),

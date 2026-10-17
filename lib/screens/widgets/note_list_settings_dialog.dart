@@ -210,7 +210,15 @@ class _AccentSwatch extends StatelessWidget {
               ),
             ),
             child: selected
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                ? Icon(
+                    Icons.check_rounded,
+                    color:
+                        ThemeData.estimateBrightnessForColor(accent.swatch) ==
+                                Brightness.light
+                            ? const Color(0xDD000000)
+                            : Colors.white,
+                    size: 22,
+                  )
                 : null,
           ),
         ),

@@ -15,11 +15,13 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final palette = BrandPalette.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return SizedBox(
       width: double.infinity,
       child: Material(
-        color: Colors.white,
+        color: isDark ? theme.colorScheme.surfaceContainerLow : Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
@@ -67,7 +69,7 @@ class GoogleSignInButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF222E3D),
+                    color: theme.colorScheme.onSurface,
                     letterSpacing: 0.1,
                   ),
                 ),

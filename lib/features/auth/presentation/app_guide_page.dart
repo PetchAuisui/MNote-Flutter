@@ -363,7 +363,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
       constraints: const BoxConstraints(maxWidth: 680, maxHeight: 380),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -417,10 +417,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
                 // Description
                 Text(
                   item.description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF5A6E85),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                   maxLines: 5,
@@ -437,10 +437,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
             flex: 2,
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE2E7ED),
+                color: palette.soft,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: palette.softBorder,
                   width: 1,
                 ),
               ),

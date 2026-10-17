@@ -13,6 +13,7 @@ void main() {
   });
 
   tearDown(() {
+    ThemePreferences.resetForTesting();
     MnoteApp.themeModeNotifier.value = ThemeMode.system;
     MnoteApp.accentNotifier.value = AppAccent.blue;
   });
@@ -52,11 +53,45 @@ void main() {
 
       MnoteApp.accentNotifier.value = AppAccent.orange;
       MnoteApp.themeModeNotifier.value = ThemeMode.light;
-      await Future<void>.delayed(Duration.zero);
+      await ThemePreferences.pendingSaves();
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(ThemePreferences.accentKey), 'orange');
       expect(prefs.getString(ThemePreferences.modeKey), 'light');
+    });
+
+    test('rapid consecutive changes are saved in order without race conditions', () async {
+      SharedPreferences.setMockInitialValues({});
+      await ThemePreferences.load();
+
+      // Trigger multiple changes in rapid succession.
+      MnoteApp.accentNotifier.value = AppAccent.orange;
+      MnoteApp.accentNotifier.value = AppAccent.green;
+      MnoteApp.accentNotifier.value = AppAccent.yellow;
+      MnoteApp.accentNotifier.value = AppAccent.purple;
+
+      await ThemePreferences.pendingSaves();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(ThemePreferences.accentKey), AppAccent.purple.name);
+    });
+
+    test('resetForTesting() detaches listeners and prevents leaks across tests', () async {
+      SharedPreferences.setMockInitialValues({});
+      await ThemePreferences.load();
+      expect(ThemePreferences.isPersisting, isTrue);
+
+      ThemePreferences.resetForTesting();
+      expect(ThemePreferences.isPersisting, isFalse);
+
+      // Changes after reset must not trigger saves to SharedPreferences.
+      MnoteApp.accentNotifier.value = AppAccent.red;
+      MnoteApp.themeModeNotifier.value = ThemeMode.dark;
+      await ThemePreferences.pendingSaves();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(ThemePreferences.accentKey), isNull);
+      expect(prefs.getString(ThemePreferences.modeKey), isNull);
     });
   });
 

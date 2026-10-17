@@ -86,5 +86,31 @@ void main() {
         AppTheme.colorScheme(Brightness.light, accent: AppAccent.green).primary,
       );
     });
+
+    test('yellow accent produces vivid primary matching swatch in light mode', () {
+      final scheme = AppTheme.colorScheme(
+        Brightness.light,
+        accent: AppAccent.yellow,
+      );
+      expect(scheme.primary, AppAccent.yellow.swatch);
+      expect(scheme.onPrimary, const Color(0xDD000000));
+    });
+
+    test('all accents preserve hand-tuned secondary and tertiary colors', () {
+      for (final accent in AppAccent.values) {
+        final lightScheme = AppTheme.colorScheme(
+          Brightness.light,
+          accent: accent,
+        );
+        final darkScheme = AppTheme.colorScheme(
+          Brightness.dark,
+          accent: accent,
+        );
+        expect(lightScheme.secondary, const Color(0xFF595E6F));
+        expect(darkScheme.secondary, const Color(0xFFC1C6DA));
+        expect(lightScheme.tertiary, const Color(0xFF4B6077));
+        expect(darkScheme.tertiary, const Color(0xFFB2C9E2));
+      }
+    });
   });
 }

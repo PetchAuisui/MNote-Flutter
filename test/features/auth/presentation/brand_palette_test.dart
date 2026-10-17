@@ -50,6 +50,32 @@ void main() {
         );
       }
     });
+
+    test('supports dark mode with dark background and light headline', () {
+      for (final accent in AppAccent.values) {
+        final darkPalette = BrandPalette.fromAccent(
+          accent,
+          brightness: Brightness.dark,
+        );
+        expect(
+          ThemeData.estimateBrightnessForColor(darkPalette.background),
+          Brightness.dark,
+        );
+        expect(
+          ThemeData.estimateBrightnessForColor(darkPalette.headline),
+          Brightness.light,
+        );
+      }
+    });
+
+    test('AppTheme dark mode registers a dark BrandPalette', () {
+      final theme = AppTheme.theme(Brightness.dark, accent: AppAccent.blue);
+      final palette = theme.extension<BrandPalette>()!;
+      expect(
+        ThemeData.estimateBrightnessForColor(palette.background),
+        Brightness.dark,
+      );
+    });
   });
 
   testWidgets('splash background uses the saved accent from the first frame', (

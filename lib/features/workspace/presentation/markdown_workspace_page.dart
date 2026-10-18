@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
+import 'package:mnote/features/assistant/domain/ai_assistant.dart';
+import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
+import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
 import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -17,10 +21,6 @@ import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
 import 'export_sheet.dart';
-import 'package:mnote/features/assistant/domain/ai_assistant.dart';
-import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
-import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
-import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
   const MarkdownWorkspacePage({

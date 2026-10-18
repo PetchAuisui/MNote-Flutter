@@ -101,6 +101,14 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
     super.initState();
     _textController.addListener(_onTextChanged);
     widget.controller.addListener(_onControllerChanged);
+
+    // controller อยู่ต่อหลังปิดแผง ถ้ามีบทสนทนาเดิมให้เริ่มที่ข้อความล่าสุด
+    final messages = widget.controller.messages;
+    _previousMessageCount = messages.length;
+    _previousLastMessageLength = messages.isNotEmpty
+        ? messages.last.text.length
+        : 0;
+    if (messages.isNotEmpty) _scrollToBottom();
   }
 
   @override
@@ -149,15 +157,22 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
     });
   }
 
-  void _sendMessage([String? textOverride]) {
+  Future<void> _sendMessage([String? textOverride]) async {
     final text = textOverride ?? _textController.text;
     if (text.trim().isEmpty || widget.controller.isResponding) return;
 
-    widget.controller.send(text);
+    final sending = widget.controller.send(text);
     // controller ตรวจความยาวและเริ่มตอบทันทีก่อน await แรก
     // ถ้าถูกปฏิเสธ isResponding จะเป็น false ข้อความจึงยังอยู่ให้แก้
     if (textOverride == null && widget.controller.isResponding) {
       _textController.clear();
+    }
+
+    final sent = await sending;
+    // ส่งไม่สำเร็จ: คืนข้อความเข้าช่องพิมพ์ให้กดส่งซ้ำได้
+    // ถ้าระหว่างรอผู้ใช้พิมพ์อะไรใหม่ไว้แล้ว ไม่เขียนทับ
+    if (!sent && mounted && _textController.text.isEmpty) {
+      _textController.text = text;
     }
   }
 

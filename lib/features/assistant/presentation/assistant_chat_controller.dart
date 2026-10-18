@@ -23,17 +23,19 @@ class AssistantChatController extends ChangeNotifier {
   bool get isResponding => _isResponding;
   String? get errorMessage => _errorMessage;
 
-  Future<void> send(String text) async {
+  /// คืน true เมื่อ AI ตอบจบสำเร็จ
+  /// ถ้าไม่สำเร็จ เอาคำถามและคำตอบที่ไม่จบออก ไม่ให้ถูกส่งเป็นประวัติรอบหน้า
+  Future<bool> send(String text) async {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty || _isResponding) {
-      return;
+      return false;
     }
 
     // นับแบบเดียวกับ TextField (ตัวอักษรที่เห็น) สระไทยจะไม่ถูกนับซ้ำ
     if (trimmedText.characters.length > maxInputLength) {
       _errorMessage = 'ข้อความยาวเกินไป (สูงสุด 2000 ตัวอักษร)';
       _notifySafely();
-      return;
+      return false;
     }
 
     final history = _messages.length > maxHistoryMessages
@@ -41,12 +43,14 @@ class AssistantChatController extends ChangeNotifier {
         : List<ChatMessage>.from(_messages);
 
     _errorMessage = null;
+    final turnStart = _messages.length;
     _messages.add(ChatMessage(role: ChatRole.user, text: trimmedText));
     _messages.add(const ChatMessage(role: ChatRole.assistant, text: ''));
     _isResponding = true;
     _notifySafely();
 
     final completer = _responseDone = Completer<void>();
+    var succeeded = false;
 
     try {
       final stream = _assistant.sendMessage(
@@ -68,14 +72,11 @@ class AssistantChatController extends ChangeNotifier {
         },
         onError: (Object error) {
           _handleError(error);
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
+          if (!completer.isCompleted) completer.complete();
         },
         onDone: () {
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
+          succeeded = true;
+          if (!completer.isCompleted) completer.complete();
         },
         cancelOnError: true,
       );
@@ -87,20 +88,19 @@ class AssistantChatController extends ChangeNotifier {
       _streamSubscription?.cancel();
       _streamSubscription = null;
       _responseDone = null;
+      if (!succeeded && !_isDisposed && turnStart <= _messages.length) {
+        _messages.removeRange(turnStart, _messages.length);
+      }
       _isResponding = false;
       _notifySafely();
     }
+    return succeeded;
   }
 
   void _handleError(Object error) {
     _errorMessage = error is AiAssistantException
         ? error.message
         : 'AI ตอบไม่สำเร็จ กรุณาลองใหม่';
-    if (_messages.isNotEmpty &&
-        _messages.last.role == ChatRole.assistant &&
-        _messages.last.text.isEmpty) {
-      _messages.removeLast();
-    }
   }
 
   void clear() {

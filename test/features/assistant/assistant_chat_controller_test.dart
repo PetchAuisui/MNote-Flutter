@@ -22,6 +22,25 @@ class _CustomStreamAssistant implements AiAssistant {
   }
 }
 
+/// ครั้งแรกตอบได้ครึ่งเดียวแล้วล้ม ครั้งต่อไปตอบจบ
+class _FailOnceAssistant implements AiAssistant {
+  int calls = 0;
+  List<ChatMessage>? lastHistory;
+
+  @override
+  Stream<String> sendMessage(
+    String text, {
+    List<ChatMessage> history = const [],
+    AiDocumentContext? document,
+  }) async* {
+    calls++;
+    lastHistory = history;
+    yield 'ตอบไม่จบ';
+    if (calls == 1) throw const AiAssistantException('ล้ม');
+    yield 'ครบ';
+  }
+}
+
 void main() {
   group('AssistantChatController Tests', () {
     test(
@@ -133,14 +152,13 @@ void main() {
         await controller.send('ส่งข้อความ');
 
         expect(controller.errorMessage, 'ข้อความทดสอบ');
-        expect(controller.messages.length, 1);
-        expect(controller.messages.first.role, ChatRole.user);
+        expect(controller.messages, isEmpty);
         expect(controller.isResponding, isFalse);
       },
     );
 
     test(
-      '8. should show generic error and keep partial chunks on unexpected error',
+      '8. should show generic error and discard partial answer on unexpected error',
       () async {
         final fakeAssistant = FakeAiAssistant(
           chunks: ['ตอบบางส่วน'],
@@ -151,8 +169,7 @@ void main() {
         await controller.send('ส่งข้อความ');
 
         expect(controller.errorMessage, 'AI ตอบไม่สำเร็จ กรุณาลองใหม่');
-        expect(controller.messages.length, 2);
-        expect(controller.messages.last.text, 'ตอบบางส่วน');
+        expect(controller.messages, isEmpty);
         expect(controller.isResponding, isFalse);
       },
     );
@@ -236,5 +253,28 @@ void main() {
         expect(controller.errorMessage, isNull);
       },
     );
+
+    test('14. send returns true on success and false on error', () async {
+      final ok = AssistantChatController(FakeAiAssistant());
+      expect(await ok.send('สวัสดี'), isTrue);
+
+      final failing = AssistantChatController(
+        FakeAiAssistant(error: const AiAssistantException('ล้ม')),
+      );
+      expect(await failing.send('สวัสดี'), isFalse);
+      expect(await failing.send('   '), isFalse);
+    });
+
+    test('15. interrupted answer is not sent as history next turn', () async {
+      final assistant = _FailOnceAssistant();
+      final controller = AssistantChatController(assistant);
+
+      expect(await controller.send('ครั้งแรก'), isFalse);
+      expect(controller.messages, isEmpty);
+
+      expect(await controller.send('ครั้งที่สอง'), isTrue);
+      expect(assistant.lastHistory, isEmpty);
+      expect(controller.messages.length, 2);
+    });
   });
 }

@@ -357,5 +357,44 @@ void main() {
           .dy;
       expect(inputBottom, lessThanOrEqualTo(768 - 300));
     });
+
+    testWidgets('15. reopening the panel starts at the latest message', (
+      tester,
+    ) async {
+      final controller = AssistantChatController(FakeAiAssistant());
+      for (var i = 0; i < 15; i++) {
+        await controller.send('ข้อความ $i');
+      }
+
+      await tester.pumpWidget(buildTestWidget(controller: controller));
+      await tester.pumpAndSettle();
+
+      final position = tester
+          .widget<ListView>(find.byType(ListView))
+          .controller!
+          .position;
+      expect(position.pixels, position.maxScrollExtent);
+    });
+
+    testWidgets('16. failed send puts the text back into the input', (
+      tester,
+    ) async {
+      final controller = AssistantChatController(
+        FakeAiAssistant(chunks: [], error: const AiAssistantException('ล้ม')),
+      );
+      await tester.pumpWidget(buildTestWidget(controller: controller));
+
+      await sendText(tester, 'สวัสดี');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('assistant-error')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('assistant-input')))
+            .controller!
+            .text,
+        'สวัสดี',
+      );
+    });
   });
 }

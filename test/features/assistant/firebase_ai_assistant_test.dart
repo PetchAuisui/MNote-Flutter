@@ -74,6 +74,18 @@ void main() {
       const assistant = FirebaseAiAssistant();
       expect(assistant, isA<AiAssistant>());
     });
+
+    // 6. ส่งเอกสารโยน UnsupportedError
+    test('6. sending a document throws instead of dropping it silently', () {
+      const assistant = FirebaseAiAssistant();
+      expect(
+        assistant.sendMessage(
+          'สรุปโน้ต',
+          document: const AiDocumentContext(title: 'โน้ต', content: 'เนื้อหา'),
+        ),
+        emitsError(isA<UnsupportedError>()),
+      );
+    });
   });
 
   group('aiErrorToException', () {

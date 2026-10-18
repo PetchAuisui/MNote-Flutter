@@ -23,17 +23,18 @@ class FirebaseAiAssistant implements AiAssistant {
       'แล้วเขียนข้อความที่ต้องการให้ผู้ใช้คัดลอกไปวางเอง '
       'ห้ามบอกว่าได้แก้ไขหรืออ่านโน้ตแล้ว';
 
-  static GenerativeModel? _model;
-
   @override
   Stream<String> sendMessage(
     String text, {
     List<ChatMessage> history = const [],
     AiDocumentContext? document,
   }) async* {
-    assert(document == null, 'ยังไม่รองรับการส่งเนื้อหาโน้ต');
+    // ยังไม่รองรับการส่งเนื้อหาโน้ต แจ้งชัด ๆ แทนการทิ้งเงียบ ๆ ใน release
+    if (document != null) {
+      throw UnsupportedError('ยังไม่รองรับการส่งเนื้อหาโน้ตให้ AI');
+    }
     try {
-      final model = _model ??= FirebaseAI.googleAI().generativeModel(
+      final model = FirebaseAI.googleAI().generativeModel(
         model: modelName,
         systemInstruction: Content.system(_systemPrompt),
       );

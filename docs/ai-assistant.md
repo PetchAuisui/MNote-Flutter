@@ -4,7 +4,7 @@
 
 - Branch: `feature/ai-chat`
 - ตอบโจทย์อาจารย์ข้อ "ใช้ AI อย่างน้อย 1 Feature (Gemini API)" และเป็น Firebase บริการที่ 3 ของโปรเจกต์ (ต่อจาก Auth และ Firestore)
-- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release, iOS ลงทะเบียน debug token ของ simulator แล้ว แต่ยังไม่ได้ทดสอบจนตอบได้, CI ผ่านทั้ง Android และ iOS build
+- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release, iOS ทดสอบบน iPad แล้ว (debug + debug token), CI ผ่านทั้ง Android และ iOS build
 
 > ⚠️ **ก่อนเทสหรือ demo อ่านหัวข้อ 7.5 (ใครใช้ AI ได้) และ 7.6 (โควตา)** และคนดูแล Firebase อ่านหัวข้อ 7 ทั้งหมด
 
@@ -78,10 +78,10 @@ lib/
 test/
 ├── helpers/fake_ai_assistant.dart           ตัวปลอมสำหรับ test (ไม่ต่อเน็ต)
 └── features/assistant/
-    ├── assistant_chat_controller_test.dart  13 test
-    ├── assistant_chat_panel_test.dart       14 test
+    ├── assistant_chat_controller_test.dart  15 test
+    ├── assistant_chat_panel_test.dart       16 test
     ├── assistant_entry_test.dart             6 test
-    ├── firebase_ai_assistant_test.dart      10 test
+    ├── firebase_ai_assistant_test.dart      11 test
     └── assistant_code_block_builder_test.dart 9 test
 ```
 
@@ -115,7 +115,7 @@ test/
   ← คำตอบทีละชิ้น (Stream<String>) ← controller ต่อข้อความ ← หน้าจอวาดใหม่
 ```
 
-**ถ้าผิดพลาด:** `FirebaseAiAssistant` แปลง error เป็น `AiAssistantException` ข้อความไทย controller แสดงในแถบ error และลบฟองคำตอบที่ว่างทิ้ง แอปไม่ค้างหรือเด้ง
+**ถ้าผิดพลาด:** `FirebaseAiAssistant` แปลง error เป็น `AiAssistantException` ข้อความไทย controller แสดงในแถบ error แล้ว**ถอยกลับ** เอาทั้งคำถามและคำตอบที่ไม่จบออกจากรายการ (`send()` คืน `false`) หน้าจอคืนข้อความเข้าช่องพิมพ์ให้กดส่งซ้ำได้ แอปไม่ค้างหรือเด้ง
 
 การแปลงอยู่ในฟังก์ชัน `aiErrorToException()` ที่เดียว (เช็กตามลำดับในตาราง):
 
@@ -144,14 +144,17 @@ test/
 | **ใช้ App Check จาก `main.dart` (#33) ไม่ตั้งเอง** | มีจุดตั้งค่าที่เดียว เราไม่ต้องแตะ `main.dart` ของทีม |
 | **`Completer` ใน `send()`** | ให้ `dispose()` ยกเลิก subscription และปลด `send()` ได้ทันที ถ้าใช้ `await for` การเชื่อมต่อจะค้างจนกว่าจะมีข้อความชิ้นถัดไป |
 | **นับความยาวข้อความตามตัวอักษรที่เห็น (`characters`)** | ช่องพิมพ์นับแบบนี้ ถ้า controller นับ `String.length` ภาษาไทยที่มีสระบน/ล่างจะนับเกิน ผู้ใช้โดนปฏิเสธทั้งที่ยังพิมพ์ไม่ถึง 2000 |
-| **ล้างช่องพิมพ์เฉพาะเมื่อส่งสำเร็จ** | ถ้าข้อความถูกปฏิเสธ ผู้ใช้ต้องแก้ต่อได้ ไม่ต้องพิมพ์ใหม่ (controller ตรวจความยาวก่อน `await` แรก หน้าจอจึงเช็ก `isResponding` ได้ทันที) |
+| **ล้างช่องพิมพ์เฉพาะเมื่อ controller รับข้อความ และคืนข้อความถ้าตอบไม่สำเร็จ** | ถ้าข้อความถูกปฏิเสธหรือเน็ตหลุด/โควตาหมด ผู้ใช้ไม่ต้องพิมพ์ใหม่ (controller ตรวจความยาวก่อน `await` แรก หน้าจอจึงเช็ก `isResponding` ได้ทันที และ `send()` คืน `bool` บอกผล) ถ้าระหว่างรอผู้ใช้พิมพ์อะไรใหม่ไว้ จะไม่เขียนทับ |
+| **ตอบไม่สำเร็จแล้วถอยกลับทั้งคู่ (คำถาม + คำตอบที่ไม่จบ)** | คำตอบที่ขาดกลางทางถ้าเก็บไว้ จะถูกส่งเป็นประวัติรอบหน้า Gemini จะเข้าใจว่าเป็นคำตอบที่สมบูรณ์ |
+| **เปิดแผงใหม่แล้วเลื่อนไปข้อความล่าสุด** | controller อยู่ต่อหลังปิดแผง แต่หน้าจอสร้างใหม่ ต้องตั้งค่าเริ่มต้นจากบทสนทนาเดิมใน `initState` ไม่งั้นบทสนทนายาวจะเริ่มที่ข้อความบนสุด |
+| **ไม่ cache `GenerativeModel`** | สร้างใหม่ทุกครั้งที่ส่งเป็นแค่ object ไม่ได้ต่อเน็ต และ `static` ที่เปลี่ยนค่าได้ใน class ที่เป็น `const` รีเซ็ตไม่ได้ |
 | **เลื่อนลงเองเฉพาะตอนอยู่ท้ายรายการหรือเพิ่งส่ง** | ผู้ใช้เลื่อนขึ้นไปอ่านระหว่างที่ AI ตอบได้โดยไม่ถูกดึงลง เช็กตำแหน่ง**ก่อน**ข้อความชิ้นใหม่ถูกวาด ไม่งั้นจะคิดว่าผู้ใช้เลื่อนหนีทั้งที่ไม่ได้เลื่อน |
 | **Mermaid แสดงเป็นโค้ดระหว่าง AI พิมพ์ แล้วค่อยวาดตอนจบ** | โค้ดที่ยังพิมพ์ไม่จบทำให้ตัววาดผังขึ้น Syntax error `MarkdownBody` ใช้ `key: ValueKey(isStreaming)` เพราะมันแปลงใหม่เฉพาะตอน `data` เปลี่ยน ถ้าไม่มี key การ์ดจะค้างที่โค้ด |
 | **การ์ดโค้ดในแชทแยกจาก `MermaidElementBuilder` ของหน้าโน้ต** | ปุ่มสลับ/คัดลอกเหมาะกับแชท ไม่ไปเปลี่ยนหน้าตาหน้าโน้ตของเพื่อน ใช้ `MermaidDiagramView` ตัวเดิม (ผ่าน `mermaid.dart`) จึงไม่ได้วาดผังซ้ำ ปุ่มคัดลอกเป็น `_CopyCodeButton` ตัวเดียวใช้ร่วมทั้ง 2 การ์ด |
 | **แยกบล็อกโค้ดกับโค้ดในบรรทัดด้วย `\n` ท้ายข้อความ** | บล็อกที่ล้อมด้วย ``` ลงท้ายด้วยขึ้นบรรทัดใหม่เสมอ โค้ดในบรรทัดไม่มี |
 | **`buildGeminiHistory()` ส่งเฉพาะคู่ที่สมบูรณ์** | ถ้า AI เคยตอบพลาด ประวัติจะมีข้อความผู้ใช้ติดกัน 2 อัน Gemini อาจปฏิเสธคำขอ |
 | **ไม่แสดง error ดิบของ Google** | อาจมีรายละเอียดภายในของโปรเจกต์ และผู้ใช้อ่านไม่เข้าใจ |
-| **`on Exception` ไม่ใช่ `catch` เปล่า** | ไม่กลืน `Error` ที่เป็นบั๊กของโปรแกรม (เช่น assert) ซึ่งควรเห็นตอนพัฒนา |
+| **`on Exception` ไม่ใช่ `catch` เปล่า** | ไม่กลืน `Error` ที่เป็นบั๊กของโปรแกรม ซึ่งควรเห็นตอนพัฒนา |
 | **แยกข้อความ error ตามสาเหตุ และแยกเป็นฟังก์ชัน `aiErrorToException()`** | เดิมโควตาหมดขึ้นแค่ "ไม่พร้อมใช้งาน" และ App Check ไม่ผ่านขึ้นว่า "ตรวจสอบอินเทอร์เน็ต" ซึ่งพาไปผิดทาง แยกเป็นฟังก์ชันที่รับ error แล้วคืนข้อความ จึง test ได้ทุกกรณีโดยไม่ต้องเรียก Gemini จริง |
 
 ---
@@ -164,7 +167,7 @@ test/
 | คนนอกใช้โควตา (สคริปต์, แอปปลอม, โปรแกรมจำลอง) | App Check: firebase_ai ไม่ส่งคำขอถ้าไม่มี token, release ต้องผ่าน Play Integrity ระดับ Device integrity และเซ็นด้วย key ที่ลงทะเบียน | ทดสอบบนเครื่องจริง (หัวข้อ 7.3) |
 | ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller (นับแบบเดียวกัน) | test (Security) 3 ข้อ |
 | ประวัติแชทยาวไม่สิ้นสุด | ส่งแค่ 20 ข้อความล่าสุด | test (Security) |
-| **เนื้อหาโน้ตหลุดไปให้ AI** | controller ส่ง `document: null` เสมอ และ `FirebaseAiAssistant` มี `assert` กันไว้ | test (Security) ใน controller และ entry |
+| **เนื้อหาโน้ตหลุดไปให้ AI** | controller ส่ง `document: null` เสมอ และถ้ามีใครส่ง `document` มา `FirebaseAiAssistant` จะ `throw UnsupportedError` ทันที (ทำงานใน release ด้วย ต่างจาก `assert`) | test (Security) ใน controller และ entry, test ที่ส่ง document แล้วต้อง error |
 | **คำตอบ AI ใช้ติดตามผู้ใช้** (รูปจาก URL ภายนอก) | `imageBuilder` แสดงข้อความ alt แทน ไม่โหลดรูป | test (Security): ไม่มี `Image` |
 | คำตอบ AI มีลิงก์อันตราย | ไม่ใส่ `onTapLink` ลิงก์ในคำตอบกดไม่ได้ | — |
 | log หลุดข้อมูล | `describeAiError()` พิมพ์แค่ชนิดของ error หรือ `plugin/code` ไม่พิมพ์ข้อความผู้ใช้หรือรายละเอียด error | test (Security) |
@@ -186,7 +189,7 @@ test/
 | App Check → Apps → mnote (android) → Play Integrity | SHA-256 2 ตัว (`ba:25:...` และ `2E:66:...`) |
 | Play Integrity → Advanced settings | ☐ `PLAY_RECOGNIZED`, ☐ `LICENSED`, ระดับขั้นต่ำ **Device integrity** |
 | debug token (android) | `Tablet SM-T735 (Faa)` |
-| debug token (ios) | `pet` (iOS Simulator) |
+| debug token (ios) | `pet` (iPad) |
 | App Check → Apps → mnote (ios) | ไม่ได้ลงทะเบียน App Attest / DeviceCheck (หัวข้อ 7.5) |
 | App Check ของ Firestore / Auth | **ไม่ได้แตะ** (Monitoring) |
 
@@ -198,7 +201,9 @@ test/
 
 1. **firebase_ai ไม่ส่งคำขอเลยถ้าขอ App Check token ไม่ได้ แม้ AI Logic ยังเป็นโหมด Monitoring** (เห็นจาก log: ขอ token ไม่ผ่าน → `FirebaseException` ทันที คำขอไม่ไปถึงเซิร์ฟเวอร์) โหมด Monitoring จึง**ไม่ได้**ทำให้เครื่องที่ไม่ได้ลงทะเบียนใช้ AI ได้อย่างที่เข้าใจตอนแรก ทุกเครื่องต้องผ่าน App Check เสมอ
 2. **หน้า App Check นับเฉพาะคำขอที่ไปถึงเซิร์ฟเวอร์** คำขอที่ล้มตั้งแต่ขั้นขอ token ไม่ถูกนับ จึงอาจเห็น verified 100% ทั้งที่บางเครื่องใช้ไม่ได้
-3. **เส้นตาย 2 พฤศจิกายน 2026:** Firebase จะบังคับ App Check กับ AI Logic อัตโนมัติและปิดไม่ได้อีก เพราะข้อ 1 ผลจริงจึง**เหมือนตอนนี้ทุกอย่าง** ตั้งค่าที่จำเป็นครบแล้ว ไม่ต้องทำอะไรเพิ่ม
+3. **เส้นตาย 2 พฤศจิกายน 2026:** Firebase จะบังคับ App Check กับ AI Logic อัตโนมัติและปิดไม่ได้อีก เพราะข้อ 1 ผลจริงจึง**เหมือนตอนนี้ทุกอย่าง**:
+   - **Android:** ตั้งค่า Play Integrity ครบแล้ว (7.3) ไม่ต้องทำอะไรเพิ่ม debug build ยังต้องลงทะเบียน debug token เหมือนเดิม (7.4)
+   - **iOS:** ใช้ AI ได้**เฉพาะเครื่องที่ลงทะเบียน debug token** เท่านั้น แอป iOS แบบ release ใช้ AI ไม่ได้ทั้งก่อนและหลังวันนั้น เพราะไม่ได้ลงทะเบียน App Attest / DeviceCheck (ต้องมีบัญชี Apple Developer แบบเสียเงิน, 7.5)
 
 ### 7.3 Play Integrity (แอป Android release)
 
@@ -228,14 +233,14 @@ debug build ใช้ debug token ไม่ใช้ Play Integrity / App Attest
 2. `adb logcat -d | grep DebugAppCheckProvider` → คัดลอกรหัสหลัง `Firebase App Check debug token:`
 
 **iOS (บน Mac)**
-1. เปิด `ios/Runner.xcworkspace` ใน Xcode → เลือก iPhone Simulator → กด ▶
+1. เปิด `ios/Runner.xcworkspace` ใน Xcode → เลือก iPhone/iPad Simulator หรือเครื่องจริง → กด ▶
 2. ใน console ของ Xcode ค้น `App Check debug token` → คัดลอกรหัส (บรรทัด `Failed to exchange debug token` ก่อนหน้าเป็นเรื่องปกติ แปลว่ายังไม่ได้ลงทะเบียน)
 
 **ลงทะเบียน (ทั้งสองแพลตฟอร์ม)**
 App Check → Apps → แถวของแพลตฟอร์มนั้น → **⋮** → **Manage debug tokens** → Add → ตั้งชื่อ `อุปกรณ์ (ชื่อคน)` → วาง token → Save
 - **อย่ากด Generate token** (ใช้สำหรับ CI จะได้ token ที่ไม่ตรงกับเครื่อง)
 - **อย่าวางในช่อง SHA-256 ของ Play Integrity** (คนละช่อง ระบบจะฟ้องว่าต้องเป็น 64 ตัวอักษร)
-- แอป iOS ไม่ต้องลงทะเบียน App Attest / DeviceCheck ก่อน ก็เพิ่ม debug token ได้
+- แอป iOS ไม่ต้องลงทะเบียน App Attest / DeviceCheck ก่อน ก็เพิ่ม debug token ได้ และไม่ต้องมีบัญชี Apple Developer แบบเสียเงิน (ทดสอบแล้วบน iPad)
 
 **debug token เป็นความลับ** ห้ามใส่ในโค้ด, README, PR หรือแชทกลุ่ม ส่งให้คนลงทะเบียนทางแชทส่วนตัว ถ้าล้างข้อมูลแอป ถอนการติดตั้ง หรือรีเซ็ต simulator จะได้รหัสใหม่และต้องลงทะเบียนอีกครั้ง
 
@@ -246,8 +251,8 @@ App Check → Apps → แถวของแพลตฟอร์มนั้น
 | Android `flutter run` (debug) | ได้ | ลงทะเบียน debug token ของเครื่องนั้น (7.4) |
 | Android APK release บนเครื่องจริง | **ได้ทุกเครื่อง** ไม่ต้องลงทะเบียน | ต้อง build จากคอมที่ใส่ SHA-256 ไว้แล้ว (7.3) |
 | Android release บนโปรแกรมจำลอง | ไม่ได้ | ตั้งใจ: ไม่ผ่าน Device integrity |
-| iOS `flutter run` / Xcode (debug) | ได้ ถ้าลงทะเบียน debug token (**ยังไม่ได้ทดสอบจนตอบได้** เพราะโควตาหมดระหว่างลอง) | ลงทะเบียน debug token ในแถว mnote (ios) |
-| iOS แอปที่แจกคนอื่น | **ไม่ได้** | ต้องมีบัญชี Apple Developer แบบเสียเงิน ทั้งสำหรับแจกแอป (TestFlight / Ad Hoc) และ App Attest ทีมยังไม่มี |
+| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token** (ทดสอบแล้วบน iPad) | ลงทะเบียน debug token ในแถว mnote (ios) |
+| iOS แบบ release / แอปที่แจกคนอื่น | **ไม่ได้** (firebase_ai ไม่ส่งคำขอเพราะไม่มี App Check token) | ต้องลงทะเบียน App Attest / DeviceCheck ซึ่งต้องมีบัญชี Apple Developer แบบเสียเงิน และการแจกแอปผ่าน TestFlight / Ad Hoc ก็ต้องใช้บัญชีนี้ ทีมยังไม่มี |
 
 **iOS แจกไม่ได้เป็นข้อจำกัดของ Apple ไม่ใช่ของ AI:** ถ้าไม่มีบัญชี Apple Developer แบบเสียเงิน แอปทั้งตัวก็ติดตั้งลง iPhone ของคนอื่นไม่ได้อยู่แล้ว (บัญชีฟรีใช้ TestFlight / App Store ไม่ได้ และ Ad Hoc ต้องเป็นบัญชีเสียเงิน) ถ้าอาจารย์ใช้ iPhone ให้ demo บนเครื่องของทีม
 
@@ -285,8 +290,8 @@ App Check → Apps → แถวของแพลตฟอร์มนั้น
 
 1. ใน `AssistantChatController` เพิ่มทางเลือกให้ผู้ใช้**กดเองอย่างชัดเจน** เช่น ชิป "แนบโน้ตนี้" (ห้ามส่งอัตโนมัติ เพราะเป็นเรื่องความเป็นส่วนตัว)
 2. ส่ง `AiDocumentContext(title: ..., content: ...)` แทน `null` และจำกัดความยาวเนื้อหา (โน้ตยาวกินโควตาจำนวน token มาก หัวข้อ 7.6)
-3. ใน `FirebaseAiAssistant` ลบ `assert` แล้วนำ `document` ไปรวมกับข้อความ โดย**ห่อด้วยตัวคั่นและบอก AI ว่าเนื้อหาโน้ตเป็นข้อมูล ไม่ใช่คำสั่ง** (กัน prompt injection เช่น โน้ตที่มีคำว่า "ไม่ต้องสนใจคำสั่งก่อนหน้า")
-4. เปลี่ยนแถบความเป็นส่วนตัวให้บอกว่าโน้ตถูกส่งไปด้วย และแก้ test (Security) ที่ตรวจ `document == null`
+3. ใน `FirebaseAiAssistant` ลบ `throw UnsupportedError` แล้วนำ `document` ไปรวมกับข้อความ โดย**ห่อด้วยตัวคั่นและบอก AI ว่าเนื้อหาโน้ตเป็นข้อมูล ไม่ใช่คำสั่ง** (กัน prompt injection เช่น โน้ตที่มีคำว่า "ไม่ต้องสนใจคำสั่งก่อนหน้า")
+4. เปลี่ยนแถบความเป็นส่วนตัวให้บอกว่าโน้ตถูกส่งไปด้วย และแก้ test (Security) ที่ตรวจ `document == null` กับ test ที่ตรวจ `UnsupportedError`
 5. แก้ `_systemPrompt` ที่บอกว่า AI มองไม่เห็นโน้ต (หัวข้อ 8.3)
 
 ### 8.2 เปิด App Check กับ Firestore / Auth
@@ -332,22 +337,24 @@ MarkdownBody(
 
 ## 9. การทดสอบ
 
-**อัตโนมัติ:** 52 test ใหม่ (รวมทั้งโปรเจกต์ 326) `flutter analyze --fatal-infos` ไม่มีปัญหา
+**อัตโนมัติ:** 57 test ใหม่ (รวมทั้งโปรเจกต์ 331) `flutter analyze --fatal-infos` ไม่มีปัญหา
 
 | ไฟล์ | ครอบคลุม |
 |---|---|
-| `assistant_chat_controller_test.dart` | ส่ง/รับทีละส่วน, ข้อความว่าง, ส่งซ้ำระหว่างตอบ, error, ล้าง, dispose กลางคำตอบ, (Security) 2001 ตัวอักษร, (Security) ภาษาไทยนับตามตัวที่เห็น, (Security) ประวัติ 20, (Security) ไม่ส่งโน้ต |
-| `assistant_chat_panel_test.dart` | หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, "กำลังคิด", ล้าง, (Security) ไม่โหลดรูป, (Security) maxLength, fullscreen 320 / side sheet 1024, ช่องพิมพ์อยู่เหนือแป้นพิมพ์ |
+| `assistant_chat_controller_test.dart` | ส่ง/รับทีละส่วน, ข้อความว่าง, ส่งซ้ำระหว่างตอบ, error, ล้าง, dispose กลางคำตอบ, (Security) 2001 ตัวอักษร, (Security) ภาษาไทยนับตามตัวที่เห็น, (Security) ประวัติ 20, (Security) ไม่ส่งโน้ต, ส่งคืน true/false, ตอบไม่สำเร็จแล้วไม่เหลือคำตอบที่ไม่จบในประวัติ |
+| `assistant_chat_panel_test.dart` | หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, "กำลังคิด", ล้าง, (Security) ไม่โหลดรูป, (Security) maxLength, fullscreen 320 / side sheet 1024, ช่องพิมพ์อยู่เหนือแป้นพิมพ์, เปิดแผงใหม่เริ่มที่ข้อความล่าสุด, ส่งไม่สำเร็จแล้วข้อความกลับเข้าช่องพิมพ์ |
 | `assistant_code_block_builder_test.dart` | Mermaid: เริ่มต้นเป็นภาพ, สลับเป็นโค้ดและกลับ, คัดลอกพร้อมรั้ว ` ```mermaid ` และไอคอน ✓ 2 วินาที, ระหว่างสตรีมแสดงโค้ดแล้วเปลี่ยนเป็นภาพเมื่อจบ / การ์ดโค้ด: ชื่อภาษา, คัดลอกโค้ดล้วน, ไม่ระบุภาษาขึ้น "โค้ด", โค้ดในบรรทัดไม่เป็นการ์ด |
 | `assistant_entry_test.dart` | ไม่มี assistant ไม่มีปุ่ม, เปิดบนแท็บเล็ต/มือถือ, บทสนทนายังอยู่, (Security) โน้ตไม่ถูกส่ง, ออกจากหน้าไม่ error |
-| `firebase_ai_assistant_test.dart` | `buildGeminiHistory` 4 กรณี, สร้างตัวจริงได้โดยไม่ต้องเปิด Firebase, ข้อความ error 4 กรณี (โควตา / เซิร์ฟเวอร์ / App Check / เน็ต), (Security) log ไม่มีข้อความ error |
+| `firebase_ai_assistant_test.dart` | `buildGeminiHistory` 4 กรณี, สร้างตัวจริงได้โดยไม่ต้องเปิด Firebase, ส่ง document แล้วได้ `UnsupportedError`, ข้อความ error 4 กรณี (โควตา / เซิร์ฟเวอร์ / App Check / เน็ต), (Security) log ไม่มีข้อความ error |
 
 **บนเครื่องจริง (Samsung SM-T735)**
 - debug: คุยได้, คำตอบทยอยขึ้น, ไดอะแกรมจาก AI แสดงเป็นภาพ, ปิด/เปิดแผงบทสนทนายังอยู่, ช่องพิมพ์ไม่โดนแป้นพิมพ์บัง, ขอให้แก้โน้ตแล้ว AI แจ้งว่าทำไม่ได้, Firestore/Auth ทำงานปกติ
 - release: ใช้ AI ได้หลังตั้งค่า Play Integrity (หัวข้อ 7.3), ลบ SHA-256 แล้วใช้ไม่ได้ ใส่กลับแล้วใช้ได้
 - โควตาหมด: แอปไม่พัง (ทดสอบก่อนแยกข้อความ ตอนนั้นขึ้น "ไม่พร้อมใช้งานชั่วคราว" ข้อความเรื่องโควตาแบบใหม่ยังไม่ได้เห็นบนเครื่อง)
 
-**ยังไม่ได้ทดสอบบนเครื่อง** (รอโควตารีเซ็ต): การ์ดโค้ดพร้อมปุ่มคัดลอก, Mermaid ระหว่างสตรีม, การเลื่อนอ่านระหว่าง AI ตอบ, iOS Simulator
+**iPad (iOS, debug):** ลงทะเบียน debug token แล้วคุยกับ AI ได้ตามปกติ ไม่ต้องมีบัญชี Apple Developer แบบเสียเงิน
+
+**ยังไม่ได้ทดสอบบนเครื่อง** (รอโควตารีเซ็ต): การ์ดโค้ดพร้อมปุ่มคัดลอก, Mermaid ระหว่างสตรีม, การเลื่อนอ่านระหว่าง AI ตอบ
 
 **ไม่ได้ทดสอบอัตโนมัติ:** การเรียก Gemini จริง (ต้องใช้เน็ตและโควตา) จึงทดสอบด้วยมือ
 

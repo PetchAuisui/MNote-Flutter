@@ -117,18 +117,28 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     await _enqueue(_clearLocalLibrary);
   }
 
+  // Start/stop transitions run one after another, so flipping the switch
+  // quickly cannot leave sync off while the setting says on.
+  Future<void> _lifecycle = Future.value();
+
   void _onSettingsChanged() {
-    final running = _subscription != null;
-    if (!settings.enabled && running) {
-      unawaited(stopSync());
-    } else if (settings.enabled && !running) {
-      unawaited(startSync());
-    } else if (running) {
-      _pushSoon();
-      for (final companion in companions) {
-        unawaited(companion.refresh());
-      }
-    }
+    _lifecycle = _lifecycle
+        .then<void>((_) async {
+          final running = _subscription != null;
+          if (!settings.enabled && running) {
+            await stopSync();
+          } else if (settings.enabled && !running) {
+            await startSync();
+          } else if (running) {
+            _pushSoon();
+            for (final companion in companions) {
+              unawaited(companion.refresh());
+            }
+          }
+        })
+        .catchError((Object e) {
+          debugPrint('Sync settings change failed: $e');
+        });
   }
 
   @override
@@ -185,7 +195,8 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
         .where((d) => d.uri?.toString() == uri.toString())
         .firstOrNull;
     await _inner.delete(uri);
-    if (item != null) {
+    // A document excluded from sync never touches the cloud, deletion included.
+    if (item != null && item.syncMode != SyncMode.never) {
       _pendingDeletes[item.name] = DateTime.now();
       _pushSoon();
     }
@@ -233,6 +244,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     for (final d in after.documents) {
       final old = oldNames[d.id];
       if (old == null || old == d.name || currentNames.contains(old)) continue;
+      if (d.syncMode == SyncMode.never) continue;
       final remote = _remoteDocs[CloudDocument.idFor(old)];
       if (remote != null && !remote.deleted) {
         _pendingDeletes[old] = DateTime.now();

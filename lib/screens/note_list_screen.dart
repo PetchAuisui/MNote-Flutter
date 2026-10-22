@@ -1217,8 +1217,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // คำนวณจำนวนคอลัมน์แบบ Responsive (Desktop, Tablet, Phone) ให้ระยะห่างกระชับสมส่วน
   int _calculateColumnCount(double width) {
-    if (width < 380) return 2; // Phone
-    if (width < 600) return 3; // Large Phone / Small Tablet
+    // The document card is 148 wide; three columns on a ~400dp phone squeeze
+    // it to ~95 and its content overflows.
+    if (width < 600) return 2; // Phone
     if (width < 880) return 4; // Tablet (iPad)
     if (width < 1180) return 5; // Laptop / Desktop
     if (width < 1480) return 6; // Large Desktop
@@ -2397,6 +2398,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 onLongPress: () => _showDocumentOptions(doc),
                 onSecondaryTap: () => _showDocumentOptions(doc),
                 child: Container(
+                  key: ValueKey('doc-card-${doc.id}'),
                   width: 148,
                   height: 175,
                   padding: const EdgeInsets.all(12),

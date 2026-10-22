@@ -1044,4 +1044,40 @@ void main() {
       reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงชื่อ ก - ฮ',
     );
   });
+
+  testWidgets('document cards use two columns and do not overflow on a phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(411, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+    final docs = [
+      for (var i = 0; i < 4; i++)
+        DocumentItem(
+          id: 'n$i',
+          name: 'Note$i.md',
+          content: '# Hello Everyone\nPersonal Information - Name : Siwapat',
+          updatedAt: DateTime(2026),
+        ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          initialDocuments: docs,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final first = tester.getTopLeft(find.text('Note0'));
+    final second = tester.getTopLeft(find.text('Note1'));
+    final third = tester.getTopLeft(find.text('Note2'));
+    expect(second.dx, greaterThan(first.dx));
+    expect(third.dx, first.dx, reason: 'third card wraps to a second row');
+    final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+    expect(card.width, 148);
+  });
 }

@@ -7,6 +7,7 @@ import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MnoteApp extends StatelessWidget {
   const MnoteApp({
@@ -35,6 +36,33 @@ class MnoteApp extends StatelessWidget {
   /// Global notifier to switch the app accent color (blue by default)
   static final ValueNotifier<AppAccent> accentNotifier =
       ValueNotifier<AppAccent>(AppAccent.blue);
+
+  static const _themePrefKey = 'mnote_theme_mode';
+
+  static Future<void> loadThemeMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_themePrefKey);
+      if (saved != null) {
+        themeModeNotifier.value = ThemeMode.values.firstWhere(
+          (m) => m.name == saved,
+          orElse: () => ThemeMode.system,
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to load theme mode: $e');
+    }
+  }
+
+  static Future<void> setThemeMode(ThemeMode mode) async {
+    themeModeNotifier.value = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_themePrefKey, mode.name);
+    } catch (e) {
+      debugPrint('Failed to save theme mode: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

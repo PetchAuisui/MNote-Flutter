@@ -167,6 +167,19 @@ class DocumentItem {
       isTrash: isTrash ?? this.isTrash,
     );
   }
+
+  DocumentItem moveToFolder(String? newFolderId) {
+    return DocumentItem(
+      id: id,
+      name: name,
+      content: content,
+      updatedAt: DateTime.now(),
+      folderId: newFolderId,
+      isStarred: isStarred,
+      uri: uri,
+      isTrash: isTrash,
+    );
+  }
 }
 
 enum NoteType { markdown, drawing, mixed }

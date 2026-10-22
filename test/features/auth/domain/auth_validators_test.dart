@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
@@ -24,6 +25,46 @@ void main() {
       expect(AuthValidators.confirmPassword('', 'abc123'), isNotNull);
       expect(AuthValidators.confirmPassword('x', 'abc123'), isNotNull);
       expect(AuthValidators.confirmPassword('abc123', 'abc123'), isNull);
+    });
+  });
+
+  test('configuration error has its own message', () {
+    const e = AuthException(AuthErrorCode.configuration);
+    expect(AuthValidators.messageFor(e), contains('Google'));
+    expect(
+      AuthValidators.messageFor(e),
+      isNot(
+        AuthValidators.messageFor(const AuthException(AuthErrorCode.unknown)),
+      ),
+    );
+  });
+
+  group('FirebaseAuthRepository.mapGoogleErrorCode', () {
+    test('maps Google Sign-In exception codes', () {
+      expect(
+        FirebaseAuthRepository.mapGoogleErrorCode(
+          GoogleSignInExceptionCode.canceled,
+        ),
+        AuthErrorCode.cancelled,
+      );
+      expect(
+        FirebaseAuthRepository.mapGoogleErrorCode(
+          GoogleSignInExceptionCode.clientConfigurationError,
+        ),
+        AuthErrorCode.configuration,
+      );
+      expect(
+        FirebaseAuthRepository.mapGoogleErrorCode(
+          GoogleSignInExceptionCode.providerConfigurationError,
+        ),
+        AuthErrorCode.configuration,
+      );
+      expect(
+        FirebaseAuthRepository.mapGoogleErrorCode(
+          GoogleSignInExceptionCode.unknownError,
+        ),
+        AuthErrorCode.unknown,
+      );
     });
   });
 

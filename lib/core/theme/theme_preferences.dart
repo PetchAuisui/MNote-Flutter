@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Persists the user's theme choices (accent color and light/dark/system mode)
 /// so they are restored on the next launch, starting from the very first page.
 abstract final class ThemePreferences {
-  static const modeKey = 'theme_mode';
+  static const modeKey = 'mnote_theme_mode';
   static const accentKey = 'theme_accent';
 
   static bool _persisting = false;

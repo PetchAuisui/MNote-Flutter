@@ -256,6 +256,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ListView), findsOneWidget);
+
+    // Long press on document in ListView opens bottom sheet
+    await tester.longPress(find.text('2569-01-CT05-report02'));
+    await tester.pumpAndSettle();
+    expect(find.text('ย้ายไปยังโฟลเดอร์'), findsOneWidget);
   });
 
   testWidgets(
@@ -812,4 +817,175 @@ void main() {
       expect(find.text('เอกสารทั้งหมด'), findsOneWidget);
     },
   );
+
+  testWidgets('moves document to folder and back to root successfully', (
+    tester,
+  ) async {
+    final fakeRepo = FakeDocumentRepository();
+    final folder = FolderItem(
+      id: 'f_work',
+      name: 'โฟลเดอร์งาน',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+    final doc = DocumentItem(
+      id: 'd_test',
+      name: 'เอกสารสำคัญ.md',
+      content: 'ทดสอบเนื้อหา',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [folder],
+          initialDocuments: [doc],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Initially both folder and doc are in root
+    expect(find.text('โฟลเดอร์งาน'), findsOneWidget);
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+
+    // Open doc menu
+    final docMenu = find.byKey(Key('doc-menu-${doc.id}'));
+    expect(docMenu, findsOneWidget);
+    await tester.tap(docMenu);
+    await tester.pumpAndSettle();
+
+    // Tap 'ย้ายไปยังโฟลเดอร์'
+    expect(find.text('ย้ายไปยังโฟลเดอร์'), findsOneWidget);
+    await tester.tap(find.text('ย้ายไปยังโฟลเดอร์'));
+    await tester.pumpAndSettle();
+
+    // Destination dialog shows folder option
+    expect(find.text('ย้ายเอกสารไปที่...'), findsOneWidget);
+    expect(find.text('โฟลเดอร์งาน'), findsWidgets);
+
+    // Tap 'โฟลเดอร์งาน' in dialog
+    await tester.tap(find.widgetWithText(ListTile, 'โฟลเดอร์งาน'));
+    await tester.pumpAndSettle();
+
+    // Doc should now be moved out of root view
+    expect(find.text('เอกสารสำคัญ'), findsNothing);
+
+    // Enter the folder
+    await tester.tap(find.text('โฟลเดอร์งาน'));
+    await tester.pumpAndSettle();
+
+    // Inside folder, doc should now be visible
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+
+    // Move it back to root
+    final insideMenu = find.byKey(Key('doc-menu-${doc.id}'));
+    await tester.tap(insideMenu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ย้ายไปยังโฟลเดอร์'));
+    await tester.pumpAndSettle();
+
+    // Option 'หน้าหลัก (นอกสุด)' should appear
+    expect(find.text('หน้าหลัก (นอกสุด)'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, 'หน้าหลัก (นอกสุด)'));
+    await tester.pumpAndSettle();
+
+    // Inside folder, doc should disappear
+    expect(find.text('เอกสารสำคัญ'), findsNothing);
+
+    // Back to root
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.pumpAndSettle();
+
+    // Back in root, doc should be visible again
+    expect(find.text('เอกสารสำคัญ'), findsOneWidget);
+  });
+
+  testWidgets('sorts items when sort mode is selected from sort menu', (
+    tester,
+  ) async {
+    final fakeRepo = FakeDocumentRepository();
+    final docB = DocumentItem(
+      id: 'doc_b',
+      name: 'B_Note.md',
+      content: 'content',
+      updatedAt: DateTime(2026, 1, 10),
+      isStarred: false,
+      isTrash: false,
+    );
+    final docA = DocumentItem(
+      id: 'doc_a',
+      name: 'A_Note.md',
+      content: 'content',
+      updatedAt: DateTime(2026, 1, 1),
+      isStarred: false,
+      isTrash: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: fakeRepo,
+          initialFolders: [],
+          initialDocuments: [docB, docA],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // ค่าเริ่มต้นเป็น newest: B_Note (10 ม.ค.) ต้องมาก่อน A_Note (1 ม.ค.)
+    // ใน GridView รายการแรกจะอยู่ทางซ้าย (dx น้อยกว่า)
+    expect(
+      tester.getTopLeft(find.text('B_Note')).dx <
+          tester.getTopLeft(find.text('A_Note')).dx,
+      isTrue,
+      reason: 'B_Note ควรอยู่ก่อน A_Note ตามเวลาแก้ไขล่าสุด',
+    );
+
+    // Open sort menu
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('แก้ไขล่าสุด'), findsOneWidget);
+    expect(find.text('เก่าที่สุด'), findsOneWidget);
+    expect(find.text('ชื่อ (ก - ฮ)'), findsOneWidget);
+    expect(find.text('ชื่อ (ฮ - ก)'), findsOneWidget);
+
+    // 1. เลือก 'เก่าที่สุด' -> A_Note (1 ม.ค.) ต้องสลับมาอยู่ก่อน B_Note (10 ม.ค.)
+    await tester.tap(find.text('เก่าที่สุด'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('A_Note')).dx <
+          tester.getTopLeft(find.text('B_Note')).dx,
+      isTrue,
+      reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงตามเก่าที่สุด',
+    );
+
+    // 2. เลือก 'ชื่อ (ฮ - ก)' -> B_Note ต้องมาก่อน A_Note
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ชื่อ (ฮ - ก)'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('B_Note')).dx <
+          tester.getTopLeft(find.text('A_Note')).dx,
+      isTrue,
+      reason: 'B_Note ควรอยู่ก่อน A_Note เมื่อเรียงชื่อ ฮ - ก',
+    );
+
+    // 3. เลือก 'ชื่อ (ก - ฮ)' -> A_Note ต้องกลับมาอยู่ก่อน B_Note
+    await tester.tap(find.byTooltip('จัดเรียงตาม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ชื่อ (ก - ฮ)'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('A_Note')).dx <
+          tester.getTopLeft(find.text('B_Note')).dx,
+      isTrue,
+      reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงชื่อ ก - ฮ',
+    );
+  });
 }

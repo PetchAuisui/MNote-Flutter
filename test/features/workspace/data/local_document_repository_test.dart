@@ -156,6 +156,64 @@ void main() {
       expect(result, isNull);
     },
   );
+
+  test('stale container paths are repaired and duplicates merged', () async {
+    final oldUri = Uri.file('/old-container/Documents/a.md');
+    final newUri = Uri.file('/new-container/Documents/a.md');
+    storage.relocations[oldUri] = newUri;
+    await repository.saveMetadata(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: oldUri.toString(),
+            name: 'a.md',
+            content: 'old',
+            updatedAt: DateTime(2026, 1, 1),
+            uri: oldUri,
+          ),
+          DocumentItem(
+            id: newUri.toString(),
+            name: 'a.md',
+            content: 'new',
+            updatedAt: DateTime(2026, 2, 1),
+            uri: newUri,
+          ),
+        ],
+      ),
+    );
+
+    final loaded = await repository.loadMetadata();
+
+    expect(loaded!.documents, hasLength(1));
+    expect(loaded.documents.single.uri, newUri);
+    expect(loaded.documents.single.content, 'new');
+    // The repaired library is persisted.
+    expect((await repository.loadMetadata())!.documents, hasLength(1));
+  });
+
+  test('a stale path alone is moved to the current location', () async {
+    final oldUri = Uri.file('/old-container/Documents/a.md');
+    final newUri = Uri.file('/new-container/Documents/a.md');
+    storage.relocations[oldUri] = newUri;
+    await repository.saveMetadata(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: oldUri.toString(),
+            name: 'a.md',
+            content: 'x',
+            updatedAt: DateTime(2026, 1, 1),
+            uri: oldUri,
+          ),
+        ],
+      ),
+    );
+
+    final doc = (await repository.loadMetadata())!.documents.single;
+
+    expect(doc.uri, newUri);
+    expect(doc.id, newUri.toString());
+  });
 }
 
 class _FailingDocumentStorage extends FakeDocumentStorage {

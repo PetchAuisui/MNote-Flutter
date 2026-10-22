@@ -23,22 +23,38 @@ class FirestoreLibraryStore implements CloudLibraryStore {
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? foldersSub;
     List<CloudDocument>? docs;
     List<CloudFolder>? folders;
+    var pendingDocs = false;
+    var pendingFolders = false;
 
     void emit() {
       if (docs == null || folders == null) return;
-      controller.add(CloudLibrarySnapshot(documents: docs!, folders: folders!));
+      controller.add(
+        CloudLibrarySnapshot(
+          documents: docs!,
+          folders: folders!,
+          hasPendingWrites: pendingDocs || pendingFolders,
+        ),
+      );
     }
 
     controller = StreamController<CloudLibrarySnapshot>(
       onListen: () {
-        docsSub = _documents(uid).snapshots().listen((snap) {
-          docs = snap.docs.map((d) => _documentFrom(d.data())).toList();
-          emit();
-        }, onError: controller.addError);
-        foldersSub = _folders(uid).snapshots().listen((snap) {
-          folders = snap.docs.map((d) => _folderFrom(d.id, d.data())).toList();
-          emit();
-        }, onError: controller.addError);
+        docsSub = _documents(uid)
+            .snapshots(includeMetadataChanges: true)
+            .listen((snap) {
+              pendingDocs = snap.metadata.hasPendingWrites;
+              docs = snap.docs.map((d) => _documentFrom(d.data())).toList();
+              emit();
+            }, onError: controller.addError);
+        foldersSub = _folders(uid)
+            .snapshots(includeMetadataChanges: true)
+            .listen((snap) {
+              pendingFolders = snap.metadata.hasPendingWrites;
+              folders = snap.docs
+                  .map((d) => _folderFrom(d.id, d.data()))
+                  .toList();
+              emit();
+            }, onError: controller.addError);
       },
       onCancel: () async {
         await docsSub?.cancel();

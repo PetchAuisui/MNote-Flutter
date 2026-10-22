@@ -81,10 +81,14 @@ class CloudLibrarySnapshot {
   const CloudLibrarySnapshot({
     this.documents = const [],
     this.folders = const [],
+    this.hasPendingWrites = false,
   });
 
   final List<CloudDocument> documents;
   final List<CloudFolder> folders;
+
+  /// True while local writes are not yet confirmed by the server.
+  final bool hasPendingWrites;
 }
 
 abstract interface class CloudLibraryStore {

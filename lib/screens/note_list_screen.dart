@@ -547,6 +547,30 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final auth = widget.authRepository!;
     final repository = widget.repository;
     if (repository is SyncableDocumentRepository) {
+      final unsynced = await repository.unsyncedCount();
+      if (unsynced > 0) {
+        if (!mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('มีไฟล์ที่ไม่ได้ซิงก์'),
+            content: Text(
+              'ไฟล์ $unsynced ไฟล์ไม่ได้อยู่บน cloud การออกจากระบบจะลบไฟล์เหล่านี้ออกจากเครื่องนี้ถาวร',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('ออกจากระบบและลบ'),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
       await _syncSubscription?.cancel();
       _syncSubscription = null;
       await repository.stopSync(clearLocal: true);
@@ -571,10 +595,58 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   void _openSettings() {
+    final sync = _syncRepository?.settings;
     showDialog(
       context: context,
-      builder: (_) => const NoteListSettingsDialog(),
+      builder: (_) => NoteListSettingsDialog(syncSettings: sync),
     );
+  }
+
+  SyncableDocumentRepository? get _syncRepository {
+    final repository = widget.repository;
+    return repository is SyncableDocumentRepository ? repository : null;
+  }
+
+  String _syncModeLabel(SyncMode mode) => switch (mode) {
+    SyncMode.auto => 'ตามค่าเริ่มต้น',
+    SyncMode.always => 'ซิงก์เสมอ',
+    SyncMode.never => 'ไม่ซิงก์',
+  };
+
+  Future<void> _chooseSyncMode(DocumentItem doc) async {
+    final settings = _syncRepository?.settings;
+    if (settings == null) return;
+    final limitKb = settings.maxContentBytes ~/ 1024;
+    final chosen = await showDialog<SyncMode>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text('การซิงก์ "${doc.displayName}"'),
+        children: [
+          for (final (mode, detail) in [
+            (SyncMode.auto, 'ซิงก์ถ้าไฟล์ไม่เกิน $limitKb KB'),
+            (SyncMode.always, 'ซิงก์แม้ไฟล์ใหญ่กว่าที่กำหนด'),
+            (SyncMode.never, 'ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น'),
+          ])
+            ListTile(
+              key: ValueKey('sync-mode-${mode.name}'),
+              leading: Icon(
+                mode == doc.syncMode
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+              ),
+              title: Text(_syncModeLabel(mode)),
+              subtitle: Text(detail),
+              onTap: () => Navigator.pop(ctx, mode),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null || chosen == doc.syncMode || !mounted) return;
+    setState(() {
+      final index = _documents.indexWhere((d) => d.id == doc.id);
+      if (index != -1) _documents[index] = doc.copyWith(syncMode: chosen);
+    });
+    await _persistLibrary();
   }
 
   void _moveToTrashFolder(FolderItem folder) {
@@ -1901,6 +1973,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       _exportDocument(doc);
                     },
                   ),
+                  if (_syncRepository != null)
+                    ListTile(
+                      leading: const Icon(Icons.cloud_sync_outlined),
+                      title: const Text('ตั้งค่าการซิงก์'),
+                      subtitle: Text(_syncModeLabel(doc.syncMode)),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _chooseSyncMode(doc);
+                      },
+                    ),
                   ListTile(
                     leading: Icon(
                       doc.isStarred
@@ -2555,6 +2637,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     if (val == 'rename') _renameDocument(doc);
                     if (val == 'move') _moveDocument(doc);
                     if (val == 'export') _exportDocument(doc);
+                    if (val == 'sync') _chooseSyncMode(doc);
                     if (val == 'trash') _moveToTrashDocument(doc);
                     if (val == 'restore') _restoreDocument(doc);
                     if (val == 'delete_perm') _permanentlyDeleteDocument(doc);
@@ -2593,7 +2676,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             ),
                           ),
                         ]
-                      : const [
+                      : [
                           PopupMenuItem(
                             value: 'rename',
                             child: Row(
@@ -2624,6 +2707,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               ],
                             ),
                           ),
+                          if (_syncRepository != null)
+                            const PopupMenuItem(
+                              value: 'sync',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.cloud_sync_outlined, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('ตั้งค่าการซิงก์'),
+                                ],
+                              ),
+                            ),
                           PopupMenuItem(
                             value: 'trash',
                             child: Row(
@@ -2892,6 +2986,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       if (val == 'rename') _renameDocument(item);
                       if (val == 'move') _moveDocument(item);
                       if (val == 'export') _exportDocument(item);
+                      if (val == 'sync') _chooseSyncMode(item);
                       if (val == 'trash') _moveToTrashDocument(item);
                       if (val == 'restore') _restoreDocument(item);
                       if (val == 'delete_perm') {
@@ -2932,7 +3027,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               ),
                             ),
                           ]
-                        : const [
+                        : [
                             PopupMenuItem(
                               value: 'open',
                               child: Row(
@@ -2976,6 +3071,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 ],
                               ),
                             ),
+                            if (_syncRepository != null)
+                              const PopupMenuItem(
+                                value: 'sync',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.cloud_sync_outlined, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('ตั้งค่าการซิงก์'),
+                                  ],
+                                ),
+                              ),
                             PopupMenuItem(
                               value: 'trash',
                               child: Row(

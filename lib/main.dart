@@ -8,6 +8,7 @@ import 'package:mnote/core/theme/theme_preferences.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,7 @@ Future<void> main() async {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   final AuthRepository authRepository;
+  final SyncSettings syncSettings;
   try {
     // Restore saved theme and initialize Firebase concurrently to speed up launch.
     await Future.wait([
@@ -23,6 +25,7 @@ Future<void> main() async {
     ]);
     await _activateAppCheck();
     authRepository = FirebaseAuthRepository();
+    syncSettings = await SyncSettings.load();
   } catch (e) {
     // Login is mandatory, so without Firebase the app cannot be used.
     debugPrint('Firebase initialization failed: $e');
@@ -30,7 +33,7 @@ Future<void> main() async {
     return;
   }
 
-  runApp(MnoteApp(authRepository: authRepository));
+  runApp(MnoteApp(authRepository: authRepository, syncSettings: syncSettings));
 }
 
 /// Debug builds use the Debug provider (token is printed in the native log and

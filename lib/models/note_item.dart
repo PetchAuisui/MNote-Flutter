@@ -1,3 +1,20 @@
+/// Per-document cloud sync choice, kept on this device only.
+enum SyncMode {
+  /// Follow the global settings (including the size limit).
+  auto,
+
+  /// Sync even above the user's size limit (still capped by Firestore).
+  always,
+
+  /// Never upload this document or apply cloud changes to it.
+  never;
+
+  static SyncMode fromName(String? name) => SyncMode.values.firstWhere(
+    (m) => m.name == name,
+    orElse: () => SyncMode.auto,
+  );
+}
+
 class LibraryMetadata {
   final List<FolderItem> folders;
   final List<DocumentItem> documents;
@@ -37,6 +54,7 @@ class LibraryMetadata {
             'isStarred': d.isStarred,
             'uri': d.uri?.toString(),
             'isTrash': d.isTrash,
+            'syncMode': d.syncMode.name,
           },
         )
         .toList(),
@@ -71,6 +89,7 @@ class LibraryMetadata {
           isStarred: map['isStarred'] as bool? ?? false,
           uri: map['uri'] != null ? Uri.tryParse(map['uri'] as String) : null,
           isTrash: map['isTrash'] as bool? ?? false,
+          syncMode: SyncMode.fromName(map['syncMode'] as String?),
         );
       }).toList(),
     );
@@ -118,6 +137,7 @@ class DocumentItem {
   final bool isStarred;
   final Uri? uri;
   final bool isTrash;
+  final SyncMode syncMode;
 
   DocumentItem({
     required this.id,
@@ -128,6 +148,7 @@ class DocumentItem {
     this.isStarred = false,
     this.uri,
     this.isTrash = false,
+    this.syncMode = SyncMode.auto,
   });
 
   String get extension {
@@ -155,6 +176,7 @@ class DocumentItem {
     bool? isStarred,
     Uri? uri,
     bool? isTrash,
+    SyncMode? syncMode,
   }) {
     return DocumentItem(
       id: id ?? this.id,
@@ -165,6 +187,7 @@ class DocumentItem {
       isStarred: isStarred ?? this.isStarred,
       uri: uri ?? this.uri,
       isTrash: isTrash ?? this.isTrash,
+      syncMode: syncMode ?? this.syncMode,
     );
   }
 
@@ -178,6 +201,7 @@ class DocumentItem {
       isStarred: isStarred,
       uri: uri,
       isTrash: isTrash,
+      syncMode: syncMode,
     );
   }
 }

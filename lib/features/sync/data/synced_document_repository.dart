@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:mnote/features/sync/domain/cloud_library_store.dart';
 import 'package:mnote/features/sync/domain/sync_companion.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -20,17 +20,21 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     required this._inner,
     required this._store,
     required this._uidProvider,
+    required this.settings,
     this.companions = const [],
-  });
+  }) {
+    settings.addListener(_onSettingsChanged);
+  }
 
   static const ownerPrefKey = 'mnote_sync_owner_uid';
   static const _welcomeId = 'welcome_initial_doc';
-  // Firestore documents are limited to 1 MiB.
-  static const _maxContentBytes = 900 * 1024;
 
   final DocumentRepository _inner;
   final CloudLibraryStore _store;
   final String? Function() _uidProvider;
+
+  @override
+  final SyncSettings settings;
 
   /// Started and stopped together with the library (e.g. pen ink).
   final List<SyncCompanion> companions;
@@ -59,6 +63,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   @override
   Future<void> startSync() async {
     final uid = _uidProvider();
+    if (!settings.enabled) return;
     if (uid == null || (uid == _uid && _subscription != null)) return;
 
     await _subscription?.cancel();
@@ -110,6 +115,37 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       return;
     }
     await _enqueue(_clearLocalLibrary);
+  }
+
+  void _onSettingsChanged() {
+    final running = _subscription != null;
+    if (!settings.enabled && running) {
+      unawaited(stopSync());
+    } else if (settings.enabled && !running) {
+      unawaited(startSync());
+    } else if (running) {
+      _pushSoon();
+      for (final companion in companions) {
+        unawaited(companion.refresh());
+      }
+    }
+  }
+
+  @override
+  Future<int> unsyncedCount() async {
+    final metadata = await _inner.loadMetadata();
+    return metadata?.documents
+            .where((d) => !_isUntouchedWelcome(d) && !settings.allows(d))
+            .length ??
+        0;
+  }
+
+  /// Policy for ink, which follows the document with the same name.
+  Future<bool> allowsInk(String name, int bytes) async {
+    if (!settings.enabled || !settings.syncInk) return false;
+    final metadata = await _inner.loadMetadata();
+    final doc = metadata == null ? null : _findByName(metadata.documents, name);
+    return settings.allowsInk(doc?.syncMode ?? SyncMode.auto, bytes);
   }
 
   // ---------------------------------------------------------------------
@@ -287,6 +323,8 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     // File I/O goes through the inner repository so metadata stays valid.
     for (final remote in snapshot.documents) {
       final local = _findByName(before.documents, remote.name);
+      // A document the user excluded from sync is left exactly as it is.
+      if (local != null && local.syncMode == SyncMode.never) continue;
       if (remote.deleted) {
         if (local != null && remote.updatedAt.isAfter(local.updatedAt)) {
           final uri = local.uri;
@@ -396,6 +434,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       isStarred: remote.isStarred,
       isTrash: remote.isTrash,
       uri: item.uri,
+      syncMode: item.syncMode,
     );
   }
 
@@ -432,7 +471,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       if (_isUntouchedWelcome(item) || _pendingDeletes.containsKey(item.name)) {
         continue;
       }
-      if (_tooLarge(item.content)) continue;
+      if (!settings.allows(item)) continue;
 
       final candidate = CloudDocument.fromItem(item);
       final remote = _remoteDocs[candidate.id];
@@ -524,12 +563,5 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
             ),
       );
     }
-  }
-
-  bool _tooLarge(String content) {
-    if (content.length * 4 < _maxContentBytes) return false;
-    final large = utf8.encode(content).length > _maxContentBytes;
-    if (large) debugPrint('Cloud sync skipped a document over 900 KB.');
-    return large;
   }
 }

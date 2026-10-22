@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 
 void main() {
@@ -130,5 +131,65 @@ void main() {
         reason: label,
       );
     }
+  });
+
+  group('cloud sync section', () {
+    Future<void> openWith(WidgetTester tester, SyncSettings? settings) async {
+      tester.view.physicalSize = const Size(600, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MnoteApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) =>
+                      NoteListSettingsDialog(syncSettings: settings),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is hidden without sync settings', (tester) async {
+      await openWith(tester, null);
+      expect(find.text('ซิงก์กับบัญชี (Cloud sync)'), findsNothing);
+    });
+
+    testWidgets('switches and size limit update the settings', (tester) async {
+      final settings = SyncSettings();
+      await openWith(tester, settings);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('sync-enabled-switch')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      await tester.tap(find.byKey(const Key('sync-ink-switch')));
+      await tester.pumpAndSettle();
+      expect(settings.syncInk, isFalse);
+
+      await tester.tap(find.byKey(const Key('sync-limit-dropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('100 KB').last);
+      await tester.pumpAndSettle();
+      expect(settings.maxContentBytes, 100 * 1024);
+
+      await tester.tap(find.byKey(const Key('sync-enabled-switch')));
+      await tester.pumpAndSettle();
+      expect(settings.enabled, isFalse);
+      // The dependent controls are disabled with the master switch.
+      final ink = tester.widget<SwitchListTile>(
+        find.byKey(const Key('sync-ink-switch')),
+      );
+      expect(ink.onChanged, isNull);
+    });
   });
 }

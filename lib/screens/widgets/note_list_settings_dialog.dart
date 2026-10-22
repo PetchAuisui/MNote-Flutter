@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
-  const NoteListSettingsDialog({super.key});
+  const NoteListSettingsDialog({super.key, this.syncSettings});
+
+  /// When provided, a cloud sync section is shown.
+  final SyncSettings? syncSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +145,10 @@ class NoteListSettingsDialog extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  if (syncSettings != null) ...[
+                    const SizedBox(height: 20),
+                    _SyncSection(settings: syncSettings!),
+                  ],
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -244,6 +252,81 @@ class _ModeLabel extends StatelessWidget {
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Text(text, maxLines: 1, softWrap: false),
+    );
+  }
+}
+
+String _limitLabel(int bytes) => bytes >= 1024 * 1024
+    ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
+    : '${bytes ~/ 1024} KB';
+
+/// Switches and the size limit for syncing notes to the account.
+class _SyncSection extends StatelessWidget {
+  const _SyncSection({required this.settings});
+
+  final SyncSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        final enabled = settings.enabled;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ซิงก์กับบัญชี (Cloud sync)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            SwitchListTile(
+              key: const Key('sync-enabled-switch'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('ซิงก์ไฟล์ขึ้นบัญชี'),
+              subtitle: const Text('ปิดแล้วไฟล์จะอยู่ในเครื่องนี้เท่านั้น'),
+              value: enabled,
+              onChanged: (v) => settings.enabled = v,
+            ),
+            SwitchListTile(
+              key: const Key('sync-ink-switch'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('ซิงก์หมึกปากกา'),
+              value: settings.syncInk,
+              onChanged: enabled ? (v) => settings.syncInk = v : null,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              enabled: enabled,
+              title: const Text('ขนาดไฟล์สูงสุดที่ซิงก์'),
+              subtitle: const Text('ไฟล์ที่ใหญ่กว่านี้จะไม่ถูกอัปโหลด'),
+              trailing: DropdownButton<int>(
+                key: const Key('sync-limit-dropdown'),
+                value:
+                    SyncSettings.limitChoices.contains(settings.maxContentBytes)
+                    ? settings.maxContentBytes
+                    : SyncSettings.hardLimitBytes,
+                onChanged: enabled
+                    ? (v) {
+                        if (v != null) settings.maxContentBytes = v;
+                      }
+                    : null,
+                items: [
+                  for (final bytes in SyncSettings.limitChoices)
+                    DropdownMenuItem(
+                      value: bytes,
+                      child: Text(_limitLabel(bytes)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

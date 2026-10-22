@@ -21,12 +21,14 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
   });
 
   static const stateKey = 'mnote_ink_sync_state';
-  // Firestore documents are limited to 1 MiB.
-  static const _maxBytes = 900 * 1024;
 
   final InkFileStorage inner;
   final CloudInkStore store;
   final String? Function() uidProvider;
+
+  /// Decides whether ink for a document (and its compressed size) may sync.
+  /// Set by the owner of the document library, which knows each note's mode.
+  Future<bool> Function(String name, int bytes)? policy;
 
   StreamSubscription<List<CloudInk>>? _subscription;
   String? _uid;
@@ -57,6 +59,9 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
     _uid = null;
     _ready = false;
   }
+
+  @override
+  Future<void> refresh() => _enqueue(() => _pushLocalInk(const {}));
 
   @override
   Future<void> clearLocal() async {
@@ -117,7 +122,8 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
         continue;
       }
       // Missing locally, or untouched since the last sync: take the remote.
-      if (local == null || state[ink.name] == localHash) {
+      if ((local == null || state[ink.name] == localHash) &&
+          await _allowed(ink.name, ink.data.length)) {
         try {
           final bytes = Uint8List.fromList(gzip.decode(ink.data));
           if (await inner.autoSave(name: ink.name, bytes: bytes)) {
@@ -132,13 +138,20 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
     await _saveState(state);
     _ready = true;
 
-    // Local ink the cloud lacks or has an older copy of.
+    await _pushLocalInk(pulled);
+  }
+
+  /// Local ink the cloud lacks or has an older copy of.
+  Future<void> _pushLocalInk(Set<String> skip) async {
     for (final name in await inner.listNames()) {
-      if (pulled.contains(name)) continue;
+      if (skip.contains(name)) continue;
       final bytes = await inner.autoLoad(name: name);
       if (bytes != null) await _push(name, bytes);
     }
   }
+
+  Future<bool> _allowed(String name, int bytes) async =>
+      await policy?.call(name, bytes) ?? true;
 
   Future<void> _push(String name, Uint8List bytes) async {
     final uid = _uid;
@@ -147,10 +160,7 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
     if (_remoteHashes[name] == hash) return;
 
     final data = Uint8List.fromList(gzip.encode(bytes));
-    if (data.length > _maxBytes) {
-      debugPrint('Ink sync skipped $name: over 900 KB.');
-      return;
-    }
+    if (!await _allowed(name, data.length)) return;
     _remoteHashes[name] = hash;
     final state = await _loadState();
     state[name] = hash;

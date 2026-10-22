@@ -154,4 +154,32 @@ void main() {
     expect(local.files, isEmpty);
     expect(cloud.inks.containsKey('a.md'), isTrue);
   });
+
+  test(
+    'policy can hold ink back and refresh uploads it once allowed',
+    () async {
+      var allowed = false;
+      ink.policy = (name, bytes) async => allowed;
+      await ink.start();
+      await settle();
+
+      await ink.autoSave(name: 'a.md', bytes: bytes('strokes'));
+      await settle();
+      expect(cloud.inks, isEmpty);
+
+      allowed = true;
+      await ink.refresh();
+      await settle();
+      expect(cloud.inks.containsKey('a.md'), isTrue);
+    },
+  );
+
+  test('policy also blocks applying cloud ink', () async {
+    ink.policy = (name, bytes) async => false;
+    cloud.remoteWrite('a.md', 'from other device');
+    await ink.start();
+    await settle();
+
+    expect(await ink.autoLoad(name: 'a.md'), isNull);
+  });
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
 import 'package:mnote/features/sync/domain/cloud_library_store.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/models/note_item.dart';
@@ -66,9 +67,11 @@ void main() {
   late FakeCloudStore cloud;
   late String? uid;
   late SyncedDocumentRepository repo;
+  late SyncSettings settings;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    settings = SyncSettings();
     storage = FakeDocumentStorage();
     cloud = FakeCloudStore();
     uid = 'user-a';
@@ -76,6 +79,7 @@ void main() {
       inner: LocalDocumentRepository(storage),
       store: cloud,
       uidProvider: () => uid,
+      settings: settings,
     );
   });
 
@@ -258,6 +262,7 @@ void main() {
         inner: LocalDocumentRepository(storage),
         store: cloud,
         uidProvider: () => uid,
+        settings: settings,
       );
       await repo.startSync();
       await settle();
@@ -336,5 +341,201 @@ void main() {
     await settle();
 
     expect(cloud.docWrites, 0);
+  });
+
+  group('sync settings', () {
+    Future<void> saveNote(String name, String content) =>
+        repo.save(MarkdownDocument.untitled(content).rename(name));
+
+    test('nothing syncs while the master switch is off', () async {
+      settings.enabled = false;
+      await repo.startSync();
+      await saveNote('a.md', 'x');
+      await settle();
+
+      expect(cloud.docs, isEmpty);
+    });
+
+    test('turning sync on uploads what was written while it was off', () async {
+      settings.enabled = false;
+      await repo.startSync();
+      await saveNote('a.md', 'x');
+      await settle();
+
+      settings.enabled = true;
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
+    });
+
+    test('turning sync off stops uploads and downloads', () async {
+      await repo.startSync();
+      await settle();
+      settings.enabled = false;
+      await settle();
+
+      await saveNote('a.md', 'x');
+      cloud.remoteWrite(
+        documents: [
+          CloudDocument(name: 'b.md', content: 'y', updatedAt: DateTime.now()),
+        ],
+      );
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isFalse);
+      expect((await repo.loadMetadata())!.documents.map((d) => d.name), [
+        'a.md',
+      ]);
+    });
+
+    test('documents above the size limit are not uploaded', () async {
+      settings.maxContentBytes = 10;
+      await repo.startSync();
+      await settle();
+      await saveNote('big.md', 'x' * 50);
+      await saveNote('small.md', 'tiny');
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isFalse);
+      expect(cloud.docs.containsKey(CloudDocument.idFor('small.md')), isTrue);
+    });
+
+    test('raising the limit uploads documents that were held back', () async {
+      settings.maxContentBytes = 10;
+      await repo.startSync();
+      await settle();
+      await saveNote('big.md', 'x' * 50);
+      await settle();
+
+      settings.maxContentBytes = 1000;
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isTrue);
+    });
+
+    test('the size limit counts UTF-8 bytes, not characters', () async {
+      // 4 Thai characters are 12 bytes.
+      settings.maxContentBytes = 10;
+      await repo.startSync();
+      await settle();
+      await saveNote('thai.md', 'สวัสดี'.substring(0, 4));
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('thai.md')), isFalse);
+    });
+
+    test('SyncMode.always ignores the limit', () async {
+      settings.maxContentBytes = 10;
+      await repo.startSync();
+      await settle();
+      await saveNote('big.md', 'x' * 50);
+      await settle();
+      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isFalse);
+
+      final item = (await repo.loadMetadata())!.documents.single;
+      await repo.saveMetadata(
+        LibraryMetadata(documents: [item.copyWith(syncMode: SyncMode.always)]),
+      );
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isTrue);
+    });
+
+    test('SyncMode.never stops uploading later edits', () async {
+      await repo.startSync();
+      await settle();
+      await saveNote('a.md', 'v1');
+      await settle();
+
+      final item = (await repo.loadMetadata())!.documents.single;
+      await repo.saveMetadata(
+        LibraryMetadata(
+          documents: [
+            item.copyWith(
+              syncMode: SyncMode.never,
+              content: 'v2 edited',
+              updatedAt: DateTime.now().add(const Duration(minutes: 1)),
+            ),
+          ],
+        ),
+      );
+      await settle();
+
+      expect(cloud.docs[CloudDocument.idFor('a.md')]!.content, 'v1');
+    });
+
+    test('a never document ignores cloud edits and deletions', () async {
+      await repo.startSync();
+      await settle();
+      await saveNote('a.md', 'mine');
+      await settle();
+      final item = (await repo.loadMetadata())!.documents.single;
+      await repo.saveMetadata(
+        LibraryMetadata(documents: [item.copyWith(syncMode: SyncMode.never)]),
+      );
+      await settle();
+
+      cloud.remoteWrite(
+        documents: [
+          CloudDocument(
+            name: 'a.md',
+            content: 'from other device',
+            updatedAt: DateTime.now().add(const Duration(minutes: 5)),
+          ),
+        ],
+      );
+      await settle();
+
+      expect((await repo.loadMetadata())!.documents.single.content, 'mine');
+    });
+
+    test('sync mode survives a metadata round trip', () async {
+      final metadata = LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: 'a',
+            name: 'a.md',
+            content: '',
+            updatedAt: DateTime(2026),
+            syncMode: SyncMode.never,
+          ),
+        ],
+      );
+      final decoded = LibraryMetadata.fromJson(metadata.toJson());
+      expect(decoded.documents.single.syncMode, SyncMode.never);
+    });
+
+    test('unsyncedCount counts documents the settings exclude', () async {
+      await repo.startSync();
+      await settle();
+      await saveNote('a.md', 'x');
+      await saveNote('b.md', 'y' * 50);
+      await settle();
+      expect(await repo.unsyncedCount(), 0);
+
+      settings.maxContentBytes = 10;
+      expect(await repo.unsyncedCount(), 1);
+
+      settings.enabled = false;
+      expect(await repo.unsyncedCount(), 2);
+    });
+
+    test('ink follows the document mode and ink switch', () async {
+      await repo.startSync();
+      await settle();
+      await saveNote('a.md', 'x');
+      await settle();
+
+      expect(await repo.allowsInk('a.md', 100), isTrue);
+      settings.syncInk = false;
+      expect(await repo.allowsInk('a.md', 100), isFalse);
+      settings.syncInk = true;
+
+      final item = (await repo.loadMetadata())!.documents.single;
+      await repo.saveMetadata(
+        LibraryMetadata(documents: [item.copyWith(syncMode: SyncMode.never)]),
+      );
+      expect(await repo.allowsInk('a.md', 100), isFalse);
+    });
   });
 }

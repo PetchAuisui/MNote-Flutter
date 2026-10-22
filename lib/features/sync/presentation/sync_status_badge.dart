@@ -21,11 +21,22 @@ class SyncStatusBadge extends StatelessWidget {
         doc.id == 'welcome_initial_doc') {
       return const SizedBox.shrink();
     }
-    return ValueListenableBuilder<Set<String>>(
-      valueListenable: repo.syncedNames,
-      builder: (context, synced, _) {
-        final isSynced = synced.contains(doc.name);
+    return ListenableBuilder(
+      listenable: Listenable.merge([repo.syncedNames, repo.settings]),
+      builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
+        if (!repo.settings.allows(doc)) {
+          return Tooltip(
+            message: _offReason(repo, doc),
+            child: Icon(
+              Icons.cloud_off_outlined,
+              key: ValueKey('off-${doc.name}'),
+              size: 16,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+          );
+        }
+        final isSynced = repo.syncedNames.value.contains(doc.name);
         return Tooltip(
           message: isSynced ? 'Sync แล้ว' : 'รอ sync',
           child: Icon(
@@ -39,5 +50,11 @@ class SyncStatusBadge extends StatelessWidget {
         );
       },
     );
+  }
+
+  static String _offReason(SyncableDocumentRepository repo, DocumentItem doc) {
+    if (!repo.settings.enabled) return 'ปิดการซิงก์อยู่';
+    if (doc.syncMode == SyncMode.never) return 'ไฟล์นี้ตั้งเป็นไม่ซิงก์';
+    return 'ไฟล์ใหญ่เกินที่กำหนด จึงไม่ซิงก์';
   }
 }

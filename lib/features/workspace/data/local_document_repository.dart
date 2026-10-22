@@ -215,6 +215,7 @@ class LocalDocumentRepository implements DocumentRepository {
             isStarred: item.isStarred,
             uri: moved,
             isTrash: item.isTrash,
+            syncMode: item.syncMode,
           );
         }
         // A renamed note keeps pointing at its old file, so the name is part

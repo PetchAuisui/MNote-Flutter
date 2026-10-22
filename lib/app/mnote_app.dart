@@ -7,6 +7,7 @@ import 'package:mnote/features/sync/data/firestore_library_store.dart';
 import 'package:mnote/features/sync/data/firestore_ink_store.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
 import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
@@ -22,6 +23,7 @@ class MnoteApp extends StatefulWidget {
     this.skipAuth,
     this.home,
     this.authRepository,
+    this.syncSettings,
   });
 
   final DocumentRepository? documentRepository;
@@ -30,6 +32,9 @@ class MnoteApp extends StatefulWidget {
 
   /// When null, only the offline flow is available (no email login/register).
   final AuthRepository? authRepository;
+
+  /// Cloud sync choices; defaults are used when not provided.
+  final SyncSettings? syncSettings;
 
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
@@ -81,12 +86,15 @@ class _MnoteAppState extends State<MnoteApp> {
     const local = LocalDocumentRepository(DeviceDocumentStorage());
     final auth = widget.authRepository;
     if (auth == null) return local;
-    return SyncedDocumentRepository(
+    final repository = SyncedDocumentRepository(
       inner: local,
       store: FirestoreLibraryStore(),
       uidProvider: () => auth.currentUser?.uid,
+      settings: _syncSettings,
       companions: [?ink],
     );
+    ink?.policy = repository.allowsInk;
+    return repository;
   }
 
   SyncedInkFileStorage? _syncedInk() {
@@ -101,6 +109,7 @@ class _MnoteAppState extends State<MnoteApp> {
 
   // Built once: they own Firestore listeners, so rebuilding the app widget
   // must not create (and leak) new ones.
+  late final SyncSettings _syncSettings = widget.syncSettings ?? SyncSettings();
   late final SyncedInkFileStorage? _ink = _syncedInk();
   late final DocumentRepository _repository =
       widget.documentRepository ?? _defaultRepository(_ink);

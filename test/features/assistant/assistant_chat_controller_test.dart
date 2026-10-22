@@ -276,5 +276,12 @@ void main() {
       expect(assistant.lastHistory, isEmpty);
       expect(controller.messages.length, 2);
     });
+    test('16. empty answer counts as failure and is rolled back', () async {
+      final controller = AssistantChatController(FakeAiAssistant(chunks: []));
+
+      expect(await controller.send('สวัสดี'), isFalse);
+      expect(controller.messages, isEmpty);
+      expect(controller.errorMessage, contains('ไม่ได้ส่งคำตอบ'));
+    });
   });
 }

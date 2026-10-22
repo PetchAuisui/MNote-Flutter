@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
@@ -19,7 +20,7 @@ class AssistantChatController extends ChangeNotifier {
   StreamSubscription<String>? _streamSubscription;
   Completer<void>? _responseDone;
 
-  List<ChatMessage> get messages => List.unmodifiable(_messages);
+  List<ChatMessage> get messages => UnmodifiableListView(_messages);
   bool get isResponding => _isResponding;
   String? get errorMessage => _errorMessage;
 
@@ -75,7 +76,17 @@ class AssistantChatController extends ChangeNotifier {
           if (!completer.isCompleted) completer.complete();
         },
         onDone: () {
-          succeeded = true;
+          // ตอบจบแต่ไม่มีข้อความ (เช่น โดน safety filter) ถือว่าไม่สำเร็จ
+          // จะได้ถอยกลับ คืนข้อความเข้าช่องพิมพ์ และบอกผู้ใช้
+          final answer = _messages.length > turnStart + 1
+              ? _messages[turnStart + 1].text
+              : '';
+          if (answer.trim().isNotEmpty) {
+            succeeded = true;
+          } else {
+            _errorMessage =
+                'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
+          }
           if (!completer.isCompleted) completer.complete();
         },
         cancelOnError: true,

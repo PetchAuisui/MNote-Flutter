@@ -12,6 +12,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note_item.dart';
 
 enum ViewFilter {
@@ -95,6 +96,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           _currentFolderId = null;
         }
       });
+      await _ensureWelcome();
     } catch (_) {}
   }
 
@@ -110,6 +112,41 @@ class _NoteListScreenState extends State<NoteListScreen> {
       await widget.repository.saveMetadata(
         LibraryMetadata(folders: _folders, documents: _documents),
       );
+    } catch (_) {}
+  }
+
+  static const _welcomeRemovedKey = 'mnote_welcome_removed';
+
+  bool _isWelcome(DocumentItem d) =>
+      d.id == 'welcome_initial_doc' || d.name == 'Welcome.md';
+
+  /// Adds the bundled Welcome note unless one exists or the user deleted it.
+  /// Synced libraries and signed-in accounts still get it on a fresh start.
+  Future<void> _ensureWelcome() async {
+    try {
+      if (_documents.any(_isWelcome)) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_welcomeRemovedKey) ?? false) return;
+      final content = await rootBundle.loadString('assets/examples/welcome.md');
+      if (!mounted || _documents.any(_isWelcome)) return;
+      setState(() {
+        _documents.add(
+          DocumentItem(
+            id: 'welcome_initial_doc',
+            name: 'Welcome.md',
+            content: content,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      });
+      await _persistLibrary();
+    } catch (_) {}
+  }
+
+  Future<void> _setWelcomeRemoved(bool removed) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_welcomeRemovedKey, removed);
     } catch (_) {}
   }
 
@@ -165,27 +202,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         });
       }
 
-      // หากเป็นการเปิดแอปครั้งแรก (ยังไม่มี metadata และไม่มีไฟล์ใดๆ)
-      // ให้โหลด welcome.md เป็นไฟล์เริ่มต้นในคลังเอกสาร
-      if (savedMetadata == null && docs.isEmpty && _documents.isEmpty) {
-        try {
-          final welcomeContent = await rootBundle.loadString(
-            'assets/examples/welcome.md',
-          );
-          if (mounted && _documents.isEmpty) {
-            setState(() {
-              _documents.add(
-                DocumentItem(
-                  id: 'welcome_initial_doc',
-                  name: 'Welcome.md',
-                  content: welcomeContent,
-                  updatedAt: DateTime.now(),
-                ),
-              );
-            });
-          }
-        } catch (_) {}
-      }
+      // ทุกบัญชี/เครื่องควรมี Welcome.md เริ่มต้น (เว้นแต่ผู้ใช้ลบทิ้งเอง)
+      await _ensureWelcome();
 
       // Upgrade only the untouched bundled document; preserve user edits/files.
       if (_documents.any(
@@ -532,6 +550,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       await _syncSubscription?.cancel();
       _syncSubscription = null;
       await repository.stopSync(clearLocal: true);
+      // The next account starts with its own Welcome note.
+      await _setWelcomeRemoved(false);
     }
     await auth.signOut();
     if (!mounted) return;
@@ -1034,6 +1054,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       } catch (_) {}
     }
 
+    if (_isWelcome(doc)) await _setWelcomeRemoved(true);
+
     setState(() {
       _documents.removeWhere((d) => d.id == doc.id);
     });
@@ -1097,6 +1119,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         } catch (_) {}
       }
     }
+
+    if (trashedDocs.any(_isWelcome)) await _setWelcomeRemoved(true);
 
     setState(() {
       _folders.removeWhere((f) => f.isTrash);

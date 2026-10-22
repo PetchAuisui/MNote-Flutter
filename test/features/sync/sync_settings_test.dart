@@ -13,11 +13,10 @@ DocumentItem doc(String content, [SyncMode mode = SyncMode.auto]) =>
     );
 
 void main() {
-  test('defaults: on, ink on, limit at the Firestore cap', () {
+  test('defaults: sync on and ink on', () {
     final s = SyncSettings();
     expect(s.enabled, isTrue);
     expect(s.syncInk, isTrue);
-    expect(s.maxContentBytes, SyncSettings.hardLimitBytes);
   });
 
   test('values persist across loads', () async {
@@ -25,21 +24,12 @@ void main() {
     final s = SyncSettings();
     s
       ..enabled = false
-      ..syncInk = false
-      ..maxContentBytes = 100 * 1024;
+      ..syncInk = false;
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     final loaded = await SyncSettings.load();
     expect(loaded.enabled, isFalse);
     expect(loaded.syncInk, isFalse);
-    expect(loaded.maxContentBytes, 100 * 1024);
-  });
-
-  test('the limit cannot exceed the Firestore cap', () {
-    final s = SyncSettings(maxContentBytes: 10 * 1024 * 1024);
-    expect(s.maxContentBytes, SyncSettings.hardLimitBytes);
-    s.maxContentBytes = 99 * 1024 * 1024;
-    expect(s.maxContentBytes, SyncSettings.hardLimitBytes);
   });
 
   test('notifies listeners on change', () {
@@ -47,18 +37,29 @@ void main() {
     var calls = 0;
     s.addListener(() => calls++);
     s.enabled = false;
-    s.maxContentBytes = 1000;
+    s.syncInk = false;
     expect(calls, 2);
   });
 
-  test('allows() follows enabled, mode and size', () {
-    final s = SyncSettings(maxContentBytes: 10);
+  test('allows() follows enabled, mode and the Firestore size cap', () {
+    final s = SyncSettings();
     expect(s.allows(doc('short')), isTrue);
-    expect(s.allows(doc('x' * 20)), isFalse);
-    expect(s.allows(doc('x' * 20, SyncMode.always)), isTrue);
+    expect(s.allows(doc('x' * (SyncSettings.hardLimitBytes + 1))), isFalse);
     expect(s.allows(doc('short', SyncMode.never)), isFalse);
     s.enabled = false;
-    expect(s.allows(doc('short', SyncMode.always)), isFalse);
+    expect(s.allows(doc('short')), isFalse);
+  });
+
+  test('allowsInk() follows enabled, ink switch, mode and size', () {
+    final s = SyncSettings();
+    expect(s.allowsInk(SyncMode.auto, 100), isTrue);
+    expect(s.allowsInk(SyncMode.never, 100), isFalse);
+    expect(
+      s.allowsInk(SyncMode.auto, SyncSettings.hardLimitBytes + 1),
+      isFalse,
+    );
+    s.syncInk = false;
+    expect(s.allowsInk(SyncMode.auto, 100), isFalse);
   });
 
   test('fits() measures UTF-8 bytes and skips encoding when obvious', () {

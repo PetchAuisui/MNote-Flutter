@@ -388,11 +388,10 @@ void main() {
       ]);
     });
 
-    test('documents above the size limit are not uploaded', () async {
-      settings.maxContentBytes = 10;
+    test('documents above the Firestore size cap are not uploaded', () async {
       await repo.startSync();
       await settle();
-      await saveNote('big.md', 'x' * 50);
+      await saveNote('big.md', 'x' * (SyncSettings.hardLimitBytes + 1));
       await saveNote('small.md', 'tiny');
       await settle();
 
@@ -400,45 +399,15 @@ void main() {
       expect(cloud.docs.containsKey(CloudDocument.idFor('small.md')), isTrue);
     });
 
-    test('raising the limit uploads documents that were held back', () async {
-      settings.maxContentBytes = 10;
+    test('the size cap counts UTF-8 bytes, not characters', () async {
+      // Each Thai letter is 3 bytes: under the cap in characters, over in bytes.
+      final chars = SyncSettings.hardLimitBytes ~/ 3 + 1;
       await repo.startSync();
       await settle();
-      await saveNote('big.md', 'x' * 50);
-      await settle();
-
-      settings.maxContentBytes = 1000;
-      await settle();
-
-      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isTrue);
-    });
-
-    test('the size limit counts UTF-8 bytes, not characters', () async {
-      // 4 Thai characters are 12 bytes.
-      settings.maxContentBytes = 10;
-      await repo.startSync();
-      await settle();
-      await saveNote('thai.md', 'สวัสดี'.substring(0, 4));
+      await saveNote('thai.md', 'ก' * chars);
       await settle();
 
       expect(cloud.docs.containsKey(CloudDocument.idFor('thai.md')), isFalse);
-    });
-
-    test('SyncMode.always ignores the limit', () async {
-      settings.maxContentBytes = 10;
-      await repo.startSync();
-      await settle();
-      await saveNote('big.md', 'x' * 50);
-      await settle();
-      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isFalse);
-
-      final item = (await repo.loadMetadata())!.documents.single;
-      await repo.saveMetadata(
-        LibraryMetadata(documents: [item.copyWith(syncMode: SyncMode.always)]),
-      );
-      await settle();
-
-      expect(cloud.docs.containsKey(CloudDocument.idFor('big.md')), isTrue);
     });
 
     test('SyncMode.never stops uploading later edits', () async {
@@ -509,11 +478,19 @@ void main() {
       await repo.startSync();
       await settle();
       await saveNote('a.md', 'x');
-      await saveNote('b.md', 'y' * 50);
+      await saveNote('b.md', 'y');
       await settle();
       expect(await repo.unsyncedCount(), 0);
 
-      settings.maxContentBytes = 10;
+      final metadata = (await repo.loadMetadata())!;
+      await repo.saveMetadata(
+        LibraryMetadata(
+          documents: [
+            for (final d in metadata.documents)
+              d.name == 'b.md' ? d.copyWith(syncMode: SyncMode.never) : d,
+          ],
+        ),
+      );
       expect(await repo.unsyncedCount(), 1);
 
       settings.enabled = false;

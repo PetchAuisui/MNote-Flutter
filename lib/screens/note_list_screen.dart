@@ -608,23 +608,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   String _syncModeLabel(SyncMode mode) => switch (mode) {
-    SyncMode.auto => 'ตามค่าเริ่มต้น',
-    SyncMode.always => 'ซิงก์เสมอ',
+    SyncMode.auto => 'ซิงก์',
     SyncMode.never => 'ไม่ซิงก์',
   };
 
   Future<void> _chooseSyncMode(DocumentItem doc) async {
-    final settings = _syncRepository?.settings;
-    if (settings == null) return;
-    final limitKb = settings.maxContentBytes ~/ 1024;
+    if (_syncRepository == null) return;
     final chosen = await showDialog<SyncMode>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text('การซิงก์ "${doc.displayName}"'),
         children: [
           for (final (mode, detail) in [
-            (SyncMode.auto, 'ซิงก์ถ้าไฟล์ไม่เกิน $limitKb KB'),
-            (SyncMode.always, 'ซิงก์แม้ไฟล์ใหญ่กว่าที่กำหนด'),
+            (SyncMode.auto, 'อัปโหลดขึ้นบัญชีและรับการแก้ไขจากเครื่องอื่น'),
             (SyncMode.never, 'ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น'),
           ])
             ListTile(

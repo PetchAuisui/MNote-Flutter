@@ -163,7 +163,7 @@ void main() {
       expect(find.text('ซิงก์กับบัญชี (Cloud sync)'), findsNothing);
     });
 
-    testWidgets('switches and size limit update the settings', (tester) async {
+    testWidgets('switches update the settings', (tester) async {
       final settings = SyncSettings();
       await openWith(tester, settings);
       await tester.scrollUntilVisible(
@@ -176,15 +176,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(settings.syncInk, isFalse);
 
-      await tester.tap(find.byKey(const Key('sync-limit-dropdown')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('100 KB').last);
-      await tester.pumpAndSettle();
-      expect(settings.maxContentBytes, 100 * 1024);
-
       await tester.tap(find.byKey(const Key('sync-enabled-switch')));
       await tester.pumpAndSettle();
       expect(settings.enabled, isFalse);
+      expect(find.byKey(const Key('sync-limit-dropdown')), findsNothing);
       // The dependent controls are disabled with the master switch.
       final ink = tester.widget<SwitchListTile>(
         find.byKey(const Key('sync-ink-switch')),

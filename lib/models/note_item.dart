@@ -1,10 +1,7 @@
 /// Per-document cloud sync choice, kept on this device only.
 enum SyncMode {
-  /// Follow the global settings (including the size limit).
+  /// Follow the global settings.
   auto,
-
-  /// Sync even above the user's size limit (still capped by Firestore).
-  always,
 
   /// Never upload this document or apply cloud changes to it.
   never;

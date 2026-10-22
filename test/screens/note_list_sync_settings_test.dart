@@ -42,7 +42,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('ตั้งค่าการซิงก์'));
     await tester.pumpAndSettle();
-    expect(find.text('ซิงก์เสมอ'), findsOneWidget);
+    expect(find.byKey(const ValueKey('sync-mode-auto')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sync-mode-always')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('sync-mode-never')));
     await tester.pumpAndSettle();

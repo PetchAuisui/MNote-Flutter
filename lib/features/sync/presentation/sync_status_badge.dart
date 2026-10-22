@@ -55,6 +55,6 @@ class SyncStatusBadge extends StatelessWidget {
   static String _offReason(SyncableDocumentRepository repo, DocumentItem doc) {
     if (!repo.settings.enabled) return 'ปิดการซิงก์อยู่';
     if (doc.syncMode == SyncMode.never) return 'ไฟล์นี้ตั้งเป็นไม่ซิงก์';
-    return 'ไฟล์ใหญ่เกินที่กำหนด จึงไม่ซิงก์';
+    return 'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์';
   }
 }

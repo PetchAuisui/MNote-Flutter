@@ -268,11 +268,7 @@ class _ModeLabel extends StatelessWidget {
   }
 }
 
-String _limitLabel(int bytes) => bytes >= 1024 * 1024
-    ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
-    : '${bytes ~/ 1024} KB';
-
-/// Switches and the size limit for syncing notes to the account.
+/// Switches for syncing notes to the account.
 class _SyncSection extends StatelessWidget {
   const _SyncSection({required this.settings});
 
@@ -310,31 +306,6 @@ class _SyncSection extends StatelessWidget {
               title: const Text('ซิงก์หมึกปากกา'),
               value: settings.syncInk,
               onChanged: enabled ? (v) => settings.syncInk = v : null,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              enabled: enabled,
-              title: const Text('ขนาดไฟล์สูงสุดที่ซิงก์'),
-              subtitle: const Text('ไฟล์ที่ใหญ่กว่านี้จะไม่ถูกอัปโหลด'),
-              trailing: DropdownButton<int>(
-                key: const Key('sync-limit-dropdown'),
-                value:
-                    SyncSettings.limitChoices.contains(settings.maxContentBytes)
-                    ? settings.maxContentBytes
-                    : SyncSettings.hardLimitBytes,
-                onChanged: enabled
-                    ? (v) {
-                        if (v != null) settings.maxContentBytes = v;
-                      }
-                    : null,
-                items: [
-                  for (final bytes in SyncSettings.limitChoices)
-                    DropdownMenuItem(
-                      value: bytes,
-                      child: Text(_limitLabel(bytes)),
-                    ),
-                ],
-              ),
             ),
           ],
         );

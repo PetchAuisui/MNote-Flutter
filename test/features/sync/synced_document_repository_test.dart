@@ -44,6 +44,8 @@ class FakeCloudStore implements CloudLibraryStore {
     for (final d in documents) {
       docs[d.id] = d;
     }
+    // The server confirming the write is echoed back to listeners.
+    _controller.add(_snapshot);
   }
 
   @override
@@ -275,6 +277,24 @@ void main() {
 
     expect((await repo.loadMetadata())!.documents, isEmpty);
     expect(cloud.docs[CloudDocument.idFor('a.md')]!.deleted, isFalse);
+  });
+
+  test('syncedNames lists documents confirmed in the cloud', () async {
+    await repo.startSync();
+    await settle();
+    expect(repo.syncedNames.value, isEmpty);
+
+    await repo.save(MarkdownDocument.untitled('x').rename('a.md'));
+    await settle();
+    expect(repo.syncedNames.value, {'a.md'});
+
+    final saved = (await repo.loadMetadata())!.documents.single;
+    await repo.saveMetadata(
+      LibraryMetadata(documents: [saved.copyWith(isStarred: true)]),
+    );
+    // Local star change is acknowledged once the cloud echoes it back.
+    await settle();
+    expect(repo.syncedNames.value, {'a.md'});
   });
 
   test('does nothing without a signed-in user', () async {

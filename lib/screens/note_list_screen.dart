@@ -6,6 +6,7 @@ import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
+import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
@@ -2429,6 +2430,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         ],
                       ),
                       Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: SyncStatusBadge(
+                          repository: widget.repository,
+                          doc: doc,
+                        ),
+                      ),
+                      Positioned(
                         top: -4,
                         right: -4,
                         child: IconButton(
@@ -2839,6 +2848,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  SyncStatusBadge(repository: widget.repository, doc: item),
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(

@@ -41,6 +41,13 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   final Set<String> _knownFolderIds = {};
   final Map<String, DateTime> _pendingDeletes = {};
 
+  final _syncedNames = ValueNotifier<Set<String>>(const {});
+  // Signatures the server has confirmed, by document name.
+  Map<String, String> _confirmed = const {};
+
+  @override
+  ValueListenable<Set<String>> get syncedNames => _syncedNames;
+
   @override
   Stream<void> get changes => _changes.stream;
 
@@ -55,6 +62,8 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     _remoteDocs.clear();
     _remoteFolders.clear();
     _knownFolderIds.clear();
+    _confirmed = const {};
+    _syncedNames.value = const {};
 
     await _enqueue(() => _claimLocalLibrary(uid));
     if (_uid != uid) return;
@@ -73,6 +82,8 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     _subscription = null;
     _uid = null;
     _ready = false;
+    _confirmed = const {};
+    _syncedNames.value = const {};
     if (!clearLocal) return;
 
     try {
@@ -134,7 +145,10 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
     await _inner.saveMetadata(metadata);
-    _enqueue(() => _push(metadata));
+    _enqueue(() async {
+      await _push(metadata);
+      _refreshSynced(metadata);
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -149,7 +163,20 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   }
 
   void _pushSoon() {
-    _enqueue(() async => _push(await _inner.loadMetadata()));
+    _enqueue(() async {
+      final metadata = await _inner.loadMetadata();
+      await _push(metadata);
+      _refreshSynced(metadata);
+    });
+  }
+
+  void _refreshSynced(LibraryMetadata? metadata) {
+    if (metadata == null) return;
+    final names = {
+      for (final d in metadata.documents)
+        if (_confirmed[d.name] == CloudDocument.fromItem(d).signature) d.name,
+    };
+    if (!setEquals(names, _syncedNames.value)) _syncedNames.value = names;
   }
 
   /// Local data from before sync existed is adopted by the first account to
@@ -188,9 +215,18 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       ..clear()
       ..addEntries(snapshot.folders.map((f) => MapEntry(f.id, f)));
 
+    if (!snapshot.hasPendingWrites) {
+      _confirmed = {
+        for (final d in snapshot.documents.where((d) => !d.deleted))
+          d.name: d.signature,
+      };
+    }
+
     final changed = await _merge(snapshot);
     _ready = true;
-    await _push(await _inner.loadMetadata());
+    final metadata = await _inner.loadMetadata();
+    await _push(metadata);
+    _refreshSynced(metadata);
     if (changed) _changes.add(null);
   }
 

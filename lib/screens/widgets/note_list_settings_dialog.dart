@@ -15,6 +15,8 @@ class NoteListSettingsDialog extends StatelessWidget {
       valueListenable: MnoteApp.themeModeNotifier,
       builder: (context, currentMode, _) {
         final theme = Theme.of(context);
+        // Narrow phones have no room for icons next to the mode names.
+        final compact = MediaQuery.sizeOf(context).width < 420;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -59,26 +61,32 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ValueListenableBuilder<AppAccent>(
                     valueListenable: MnoteApp.accentNotifier,
                     builder: (context, currentAccent, _) {
-                      // One row: each circle gets an equal slot and is drawn
-                      // up to 44 wide, so it shrinks evenly on narrow dialogs.
+                      // One row: each circle gets an equal slot (with a small
+                      // gap) and is drawn up to 44 wide, so it shrinks evenly
+                      // on narrow dialogs without touching its neighbours.
                       return Row(
                         children: [
                           for (final accent in AppAccent.values)
                             Expanded(
-                              child: Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 44,
-                                    maxHeight: 44,
-                                  ),
-                                  child: AspectRatio(
-                                    aspectRatio: 1,
-                                    child: _AccentSwatch(
-                                      accent: accent,
-                                      selected: accent == currentAccent,
-                                      onTap: () =>
-                                          MnoteApp.accentNotifier.value =
-                                              accent,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 44,
+                                      maxHeight: 44,
+                                    ),
+                                    child: AspectRatio(
+                                      aspectRatio: 1,
+                                      child: _AccentSwatch(
+                                        accent: accent,
+                                        selected: accent == currentAccent,
+                                        onTap: () =>
+                                            MnoteApp.accentNotifier.value =
+                                                accent,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -107,33 +115,39 @@ class NoteListSettingsDialog extends StatelessWidget {
                           EdgeInsets.symmetric(horizontal: 8),
                         ),
                       ),
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: ThemeMode.system,
-                          icon: Icon(
-                            Icons.brightness_auto_rounded,
-                            color: Colors.teal,
-                            size: 18,
-                          ),
-                          label: _ModeLabel('ตามเครื่อง'),
+                          icon: compact
+                              ? null
+                              : const Icon(
+                                  Icons.brightness_auto_rounded,
+                                  color: Colors.teal,
+                                  size: 18,
+                                ),
+                          label: const _ModeLabel('ตามเครื่อง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.light,
-                          icon: Icon(
-                            Icons.wb_sunny_rounded,
-                            color: Colors.orange,
-                            size: 18,
-                          ),
-                          label: _ModeLabel('สว่าง'),
+                          icon: compact
+                              ? null
+                              : const Icon(
+                                  Icons.wb_sunny_rounded,
+                                  color: Colors.orange,
+                                  size: 18,
+                                ),
+                          label: const _ModeLabel('สว่าง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.dark,
-                          icon: Icon(
-                            Icons.dark_mode_rounded,
-                            color: Colors.indigoAccent,
-                            size: 18,
-                          ),
-                          label: _ModeLabel('มืด'),
+                          icon: compact
+                              ? null
+                              : const Icon(
+                                  Icons.dark_mode_rounded,
+                                  color: Colors.indigoAccent,
+                                  size: 18,
+                                ),
+                          label: const _ModeLabel('มืด'),
                         ),
                       ],
                       selected: {currentMode},
@@ -253,7 +267,8 @@ class _AccentSwatch extends StatelessWidget {
   }
 }
 
-/// Keeps a mode name on one line, shrinking it on narrow dialogs.
+/// A mode name on one line. All three labels share one size (large system
+/// fonts are capped) so they look the same; FittedBox is only a safety net.
 class _ModeLabel extends StatelessWidget {
   const _ModeLabel(this.text);
 
@@ -263,7 +278,13 @@ class _ModeLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Text(text, maxLines: 1, softWrap: false),
+      child: Text(
+        text,
+        maxLines: 1,
+        softWrap: false,
+        style: const TextStyle(fontSize: 13),
+        textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1),
+      ),
     );
   }
 }
@@ -296,7 +317,7 @@ class _SyncSection extends StatelessWidget {
               key: const Key('sync-enabled-switch'),
               contentPadding: EdgeInsets.zero,
               title: const Text('ซิงก์ไฟล์ขึ้นบัญชี'),
-              subtitle: const Text('ปิดแล้วไฟล์จะอยู่ในเครื่องนี้เท่านั้น'),
+              subtitle: const Text('ปิดแล้วเก็บในเครื่องนี้เท่านั้น'),
               value: enabled,
               onChanged: (v) => settings.enabled = v,
             ),

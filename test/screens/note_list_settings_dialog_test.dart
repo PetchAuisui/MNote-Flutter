@@ -208,4 +208,46 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('accent swatches have a gap between them on a phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await openSettings(tester);
+
+    final rects = [
+      for (final accent in AppAccent.values)
+        tester.getRect(find.byKey(ValueKey('accent_${accent.name}'))),
+    ];
+    for (var i = 0; i < rects.length - 1; i++) {
+      expect(
+        rects[i + 1].left - rects[i].right,
+        greaterThanOrEqualTo(4),
+        reason: 'swatch $i touches the next one',
+      );
+    }
+  });
+
+  testWidgets('theme labels share one size even with a large system font', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 1600);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearAllTestValues);
+    await openSettings(tester);
+
+    final heights = {
+      for (final label in ['ตามเครื่อง', 'สว่าง', 'มืด'])
+        tester.getSize(find.text(label)).height,
+    };
+    expect(heights, hasLength(1), reason: 'labels render at different sizes');
+    expect(heights.single, lessThan(24));
+    // Icons make way for the labels on a narrow phone.
+    expect(find.byIcon(Icons.brightness_auto_rounded), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:mnote/features/sync/domain/cloud_library_store.dart';
+import 'package:mnote/features/sync/domain/sync_companion.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -19,6 +20,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     required this._inner,
     required this._store,
     required this._uidProvider,
+    this.companions = const [],
   });
 
   static const ownerPrefKey = 'mnote_sync_owner_uid';
@@ -29,6 +31,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   final DocumentRepository _inner;
   final CloudLibraryStore _store;
   final String? Function() _uidProvider;
+
+  /// Started and stopped together with the library (e.g. pen ink).
+  final List<SyncCompanion> companions;
 
   final _changes = StreamController<void>.broadcast();
   StreamSubscription<CloudLibrarySnapshot>? _subscription;
@@ -68,6 +73,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     await _enqueue(() => _claimLocalLibrary(uid));
     if (_uid != uid) return;
 
+    for (final companion in companions) {
+      await companion.start();
+    }
     _subscription = _store
         .watch(uid)
         .listen(
@@ -84,6 +92,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     _ready = false;
     _confirmed = const {};
     _syncedNames.value = const {};
+    for (final companion in companions) {
+      await companion.stop();
+    }
     if (!clearLocal) return;
 
     try {
@@ -202,6 +213,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       if (uri != null) await _inner.delete(uri);
     }
     await _inner.saveMetadata(const LibraryMetadata());
+    for (final companion in companions) {
+      await companion.clearLocal();
+    }
     _pendingDeletes.clear();
     _changes.add(null);
   }

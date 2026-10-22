@@ -6,6 +6,15 @@ import 'package:mnote/features/workspace/presentation/workspace_controller.dart'
 import '../../../helpers/fakes.dart';
 
 void main() {
+  test('opens in writing mode and returns to it for a new document', () {
+    final controller = WorkspaceController(FakeDocumentRepository());
+    addTearDown(controller.dispose);
+    expect(controller.mode, WorkspaceMode.ink);
+    controller.setMode(WorkspaceMode.split);
+    controller.newDocument();
+    expect(controller.mode, WorkspaceMode.ink);
+  });
+
   test(
     'upgrades only untouched bundled Welcome and preserves edits and files',
     () {

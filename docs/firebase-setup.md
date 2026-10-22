@@ -14,6 +14,15 @@
 
 เก็บโปรไฟล์ผู้ใช้ที่ `users/{uid}`: `displayName`, `email`, `createdAt`
 
+### Cloud sync
+
+เมื่อ login บัญชีเดียวกัน ไฟล์จะ sync ข้ามเครื่องอัตโนมัติ (last-write-wins รายไฟล์ ใช้งาน offline ได้ แล้วค่อย sync เมื่อออนไลน์):
+
+- `users/{uid}/documents/{encodedFileName}`: `name`, `content`, `updatedAt`, `folderId`, `isStarred`, `isTrash`, `deleted`
+- `users/{uid}/folders/{folderId}`: `name`, `updatedAt`, `isStarred`, `isTrash`, `deleted`
+- การลบจะเขียน tombstone (`deleted: true`) เพื่อให้เครื่องอื่นลบตาม
+- ไฟล์เนื้อหาเกิน ~900 KB จะไม่ถูก sync (ข้อจำกัด 1 MiB ต่อ document ของ Firestore)
+
 Security rules ที่แนะนำ:
 
 ```
@@ -21,6 +30,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{uid}/{collection}/{docId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }

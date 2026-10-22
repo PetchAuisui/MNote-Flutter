@@ -297,6 +297,38 @@ void main() {
     expect(repo.syncedNames.value, {'a.md'});
   });
 
+  test('renaming a document tombstones the old name', () async {
+    await repo.startSync();
+    await settle();
+    await repo.save(MarkdownDocument.untitled('x').rename('a.md'));
+    await settle();
+
+    final item = (await repo.loadMetadata())!.documents.single;
+    await repo.saveMetadata(
+      LibraryMetadata(
+        documents: [item.copyWith(name: 'b.md', updatedAt: DateTime.now())],
+      ),
+    );
+    await settle();
+
+    expect(cloud.docs[CloudDocument.idFor('a.md')]!.deleted, isTrue);
+    expect(cloud.docs[CloudDocument.idFor('b.md')]!.deleted, isFalse);
+    // The old name must not come back as a second local file.
+    final names = (await repo.loadMetadata())!.documents.map((d) => d.name);
+    expect(names, ['b.md']);
+  });
+
+  test('stopSync uploads the last edit before clearing local data', () async {
+    await repo.startSync();
+    await settle();
+    await repo.save(MarkdownDocument.untitled('last edit').rename('a.md'));
+
+    await repo.stopSync(clearLocal: true);
+
+    expect(cloud.docs[CloudDocument.idFor('a.md')]!.content, 'last edit');
+    expect((await repo.loadMetadata())!.documents, isEmpty);
+  });
+
   test('does nothing without a signed-in user', () async {
     uid = null;
     await repo.startSync();

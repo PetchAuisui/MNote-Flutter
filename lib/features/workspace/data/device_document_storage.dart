@@ -105,13 +105,11 @@ class DeviceDocumentStorage implements DocumentStorage {
     if (uri.scheme != 'file' || await File.fromUri(uri).exists()) return uri;
     if (uri.pathSegments.isEmpty) return uri;
     final appDir = await getApplicationDocumentsDirectory();
-    final candidate = File('${appDir.path}/${uri.pathSegments.last}');
     // pathSegments are percent-encoded; File wants the decoded name.
-    final decoded = File(
+    final moved = File(
       '${appDir.path}/${Uri.decodeComponent(uri.pathSegments.last)}',
     );
-    if (await decoded.exists()) return decoded.uri;
-    if (await candidate.exists()) return candidate.uri;
+    if (await moved.exists()) return moved.uri;
     return uri;
   }
 

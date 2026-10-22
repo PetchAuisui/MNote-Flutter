@@ -86,6 +86,11 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
 
   @override
   Future<void> stopSync({bool clearLocal = false}) async {
+    // Edits saved just before sign-out may still be waiting in the queue;
+    // upload them first so clearing the local copy cannot lose them.
+    if (_uid != null && _ready) {
+      await _enqueue(() async => _push(await _inner.loadMetadata()));
+    }
     await _subscription?.cancel();
     _subscription = null;
     _uid = null;
@@ -155,7 +160,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
 
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {
+    final before = await _inner.loadMetadata();
     await _inner.saveMetadata(metadata);
+    _forgetRenamedNames(before, metadata);
     _enqueue(() async {
       await _push(metadata);
       _refreshSynced(metadata);
@@ -179,6 +186,22 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       await _push(metadata);
       _refreshSynced(metadata);
     });
+  }
+
+  /// Documents are keyed by name in the cloud, so a rename leaves the old
+  /// name behind; without a tombstone it would be recreated on every device.
+  void _forgetRenamedNames(LibraryMetadata? before, LibraryMetadata after) {
+    if (before == null) return;
+    final oldNames = {for (final d in before.documents) d.id: d.name};
+    final currentNames = {for (final d in after.documents) d.name};
+    for (final d in after.documents) {
+      final old = oldNames[d.id];
+      if (old == null || old == d.name || currentNames.contains(old)) continue;
+      final remote = _remoteDocs[CloudDocument.idFor(old)];
+      if (remote != null && !remote.deleted) {
+        _pendingDeletes[old] = DateTime.now();
+      }
+    }
   }
 
   void _refreshSynced(LibraryMetadata? metadata) {

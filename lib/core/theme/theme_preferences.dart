@@ -37,10 +37,10 @@ abstract final class ThemePreferences {
   static void _startPersisting() {
     if (_persisting) return;
     _persisting = true;
-    _modeListener =
-        () => _enqueueSave(modeKey, MnoteApp.themeModeNotifier.value.name);
-    _accentListener =
-        () => _enqueueSave(accentKey, MnoteApp.accentNotifier.value.name);
+    _modeListener = () =>
+        _enqueueSave(modeKey, MnoteApp.themeModeNotifier.value.name);
+    _accentListener = () =>
+        _enqueueSave(accentKey, MnoteApp.accentNotifier.value.name);
     MnoteApp.themeModeNotifier.addListener(_modeListener!);
     MnoteApp.accentNotifier.addListener(_accentListener!);
   }

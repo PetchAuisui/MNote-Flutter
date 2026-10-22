@@ -19,9 +19,7 @@ Future<void> main() async {
     // Restore saved theme and initialize Firebase concurrently to speed up launch.
     await Future.wait([
       ThemePreferences.load(),
-      Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ),
+      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     ]);
     await _activateAppCheck();
     authRepository = FirebaseAuthRepository();

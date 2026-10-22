@@ -1992,11 +1992,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           value: 'new_md',
           child: Row(
             children: [
-              Icon(
-                Icons.description_outlined,
-                color: primary,
-                size: 20,
-              ),
+              Icon(Icons.description_outlined, color: primary, size: 20),
               const SizedBox(width: 12),
               const Expanded(child: Text('เอกสาร Markdown ใหม่ (.md)')),
             ],
@@ -2350,7 +2346,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       ),
                     ),
                     boxShadow: [
-                       BoxShadow(
+                      BoxShadow(
                         color: Colors.black.withValues(
                           alpha: isDark ? 0.3 : 0.08,
                         ),
@@ -2371,8 +2367,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               vertical: 2.5,
                             ),
                             decoration: BoxDecoration(
-                              color: (isTxt ? Colors.teal : primary)
-                                  .withValues(alpha: 0.15),
+                              color: (isTxt ? Colors.teal : primary).withValues(
+                                alpha: 0.15,
+                              ),
                               borderRadius: BorderRadius.circular(5),
                             ),
                             child: Text(
@@ -2654,11 +2651,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         for (final item in items)
           if (item is FolderItem)
             ListTile(
-              leading: Icon(
-                Icons.folder_rounded,
-                color: primary,
-                size: 36,
-              ),
+              leading: Icon(Icons.folder_rounded, color: primary, size: 36),
               title: Text(
                 item.name,
                 style: const TextStyle(

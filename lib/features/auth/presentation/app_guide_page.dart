@@ -439,10 +439,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
               decoration: BoxDecoration(
                 color: palette.soft,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: palette.softBorder,
-                  width: 1,
-                ),
+                border: Border.all(color: palette.softBorder, width: 1),
               ),
               child: Center(
                 child: Column(

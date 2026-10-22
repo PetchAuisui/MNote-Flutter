@@ -286,8 +286,7 @@ class _AuthPageState extends State<AuthPage>
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.45,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.normal,
                         ),
                       ),

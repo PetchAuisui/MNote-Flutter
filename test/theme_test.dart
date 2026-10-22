@@ -89,14 +89,17 @@ void main() {
       );
     });
 
-    test('yellow accent produces vivid primary matching swatch in light mode', () {
-      final scheme = AppTheme.colorScheme(
-        Brightness.light,
-        accent: AppAccent.yellow,
-      );
-      expect(scheme.primary, AppAccent.yellow.swatch);
-      expect(scheme.onPrimary, const Color(0xDD000000));
-    });
+    test(
+      'yellow accent produces vivid primary matching swatch in light mode',
+      () {
+        final scheme = AppTheme.colorScheme(
+          Brightness.light,
+          accent: AppAccent.yellow,
+        );
+        expect(scheme.primary, AppAccent.yellow.swatch);
+        expect(scheme.onPrimary, const Color(0xDD000000));
+      },
+    );
 
     test('all accents preserve hand-tuned secondary and tertiary colors', () {
       for (final accent in AppAccent.values) {

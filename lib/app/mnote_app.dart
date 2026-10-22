@@ -3,6 +3,8 @@ import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
+import 'package:mnote/features/sync/data/firestore_library_store.dart';
+import 'package:mnote/features/sync/data/synced_document_repository.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -64,11 +66,22 @@ class MnoteApp extends StatelessWidget {
     }
   }
 
+  /// Local storage, mirrored to the account's cloud library when signed in
+  /// through Firebase.
+  DocumentRepository _defaultRepository() {
+    const local = LocalDocumentRepository(DeviceDocumentStorage());
+    final auth = authRepository;
+    if (auth == null) return local;
+    return SyncedDocumentRepository(
+      inner: local,
+      store: FirestoreLibraryStore(),
+      uidProvider: () => auth.currentUser?.uid,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final effectiveRepository =
-        documentRepository ??
-        const LocalDocumentRepository(DeviceDocumentStorage());
+    final effectiveRepository = documentRepository ?? _defaultRepository();
 
     final destination = NoteListScreen(
       repository: effectiveRepository,

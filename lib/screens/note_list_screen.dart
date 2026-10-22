@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
@@ -62,10 +64,42 @@ class _NoteListScreenState extends State<NoteListScreen> {
     _folders = List.from(widget.initialFolders);
     _documents = List.from(widget.initialDocuments);
     _loadDeviceDocuments();
+    _startCloudSync();
+  }
+
+  StreamSubscription<void>? _syncSubscription;
+
+  // Remote edits are merged into local storage by the repository; reload the
+  // in-memory library whenever that happens.
+  void _startCloudSync() {
+    final repository = widget.repository;
+    if (repository is! SyncableDocumentRepository) return;
+    _syncSubscription = repository.changes.listen((_) => _reloadLibrary());
+    unawaited(repository.startSync());
+  }
+
+  Future<void> _reloadLibrary() async {
+    try {
+      final metadata = await widget.repository.loadMetadata();
+      if (!mounted || metadata == null) return;
+      setState(() {
+        _folders
+          ..clear()
+          ..addAll(metadata.folders);
+        _documents
+          ..clear()
+          ..addAll(metadata.documents);
+        final folderId = _currentFolderId;
+        if (folderId != null && !_folders.any((f) => f.id == folderId)) {
+          _currentFolderId = null;
+        }
+      });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _syncSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -492,6 +526,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   Future<void> _signOut() async {
     final auth = widget.authRepository!;
+    final repository = widget.repository;
+    if (repository is SyncableDocumentRepository) {
+      await _syncSubscription?.cancel();
+      _syncSubscription = null;
+      await repository.stopSync(clearLocal: true);
+    }
     await auth.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

@@ -4,21 +4,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/core/theme/theme_preferences.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MnoteApp.loadThemeMode();
 
   GoogleFonts.config.allowRuntimeFetching = false;
 
   final AuthRepository authRepository;
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // Restore saved theme and initialize Firebase concurrently to speed up launch.
+    await Future.wait([
+      ThemePreferences.load(),
+      Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    ]);
     await _activateAppCheck();
     authRepository = FirebaseAuthRepository();
   } catch (e) {

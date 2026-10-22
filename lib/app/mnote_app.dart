@@ -33,6 +33,10 @@ class MnoteApp extends StatelessWidget {
   static final ValueNotifier<AppFontFamily> fontNotifier =
       ValueNotifier<AppFontFamily>(AppFontFamily.prompt);
 
+  /// Global notifier to switch the app accent color (blue by default)
+  static final ValueNotifier<AppAccent> accentNotifier =
+      ValueNotifier<AppAccent>(AppAccent.blue);
+
   static const _themePrefKey = 'mnote_theme_mode';
 
   static Future<void> loadThemeMode() async {
@@ -92,13 +96,26 @@ class MnoteApp extends StatelessWidget {
         return ValueListenableBuilder<AppFontFamily>(
           valueListenable: fontNotifier,
           builder: (context, currentFont, _) {
-            return MaterialApp(
-              title: 'Mnote',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.theme(Brightness.light, font: currentFont),
-              darkTheme: AppTheme.theme(Brightness.dark, font: currentFont),
-              themeMode: currentThemeMode,
-              home: home ?? defaultHome,
+            return ValueListenableBuilder<AppAccent>(
+              valueListenable: accentNotifier,
+              builder: (context, currentAccent, _) {
+                return MaterialApp(
+                  title: 'Mnote',
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.theme(
+                    Brightness.light,
+                    font: currentFont,
+                    accent: currentAccent,
+                  ),
+                  darkTheme: AppTheme.theme(
+                    Brightness.dark,
+                    font: currentFont,
+                    accent: currentAccent,
+                  ),
+                  themeMode: currentThemeMode,
+                  home: home ?? defaultHome,
+                );
+              },
             );
           },
         );

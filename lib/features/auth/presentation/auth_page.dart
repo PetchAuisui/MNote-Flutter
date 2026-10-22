@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
@@ -132,7 +133,7 @@ class _AuthPageState extends State<AuthPage>
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF4A89DC),
+          backgroundColor: BrandPalette.of(context).primary,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
@@ -222,7 +223,7 @@ class _AuthPageState extends State<AuthPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEBF3FA),
+      backgroundColor: BrandPalette.of(context).background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -258,14 +259,14 @@ class _AuthPageState extends State<AuthPage>
                     opacity: _titleFade,
                     child: SlideTransition(
                       position: _titleSlide,
-                      child: const Text(
+                      child: Text(
                         'Welcome to Mnote',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
                           fontSize: 32,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2B3A),
+                          color: Theme.of(context).colorScheme.onSurface,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -285,7 +286,7 @@ class _AuthPageState extends State<AuthPage>
                         style: TextStyle(
                           fontSize: 16,
                           height: 1.45,
-                          color: Color(0xFF5A6C80),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.normal,
                         ),
                       ),

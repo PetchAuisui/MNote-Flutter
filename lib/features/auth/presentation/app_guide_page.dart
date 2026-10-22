@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -32,6 +33,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
       featureLabel: 'Markdown Editor',
       icon: Icons.edit_note_rounded,
       badgeColor: Color(0xFF4A89DC),
+      accentTone: 1,
     ),
     _GuideItem(
       step: '02',
@@ -41,6 +43,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
       featureLabel: 'Ink & Stylus Drawing',
       icon: Icons.draw_rounded,
       badgeColor: Color(0xFF5C9BD1),
+      accentTone: 2,
     ),
     _GuideItem(
       step: '03',
@@ -113,9 +116,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isLastPage = _currentPage == _guides.length - 1;
+    final palette = BrandPalette.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEBF3FA),
+      backgroundColor: palette.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -127,14 +131,14 @@ class _AppGuidePageState extends State<AppGuidePage> {
                 alignment: Alignment.center,
                 children: [
                   // Center Title
-                  const Center(
+                  Center(
                     child: Text(
                       'คู่มือการใช้ Mnote',
                       key: Key('app-guide-title'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E3A5F),
+                        color: palette.headline,
                         letterSpacing: 0.2,
                       ),
                     ),
@@ -154,19 +158,17 @@ class _AppGuidePageState extends State<AppGuidePage> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF5B8CB9),
+                            color: palette.mid,
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(
-                                  0xFF5B8CB9,
-                                ).withValues(alpha: 0.35),
+                                color: palette.mid.withValues(alpha: 0.35),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
                             ],
                           ),
-                          child: const Text(
+                          child: Text(
                             'ข้าม',
                             style: TextStyle(
                               fontSize: 15,
@@ -194,7 +196,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                   Container(
                     width: double.infinity,
                     height: size.height * 0.44,
-                    color: const Color(0xFFDCE8F5).withValues(alpha: 0.7),
+                    color: palette.soft.withValues(alpha: 0.7),
                   ),
 
                   // Presentation PageView
@@ -263,7 +265,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                           Icons.arrow_left_rounded,
                           size: 42,
                           color: _currentPage > 0
-                              ? const Color(0xFF5B8CB9)
+                              ? palette.mid
                               : Colors.black26,
                         ),
                         splashRadius: 26,
@@ -286,8 +288,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
                               height: 8,
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? const Color(0xFF5B8CB9)
-                                    : const Color(0xFFB0C7DE),
+                                    ? palette.mid
+                                    : palette.softBorder,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             );
@@ -298,10 +300,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
                         IconButton(
                           key: const Key('app-guide-next-button'),
                           onPressed: _onNextPressed,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_right_rounded,
                             size: 42,
-                            color: Color(0xFF5B8CB9),
+                            color: palette.mid,
                           ),
                           splashRadius: 26,
                           tooltip: 'หน้าถัดไป',
@@ -312,8 +314,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
                           key: const Key('app-guide-enter-button'),
                           onPressed: _navigateToNext,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4A89DC),
-                            foregroundColor: Colors.white,
+                            backgroundColor: palette.primary,
+                            foregroundColor: palette.onPrimary,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 26,
                               vertical: 14,
@@ -322,9 +324,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 4,
-                            shadowColor: const Color(
-                              0xFF4A89DC,
-                            ).withValues(alpha: 0.4),
+                            shadowColor: palette.primary.withValues(alpha: 0.4),
                           ),
                           icon: const Text(
                             'เข้าสู่ Mnote',
@@ -352,12 +352,18 @@ class _AppGuidePageState extends State<AppGuidePage> {
   }
 
   Widget _buildCard(_GuideItem item, {required bool isCurrent}) {
+    final palette = BrandPalette.of(context);
+    final badge = switch (item.accentTone) {
+      1 => palette.primary,
+      2 => palette.mid,
+      _ => item.badgeColor,
+    };
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       constraints: const BoxConstraints(maxWidth: 680, maxHeight: 380),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -384,7 +390,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: item.badgeColor.withValues(alpha: 0.12),
+                    color: badge.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -392,7 +398,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: item.badgeColor,
+                      color: badge,
                     ),
                   ),
                 ),
@@ -400,10 +406,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
                 // Title
                 Text(
                   item.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E3A5F),
+                    color: palette.headline,
                     height: 1.3,
                   ),
                 ),
@@ -411,10 +417,10 @@ class _AppGuidePageState extends State<AppGuidePage> {
                 // Description
                 Text(
                   item.description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF5A6E85),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                   maxLines: 5,
@@ -431,12 +437,9 @@ class _AppGuidePageState extends State<AppGuidePage> {
             flex: 2,
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE2E7ED),
+                color: palette.soft,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  width: 1,
-                ),
+                border: Border.all(color: palette.softBorder, width: 1),
               ),
               child: Center(
                 child: Column(
@@ -456,7 +459,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                           ),
                         ],
                       ),
-                      child: Icon(item.icon, size: 34, color: item.badgeColor),
+                      child: Icon(item.icon, size: 34, color: badge),
                     ),
                     const SizedBox(height: 14),
                     Padding(
@@ -490,6 +493,9 @@ class _GuideItem {
   final IconData icon;
   final Color badgeColor;
 
+  /// 0 = fixed [badgeColor]; 1 = follows the accent primary; 2 = accent mid-tone.
+  final int accentTone;
+
   const _GuideItem({
     required this.step,
     required this.title,
@@ -497,5 +503,6 @@ class _GuideItem {
     required this.featureLabel,
     required this.icon,
     required this.badgeColor,
+    this.accentTone = 0,
   });
 }

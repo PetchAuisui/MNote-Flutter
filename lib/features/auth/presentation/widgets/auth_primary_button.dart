@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 class AuthPrimaryButton extends StatelessWidget {
   const AuthPrimaryButton({
@@ -14,33 +15,34 @@ class AuthPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = BrandPalette.of(context);
     return SizedBox(
       height: 56,
       width: double.infinity,
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF4A89DC),
-          disabledBackgroundColor: const Color(0xFF9EBFDC),
+          backgroundColor: palette.primary,
+          disabledBackgroundColor: palette.primaryDisabled,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.2,
-                  color: Colors.white,
+                  color: palette.onPrimary,
                 ),
               )
             : Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: palette.onPrimary,
                 ),
               ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/core/theme/app_theme.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
   const NoteListSettingsDialog({super.key});
@@ -42,6 +43,34 @@ class NoteListSettingsDialog extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    'สีของแอป (Accent)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<AppAccent>(
+                    valueListenable: MnoteApp.accentNotifier,
+                    builder: (context, currentAccent, _) {
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final accent in AppAccent.values)
+                            _AccentSwatch(
+                              accent: accent,
+                              selected: accent == currentAccent,
+                              onTap: () =>
+                                  MnoteApp.accentNotifier.value = accent,
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     'โหมดการแสดงผล (Theme)',
                     style: TextStyle(
@@ -139,6 +168,61 @@ class NoteListSettingsDialog extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// A single selectable color dot in the accent picker.
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    required this.accent,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppAccent accent;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'สี${accent.label}',
+      child: Tooltip(
+        message: accent.label,
+        child: InkResponse(
+          key: ValueKey('accent_${accent.name}'),
+          onTap: onTap,
+          radius: 28,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent.swatch,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? colorScheme.onSurface : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+            child: selected
+                ? Icon(
+                    Icons.check_rounded,
+                    color:
+                        ThemeData.estimateBrightnessForColor(accent.swatch) ==
+                            Brightness.light
+                        ? const Color(0xDD000000)
+                        : Colors.white,
+                    size: 22,
+                  )
+                : null,
+          ),
+        ),
+      ),
     );
   }
 }

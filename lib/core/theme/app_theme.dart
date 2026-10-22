@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 enum AppFontFamily {
   prompt('Prompt (โมเดิร์น)', 'Prompt'),
@@ -10,6 +11,25 @@ enum AppFontFamily {
   final String label;
   final String familyName;
   const AppFontFamily(this.label, this.familyName);
+}
+
+/// App accent colors the user can pick from in Settings.
+///
+/// [seed] drives the Material 3 [ColorScheme]; [swatch] is the vivid color
+/// shown in the picker.
+enum AppAccent {
+  blue('ฟ้า', AppTheme.primarySeed, Color(0xFF4A89DC)),
+  purple('ม่วง', Color(0xFF7E57C2), Color(0xFF7E57C2)),
+  green('เขียว', Color(0xFF43A047), Color(0xFF43A047)),
+  red('แดง', Color(0xFFE53935), Color(0xFFE53935)),
+  yellow('เหลือง', Color(0xFFFBC02D), Color(0xFFFBC02D)),
+  pink('ชมพู', Color(0xFFEC407A), Color(0xFFEC407A)),
+  orange('ส้ม', Color(0xFFFB8C00), Color(0xFFFB8C00));
+
+  final String label;
+  final Color seed;
+  final Color swatch;
+  const AppAccent(this.label, this.seed, this.swatch);
 }
 
 abstract final class AppTheme {
@@ -27,11 +47,28 @@ abstract final class AppTheme {
 
   static ThemeData get dark => theme(Brightness.dark);
 
-  static ColorScheme colorScheme(Brightness brightness) {
+  static ColorScheme colorScheme(
+    Brightness brightness, {
+    AppAccent accent = AppAccent.blue,
+  }) {
     final isDark = brightness == Brightness.dark;
+    final isLightPrimary =
+        ThemeData.estimateBrightnessForColor(accent.swatch) == Brightness.light;
+
+    // In light mode, yellow's seed produces a dull olive-brown tone 40 primary.
+    // We override it with the vivid swatch so ColorScheme and BrandPalette match.
+    final Color? primaryOverride = (accent == AppAccent.yellow && !isDark)
+        ? accent.swatch
+        : null;
+    final Color? onPrimaryOverride = (accent == AppAccent.yellow && !isDark)
+        ? (isLightPrimary ? const Color(0xDD000000) : Colors.white)
+        : null;
+
     return ColorScheme.fromSeed(
-      seedColor: primarySeed,
+      seedColor: accent.seed,
       brightness: brightness,
+      primary: primaryOverride,
+      onPrimary: onPrimaryOverride,
       secondary: isDark ? const Color(0xFFC1C6DA) : const Color(0xFF595E6F),
       secondaryContainer: isDark
           ? const Color(0xFF414657)
@@ -115,13 +152,15 @@ abstract final class AppTheme {
   static ThemeData theme(
     Brightness brightness, {
     AppFontFamily font = AppFontFamily.prompt,
+    AppAccent accent = AppAccent.blue,
   }) {
-    final scheme = colorScheme(brightness);
+    final scheme = colorScheme(brightness, accent: accent);
     final textTheme = _createTextTheme(brightness, font);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      extensions: [BrandPalette.fromAccent(accent, brightness: brightness)],
       textTheme: textTheme,
       fontFamily: font.familyName,
       scaffoldBackgroundColor: scheme.surfaceContainerLowest,

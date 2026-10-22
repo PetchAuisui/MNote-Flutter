@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_user.dart';
@@ -29,16 +30,17 @@ class AccountAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final photoUrl = user.photoUrl;
     final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+    final palette = BrandPalette.of(context);
     return CircleAvatar(
       radius: radius,
-      backgroundColor: const Color(0xFF4A89DC),
+      backgroundColor: palette.primary,
       // The initial underneath stays visible if the photo fails to load.
       foregroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
       onForegroundImageError: hasPhoto ? (_, _) {} : null,
       child: Text(
         accountInitial(user),
         style: TextStyle(
-          color: Colors.white,
+          color: palette.onPrimary,
           fontWeight: FontWeight.w600,
           fontSize: radius * 1.0,
         ),

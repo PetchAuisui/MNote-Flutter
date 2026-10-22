@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/core/theme/brand_palette.dart';
 
 class AuthTextField extends StatefulWidget {
   const AuthTextField({
@@ -39,6 +40,16 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = BrandPalette.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final iconColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : const Color(0xFF5A6C80);
+    final fillColor = isDark
+        ? theme.colorScheme.surfaceContainerLow
+        : Colors.white;
+
     return TextFormField(
       controller: widget.controller,
       obscureText: _hidden,
@@ -49,21 +60,21 @@ class _AuthTextFieldState extends State<AuthTextField> {
       autofillHints: widget.autofillHints,
       decoration: InputDecoration(
         labelText: widget.label,
-        prefixIcon: Icon(widget.icon, color: const Color(0xFF5A6C80)),
+        prefixIcon: Icon(widget.icon, color: iconColor),
         suffixIcon: widget.obscure
             ? IconButton(
                 tooltip: _hidden ? 'แสดงรหัสผ่าน' : 'ซ่อนรหัสผ่าน',
                 icon: Icon(
                   _hidden ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xFF5A6C80),
+                  color: iconColor,
                 ),
                 onPressed: () => setState(() => _hidden = !_hidden),
               )
             : null,
         filled: true,
-        fillColor: Colors.white,
-        enabledBorder: _border(const Color(0xFF9EBFDC)),
-        focusedBorder: _border(const Color(0xFF4A89DC), 1.8),
+        fillColor: fillColor,
+        enabledBorder: _border(palette.border),
+        focusedBorder: _border(palette.primary, 1.8),
         errorBorder: _border(const Color(0xFFD9534F)),
         focusedErrorBorder: _border(const Color(0xFFD9534F), 1.8),
       ),

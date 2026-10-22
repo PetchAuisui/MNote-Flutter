@@ -1215,15 +1215,15 @@ class _NoteListScreenState extends State<NoteListScreen> {
     }
   }
 
-  // คำนวณจำนวนคอลัมน์แบบ Responsive (Desktop, Tablet, Phone) ให้ระยะห่างกระชับสมส่วน
+  // คำนวณจำนวนคอลัมน์ให้แต่ละช่องกว้างพอสำหรับการ์ดเอกสาร (148) เสมอ
+  // ไม่เช่นนั้นการ์ดถูกบีบจนเนื้อหาล้น (เช่น 3 คอลัมน์บนมือถือ ~400dp)
   int _calculateColumnCount(double width) {
-    // The document card is 148 wide; three columns on a ~400dp phone squeeze
-    // it to ~95 and its content overflows.
-    if (width < 600) return 2; // Phone
-    if (width < 880) return 4; // Tablet (iPad)
-    if (width < 1180) return 5; // Laptop / Desktop
-    if (width < 1480) return 6; // Large Desktop
-    return 7;
+    const horizontalPadding = 40.0; // padding ซ้ายขวาของ Grid
+    const cardWidth = 148.0;
+    const spacing = 18.0;
+    final fit = ((width - horizontalPadding + spacing) / (cardWidth + spacing))
+        .floor();
+    return fit.clamp(2, 7);
   }
 
   @override

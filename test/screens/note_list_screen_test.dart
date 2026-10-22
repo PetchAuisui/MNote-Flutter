@@ -1080,4 +1080,36 @@ void main() {
     final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
     expect(card.width, 148);
   });
+
+  for (final width in [320.0, 411.0, 600.0, 700.0, 834.0, 1200.0]) {
+    testWidgets('document cards are never squeezed at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: FakeDocumentRepository(),
+            initialDocuments: [
+              DocumentItem(
+                id: 'n0',
+                name: 'Note0.md',
+                content: '# Hello Everyone\nPersonal Information - Name',
+                updatedAt: DateTime(2026),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+      // 320dp phones cannot fit two full cards; everything wider must.
+      if (width >= 360) expect(card.width, 148);
+    });
+  }
 }

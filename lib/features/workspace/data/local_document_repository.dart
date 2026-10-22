@@ -184,9 +184,9 @@ class LocalDocumentRepository implements DocumentRepository {
       final metadata = LibraryMetadata.fromJson(
         jsonDecode(raw) as Map<String, dynamic>,
       );
-      final repaired = await _repairUris(metadata);
-      if (repaired != null) await saveMetadata(repaired);
-      return repaired ?? metadata;
+      // Repaired in memory only; the next save persists it, which avoids a
+      // write racing with other read-modify-write updates.
+      return await _repairUris(metadata) ?? metadata;
     } catch (_) {
       return null;
     }

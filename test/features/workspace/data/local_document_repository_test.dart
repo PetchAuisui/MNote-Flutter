@@ -187,7 +187,6 @@ void main() {
     expect(loaded!.documents, hasLength(1));
     expect(loaded.documents.single.uri, newUri);
     expect(loaded.documents.single.content, 'new');
-    // The repaired library is persisted.
     expect((await repository.loadMetadata())!.documents, hasLength(1));
   });
 

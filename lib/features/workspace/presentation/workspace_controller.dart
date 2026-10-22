@@ -5,12 +5,18 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 enum WorkspaceMode { edit, split, preview, ink }
 
 class WorkspaceController extends ChangeNotifier {
-  WorkspaceController(this._repository, {MarkdownDocument? initialDocument})
-    : _document = initialDocument ?? MarkdownDocument.untitled();
+  WorkspaceController(
+    this._repository, {
+    MarkdownDocument? initialDocument,
+    WorkspaceMode initialMode = WorkspaceMode.ink,
+  }) : _document = initialDocument ?? MarkdownDocument.untitled(),
+       _initialMode = initialMode,
+       _mode = initialMode;
 
   final DocumentRepository _repository;
   MarkdownDocument _document;
-  WorkspaceMode _mode = WorkspaceMode.split;
+  final WorkspaceMode _initialMode;
+  WorkspaceMode _mode;
   bool _isBusy = false;
   String? _errorMessage;
 
@@ -39,7 +45,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void newDocument() {
     _document = MarkdownDocument.untitled();
-    _mode = WorkspaceMode.split;
+    _mode = _initialMode;
     _errorMessage = null;
     notifyListeners();
   }

@@ -764,4 +764,10 @@ class FakeInkFileStorage implements InkFileStorage {
 
   @override
   Future<Uint8List?> autoLoad({required String name}) async => openBytes;
+
+  @override
+  Future<List<String>> listNames() async => [];
+
+  @override
+  Future<void> deleteAll() async {}
 }

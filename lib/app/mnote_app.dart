@@ -3,13 +3,19 @@ import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
+import 'package:mnote/features/sync/data/firestore_library_store.dart';
+import 'package:mnote/features/sync/data/firestore_ink_store.dart';
+import 'package:mnote/features/sync/data/synced_document_repository.dart';
+import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class MnoteApp extends StatelessWidget {
+class MnoteApp extends StatefulWidget {
   const MnoteApp({
     super.key,
     this.documentRepository,
@@ -65,16 +71,51 @@ class MnoteApp extends StatelessWidget {
   }
 
   @override
+  State<MnoteApp> createState() => _MnoteAppState();
+}
+
+class _MnoteAppState extends State<MnoteApp> {
+  /// Local storage, mirrored to the account's cloud library when signed in
+  /// through Firebase.
+  DocumentRepository _defaultRepository(SyncedInkFileStorage? ink) {
+    const local = LocalDocumentRepository(DeviceDocumentStorage());
+    final auth = widget.authRepository;
+    if (auth == null) return local;
+    return SyncedDocumentRepository(
+      inner: local,
+      store: FirestoreLibraryStore(),
+      uidProvider: () => auth.currentUser?.uid,
+      companions: [?ink],
+    );
+  }
+
+  SyncedInkFileStorage? _syncedInk() {
+    final auth = widget.authRepository;
+    if (auth == null || widget.documentRepository != null) return null;
+    return SyncedInkFileStorage(
+      inner: const DeviceInkFileStorage(),
+      store: FirestoreInkStore(),
+      uidProvider: () => auth.currentUser?.uid,
+    );
+  }
+
+  // Built once: they own Firestore listeners, so rebuilding the app widget
+  // must not create (and leak) new ones.
+  late final SyncedInkFileStorage? _ink = _syncedInk();
+  late final DocumentRepository _repository =
+      widget.documentRepository ?? _defaultRepository(_ink);
+
+  @override
   Widget build(BuildContext context) {
-    final effectiveRepository =
-        documentRepository ??
-        const LocalDocumentRepository(DeviceDocumentStorage());
+    final ink = _ink;
+    final effectiveRepository = _repository;
 
     final destination = NoteListScreen(
       repository: effectiveRepository,
-      authRepository: authRepository,
+      authRepository: widget.authRepository,
     );
-    final shouldSkipAuth = skipAuth ?? (documentRepository != null);
+    final shouldSkipAuth =
+        widget.skipAuth ?? (widget.documentRepository != null);
 
     final guidePage = AppGuidePage(
       repository: effectiveRepository,
@@ -86,18 +127,18 @@ class MnoteApp extends StatelessWidget {
         : SplashPage(
             repository: effectiveRepository,
             nextPage: guidePage,
-            authRepository: authRepository,
+            authRepository: widget.authRepository,
             signedInPage: destination,
           );
 
     return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeModeNotifier,
+      valueListenable: MnoteApp.themeModeNotifier,
       builder: (context, currentThemeMode, _) {
         return ValueListenableBuilder<AppFontFamily>(
-          valueListenable: fontNotifier,
+          valueListenable: MnoteApp.fontNotifier,
           builder: (context, currentFont, _) {
             return ValueListenableBuilder<AppAccent>(
-              valueListenable: accentNotifier,
+              valueListenable: MnoteApp.accentNotifier,
               builder: (context, currentAccent, _) {
                 return MaterialApp(
                   title: 'Mnote',
@@ -113,7 +154,11 @@ class MnoteApp extends StatelessWidget {
                     accent: currentAccent,
                   ),
                   themeMode: currentThemeMode,
-                  home: home ?? defaultHome,
+                  builder: ink == null
+                      ? null
+                      : (context, child) =>
+                            InkStorageScope(storage: ink, child: child!),
+                  home: widget.home ?? defaultHome,
                 );
               },
             );

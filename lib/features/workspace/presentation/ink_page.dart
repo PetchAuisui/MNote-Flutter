@@ -8,6 +8,7 @@ import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.
 import 'package:scribble/scribble.dart';
 
 import 'ink_session.dart';
+import 'ink_storage_scope.dart';
 import 'markdown_document_canvas.dart';
 import 'mermaid/mermaid_element_builder.dart';
 
@@ -18,7 +19,7 @@ class InkPage extends StatefulWidget {
     required this.markdown,
     required this.name,
     this.imageDirectory,
-    this.fileStorage = const DeviceInkFileStorage(),
+    this.fileStorage,
     this.transformationController,
     this.showToolbar = true,
     this.onViewportWidthChanged,
@@ -27,7 +28,9 @@ class InkPage extends StatefulWidget {
   final String markdown;
   final String name;
   final String? imageDirectory;
-  final InkFileStorage fileStorage;
+
+  /// Defaults to the storage from [InkStorageScope], then the device.
+  final InkFileStorage? fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
   final ValueChanged<double>? onViewportWidthChanged;
@@ -47,12 +50,13 @@ class _InkPageState extends State<InkPage> {
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;
   Timer? _autoSaveInkTimer;
+  late InkFileStorage _storage;
 
   @override
   void initState() {
     super.initState();
+    _storage = widget.fileStorage ?? const DeviceInkFileStorage();
     widget.session.pen.addListener(_onPenChanged);
-    _autoLoadInkIfAvailable();
     _attachTransform();
   }
 
@@ -62,7 +66,7 @@ class _InkPageState extends State<InkPage> {
       _autoSaveInkTimer = Timer(const Duration(milliseconds: 600), () async {
         if (!mounted) return;
         final snapshot = widget.session.encode();
-        final saved = await widget.fileStorage.autoSave(
+        final saved = await _storage.autoSave(
           name: widget.name,
           bytes: Uint8List.fromList(utf8.encode(snapshot)),
         );
@@ -75,12 +79,25 @@ class _InkPageState extends State<InkPage> {
 
   Future<void> _autoLoadInkIfAvailable() async {
     if (widget.session.pen.currentSketch.lines.isEmpty) {
-      final bytes = await widget.fileStorage.autoLoad(name: widget.name);
+      final bytes = await _storage.autoLoad(name: widget.name);
       if (bytes != null && mounted) {
         try {
           widget.session.load(utf8.decode(bytes));
         } catch (_) {}
       }
+    }
+  }
+
+  bool _loadedInk = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _storage =
+        widget.fileStorage ?? InkStorageScope.maybeOf(context) ?? _storage;
+    if (!_loadedInk) {
+      _loadedInk = true;
+      _autoLoadInkIfAvailable();
     }
   }
 
@@ -111,7 +128,7 @@ class _InkPageState extends State<InkPage> {
     if (widget.session.isDirty) {
       final snapshot = widget.session.encode();
       final session = widget.session;
-      widget.fileStorage
+      _storage
           .autoSave(
             name: widget.name,
             bytes: Uint8List.fromList(utf8.encode(snapshot)),

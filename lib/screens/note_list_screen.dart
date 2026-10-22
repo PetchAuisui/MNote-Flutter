@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
+import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note_item.dart';
 
 enum ViewFilter {
@@ -62,10 +66,43 @@ class _NoteListScreenState extends State<NoteListScreen> {
     _folders = List.from(widget.initialFolders);
     _documents = List.from(widget.initialDocuments);
     _loadDeviceDocuments();
+    _startCloudSync();
+  }
+
+  StreamSubscription<void>? _syncSubscription;
+
+  // Remote edits are merged into local storage by the repository; reload the
+  // in-memory library whenever that happens.
+  void _startCloudSync() {
+    final repository = widget.repository;
+    if (repository is! SyncableDocumentRepository) return;
+    _syncSubscription = repository.changes.listen((_) => _reloadLibrary());
+    unawaited(repository.startSync());
+  }
+
+  Future<void> _reloadLibrary() async {
+    try {
+      final metadata = await widget.repository.loadMetadata();
+      if (!mounted || metadata == null) return;
+      setState(() {
+        _folders
+          ..clear()
+          ..addAll(metadata.folders);
+        _documents
+          ..clear()
+          ..addAll(metadata.documents);
+        final folderId = _currentFolderId;
+        if (folderId != null && !_folders.any((f) => f.id == folderId)) {
+          _currentFolderId = null;
+        }
+      });
+      await _ensureWelcome();
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _syncSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -75,6 +112,41 @@ class _NoteListScreenState extends State<NoteListScreen> {
       await widget.repository.saveMetadata(
         LibraryMetadata(folders: _folders, documents: _documents),
       );
+    } catch (_) {}
+  }
+
+  static const _welcomeRemovedKey = 'mnote_welcome_removed';
+
+  bool _isWelcome(DocumentItem d) =>
+      d.id == 'welcome_initial_doc' || d.name == 'Welcome.md';
+
+  /// Adds the bundled Welcome note unless one exists or the user deleted it.
+  /// Synced libraries and signed-in accounts still get it on a fresh start.
+  Future<void> _ensureWelcome() async {
+    try {
+      if (_documents.any(_isWelcome)) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_welcomeRemovedKey) ?? false) return;
+      final content = await rootBundle.loadString('assets/examples/welcome.md');
+      if (!mounted || _documents.any(_isWelcome)) return;
+      setState(() {
+        _documents.add(
+          DocumentItem(
+            id: 'welcome_initial_doc',
+            name: 'Welcome.md',
+            content: content,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      });
+      await _persistLibrary();
+    } catch (_) {}
+  }
+
+  Future<void> _setWelcomeRemoved(bool removed) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_welcomeRemovedKey, removed);
     } catch (_) {}
   }
 
@@ -130,27 +202,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         });
       }
 
-      // หากเป็นการเปิดแอปครั้งแรก (ยังไม่มี metadata และไม่มีไฟล์ใดๆ)
-      // ให้โหลด welcome.md เป็นไฟล์เริ่มต้นในคลังเอกสาร
-      if (savedMetadata == null && docs.isEmpty && _documents.isEmpty) {
-        try {
-          final welcomeContent = await rootBundle.loadString(
-            'assets/examples/welcome.md',
-          );
-          if (mounted && _documents.isEmpty) {
-            setState(() {
-              _documents.add(
-                DocumentItem(
-                  id: 'welcome_initial_doc',
-                  name: 'Welcome.md',
-                  content: welcomeContent,
-                  updatedAt: DateTime.now(),
-                ),
-              );
-            });
-          }
-        } catch (_) {}
-      }
+      // ทุกบัญชี/เครื่องควรมี Welcome.md เริ่มต้น (เว้นแต่ผู้ใช้ลบทิ้งเอง)
+      await _ensureWelcome();
 
       // Upgrade only the untouched bundled document; preserve user edits/files.
       if (_documents.any(
@@ -492,6 +545,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   Future<void> _signOut() async {
     final auth = widget.authRepository!;
+    final repository = widget.repository;
+    if (repository is SyncableDocumentRepository) {
+      await _syncSubscription?.cancel();
+      _syncSubscription = null;
+      await repository.stopSync(clearLocal: true);
+      // The next account starts with its own Welcome note.
+      await _setWelcomeRemoved(false);
+    }
     await auth.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -993,6 +1054,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       } catch (_) {}
     }
 
+    if (_isWelcome(doc)) await _setWelcomeRemoved(true);
+
     setState(() {
       _documents.removeWhere((d) => d.id == doc.id);
     });
@@ -1056,6 +1119,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         } catch (_) {}
       }
     }
+
+    if (trashedDocs.any(_isWelcome)) await _setWelcomeRemoved(true);
 
     setState(() {
       _folders.removeWhere((f) => f.isTrash);
@@ -2389,6 +2454,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
                         ],
                       ),
                       Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: SyncStatusBadge(
+                          repository: widget.repository,
+                          doc: doc,
+                        ),
+                      ),
+                      Positioned(
                         top: -4,
                         right: -4,
                         child: IconButton(
@@ -2799,6 +2872,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  SyncStatusBadge(repository: widget.repository, doc: item),
                   if (!isTrashView)
                     IconButton(
                       icon: Icon(

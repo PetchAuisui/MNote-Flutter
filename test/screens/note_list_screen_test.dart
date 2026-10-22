@@ -6,6 +6,7 @@ import 'package:mnote/features/workspace/presentation/markdown_workspace_page.da
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/models/note_item.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/fakes.dart';
 
@@ -84,9 +85,64 @@ void main() {
     ),
   ];
 
+  Future<void> pumpLibrary(
+    WidgetTester tester,
+    FakeDocumentRepository repo,
+  ) async {
+    rootBundle.evict('assets/examples/welcome.md');
+    rootBundle.evict('assets/examples/welcome_v1.md');
+    await tester.runAsync(() async {
+      await rootBundle.loadString('assets/examples/welcome.md');
+      await rootBundle.loadString('assets/examples/welcome_v1.md');
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: NoteListScreen(repository: repo)),
+    );
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  LibraryMetadata libraryWithNote() => LibraryMetadata(
+    documents: [
+      DocumentItem(
+        id: 'n1',
+        name: 'Notes.md',
+        content: 'hi',
+        updatedAt: DateTime(2026),
+        uri: Uri.file('/tmp/Notes.md'),
+      ),
+    ],
+  );
+
+  testWidgets('adds Welcome to an existing synced library without one', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = FakeDocumentRepository()..storedMetadata = libraryWithNote();
+    await pumpLibrary(tester, repo);
+
+    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
+  });
+
+  testWidgets('does not bring Welcome back after the user deleted it', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+    final repo = FakeDocumentRepository()..storedMetadata = libraryWithNote();
+    await pumpLibrary(tester, repo);
+
+    expect(find.text('Welcome'), findsNothing);
+    expect(find.text('Notes'), findsOneWidget);
+  });
+
   testWidgets(
     'seeds Welcome.md on initial launch when library is uninitialized',
     (tester) async {
+      SharedPreferences.setMockInitialValues({});
       rootBundle.evict('assets/examples/welcome.md');
       rootBundle.evict('assets/examples/welcome_v1.md');
       await tester.runAsync(() async {

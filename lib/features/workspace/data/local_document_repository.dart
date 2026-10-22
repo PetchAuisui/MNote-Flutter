@@ -181,10 +181,63 @@ class LocalDocumentRepository implements DocumentRepository {
     try {
       final raw = await _storage.readMetadata();
       if (raw == null || raw.trim().isEmpty) return null;
-      return LibraryMetadata.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      final metadata = LibraryMetadata.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+      // Repaired in memory only; the next save persists it, which avoids a
+      // write racing with other read-modify-write updates.
+      return await _repairUris(metadata) ?? metadata;
     } catch (_) {
       return null;
     }
+  }
+
+  /// Points entries at where their files live now and merges entries that
+  /// then refer to the same file under the same name. Returns null when nothing needed fixing.
+  Future<LibraryMetadata?> _repairUris(LibraryMetadata metadata) async {
+    var changed = false;
+    final byUri = <String, DocumentItem>{};
+    final documents = <DocumentItem>[];
+
+    for (final item in metadata.documents) {
+      var current = item;
+      final uri = item.uri;
+      if (uri != null) {
+        final moved = await _storage.relocate(uri);
+        if (moved != uri) {
+          changed = true;
+          current = DocumentItem(
+            id: item.id == uri.toString() ? moved.toString() : item.id,
+            name: item.name,
+            content: item.content,
+            updatedAt: item.updatedAt,
+            folderId: item.folderId,
+            isStarred: item.isStarred,
+            uri: moved,
+            isTrash: item.isTrash,
+          );
+        }
+        // A renamed note keeps pointing at its old file, so the name is part
+        // of the identity.
+        final key = '${current.uri}\u0000${current.name}';
+        final existing = byUri[key];
+        if (existing != null) {
+          changed = true;
+          // Keep the most recently changed entry.
+          if (current.updatedAt.isAfter(existing.updatedAt)) {
+            documents[documents.indexOf(existing)] = current;
+            byUri[key] = current;
+          }
+          continue;
+        }
+        byUri[key] = current;
+      }
+      documents.add(current);
+    }
+
+    return changed
+        ? LibraryMetadata(folders: metadata.folders, documents: documents)
+        : null;
   }
 
   @override

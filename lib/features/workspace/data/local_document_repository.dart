@@ -193,7 +193,7 @@ class LocalDocumentRepository implements DocumentRepository {
   }
 
   /// Points entries at where their files live now and merges entries that
-  /// then refer to the same file. Returns null when nothing needed fixing.
+  /// then refer to the same file under the same name. Returns null when nothing needed fixing.
   Future<LibraryMetadata?> _repairUris(LibraryMetadata metadata) async {
     var changed = false;
     final byUri = <String, DocumentItem>{};
@@ -217,7 +217,9 @@ class LocalDocumentRepository implements DocumentRepository {
             isTrash: item.isTrash,
           );
         }
-        final key = current.uri.toString();
+        // A renamed note keeps pointing at its old file, so the name is part
+        // of the identity.
+        final key = '${current.uri}\u0000${current.name}';
         final existing = byUri[key];
         if (existing != null) {
           changed = true;

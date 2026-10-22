@@ -12,6 +12,12 @@ abstract interface class InkFileStorage {
   Future<bool> autoSave({required String name, required Uint8List bytes});
 
   Future<Uint8List?> autoLoad({required String name});
+
+  /// Document names that have auto-saved ink.
+  Future<List<String>> listNames();
+
+  /// Removes all auto-saved ink.
+  Future<void> deleteAll();
 }
 
 class DeviceInkFileStorage implements InkFileStorage {
@@ -64,5 +70,33 @@ class DeviceInkFileStorage implements InkFileStorage {
       }
     } catch (_) {}
     return null;
+  }
+
+  static const _suffix = '.ink.json';
+
+  @override
+  Future<List<String>> listNames() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      return [
+        for (final file in Directory(appDir.path).listSync().whereType<File>())
+          if (file.path.endsWith(_suffix))
+            Uri.decodeComponent(
+              file.uri.pathSegments.last,
+            ).replaceFirst(_suffix, ''),
+      ];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> deleteAll() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      for (final file in Directory(appDir.path).listSync().whereType<File>()) {
+        if (file.path.endsWith(_suffix)) await file.delete();
+      }
+    } catch (_) {}
   }
 }

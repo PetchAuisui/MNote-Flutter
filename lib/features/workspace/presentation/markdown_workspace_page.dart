@@ -34,6 +34,9 @@ class MarkdownWorkspacePage extends StatefulWidget {
   final MermaidFileSource mermaidFileSource;
   final ExportSaver? exportSaver;
 
+  /// Documents open in writing mode first; the editor is one tap away.
+  static WorkspaceMode defaultMode = WorkspaceMode.ink;
+
   @override
   State<MarkdownWorkspacePage> createState() => _MarkdownWorkspacePageState();
 }
@@ -70,6 +73,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace = WorkspaceController(
       widget.repository,
       initialDocument: widget.initialDocument,
+      initialMode: MarkdownWorkspacePage.defaultMode,
     )..addListener(_onWorkspaceChanged);
     _textController = LiveMarkdownEditingController(
       text: _workspace.document.content,
@@ -81,6 +85,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
     _loadBundledExample();
+    if (_workspace.mode == WorkspaceMode.ink) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitInk();
+      });
+    }
   }
 
   @override
@@ -1070,16 +1079,16 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ),
       segments: [
         ButtonSegment(
-          value: WorkspaceMode.split,
-          icon: const Icon(Icons.edit_document),
-          label: compact ? null : const Text('Markdown'),
-          tooltip: 'Markdown',
-        ),
-        ButtonSegment(
           value: WorkspaceMode.ink,
           icon: const Icon(Icons.draw_outlined),
           label: compact ? null : const Text('เขียน'),
           tooltip: 'เขียน',
+        ),
+        ButtonSegment(
+          value: WorkspaceMode.split,
+          icon: const Icon(Icons.edit_document),
+          label: compact ? null : const Text('Markdown'),
+          tooltip: 'Markdown',
         ),
       ],
       selected: {_workspace.mode},

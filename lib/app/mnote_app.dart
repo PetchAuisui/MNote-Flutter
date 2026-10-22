@@ -4,10 +4,14 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
 import 'package:mnote/features/sync/data/firestore_library_store.dart';
+import 'package:mnote/features/sync/data/firestore_ink_store.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
+import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -68,7 +72,7 @@ class MnoteApp extends StatelessWidget {
 
   /// Local storage, mirrored to the account's cloud library when signed in
   /// through Firebase.
-  DocumentRepository _defaultRepository() {
+  DocumentRepository _defaultRepository(SyncedInkFileStorage? ink) {
     const local = LocalDocumentRepository(DeviceDocumentStorage());
     final auth = authRepository;
     if (auth == null) return local;
@@ -76,12 +80,24 @@ class MnoteApp extends StatelessWidget {
       inner: local,
       store: FirestoreLibraryStore(),
       uidProvider: () => auth.currentUser?.uid,
+      companions: [?ink],
+    );
+  }
+
+  SyncedInkFileStorage? _syncedInk() {
+    final auth = authRepository;
+    if (auth == null || documentRepository != null) return null;
+    return SyncedInkFileStorage(
+      inner: const DeviceInkFileStorage(),
+      store: FirestoreInkStore(),
+      uidProvider: () => auth.currentUser?.uid,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final effectiveRepository = documentRepository ?? _defaultRepository();
+    final ink = _syncedInk();
+    final effectiveRepository = documentRepository ?? _defaultRepository(ink);
 
     final destination = NoteListScreen(
       repository: effectiveRepository,
@@ -126,6 +142,10 @@ class MnoteApp extends StatelessWidget {
                     accent: currentAccent,
                   ),
                   themeMode: currentThemeMode,
+                  builder: ink == null
+                      ? null
+                      : (context, child) =>
+                            InkStorageScope(storage: ink, child: child!),
                   home: home ?? defaultHome,
                 );
               },

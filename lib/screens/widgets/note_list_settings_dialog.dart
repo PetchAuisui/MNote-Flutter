@@ -59,16 +59,30 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ValueListenableBuilder<AppAccent>(
                     valueListenable: MnoteApp.accentNotifier,
                     builder: (context, currentAccent, _) {
-                      return Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
+                      // One row: each circle gets an equal slot and is drawn
+                      // up to 44 wide, so it shrinks evenly on narrow dialogs.
+                      return Row(
                         children: [
                           for (final accent in AppAccent.values)
-                            _AccentSwatch(
-                              accent: accent,
-                              selected: accent == currentAccent,
-                              onTap: () =>
-                                  MnoteApp.accentNotifier.value = accent,
+                            Expanded(
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 44,
+                                    maxHeight: 44,
+                                  ),
+                                  child: AspectRatio(
+                                    aspectRatio: 1,
+                                    child: _AccentSwatch(
+                                      accent: accent,
+                                      selected: accent == currentAccent,
+                                      onTap: () =>
+                                          MnoteApp.accentNotifier.value =
+                                              accent,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                         ],
                       );
@@ -213,8 +227,6 @@ class _AccentSwatch extends StatelessWidget {
           radius: 28,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            width: 44,
-            height: 44,
             decoration: BoxDecoration(
               color: accent.swatch,
               shape: BoxShape.circle,

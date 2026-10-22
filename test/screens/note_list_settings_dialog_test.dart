@@ -192,4 +192,25 @@ void main() {
       expect(ink.onChanged, isNull);
     });
   });
+
+  for (final width in [320.0, 392.0, 600.0, 1000.0]) {
+    testWidgets('accent colors share one row at width $width', (tester) async {
+      tester.view.physicalSize = Size(width, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await openSettings(tester);
+
+      final ys = {
+        for (final accent in AppAccent.values)
+          tester.getCenter(find.byKey(ValueKey('accent_${accent.name}'))).dy,
+      };
+      expect(ys, hasLength(1), reason: 'all swatches on a single row');
+      final sizes = {
+        for (final accent in AppAccent.values)
+          tester.getSize(find.byKey(ValueKey('accent_${accent.name}'))).width,
+      };
+      expect(sizes, hasLength(1), reason: 'swatches stay the same size');
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

@@ -1044,4 +1044,72 @@ void main() {
       reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงชื่อ ก - ฮ',
     );
   });
+
+  testWidgets('document cards use two columns and do not overflow on a phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(411, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+    final docs = [
+      for (var i = 0; i < 4; i++)
+        DocumentItem(
+          id: 'n$i',
+          name: 'Note$i.md',
+          content: '# Hello Everyone\nPersonal Information - Name : Siwapat',
+          updatedAt: DateTime(2026),
+        ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          initialDocuments: docs,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final first = tester.getTopLeft(find.text('Note0'));
+    final second = tester.getTopLeft(find.text('Note1'));
+    final third = tester.getTopLeft(find.text('Note2'));
+    expect(second.dx, greaterThan(first.dx));
+    expect(third.dx, first.dx, reason: 'third card wraps to a second row');
+    final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+    expect(card.width, 148);
+  });
+
+  for (final width in [320.0, 411.0, 600.0, 700.0, 834.0, 1200.0]) {
+    testWidgets('document cards are never squeezed at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: FakeDocumentRepository(),
+            initialDocuments: [
+              DocumentItem(
+                id: 'n0',
+                name: 'Note0.md',
+                content: '# Hello Everyone\nPersonal Information - Name',
+                updatedAt: DateTime(2026),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+      // 320dp phones cannot fit two full cards; everything wider must.
+      if (width >= 360) expect(card.width, 148);
+    });
+  }
 }

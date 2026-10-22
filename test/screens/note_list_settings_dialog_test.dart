@@ -114,4 +114,21 @@ void main() {
     );
     expect(icon.color, Colors.white);
   });
+
+  testWidgets('theme mode labels stay on one line on a phone', (tester) async {
+    tester.view.physicalSize = const Size(392, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await openSettings(tester);
+
+    expect(tester.takeException(), isNull);
+    for (final label in ['ตามเครื่อง', 'สว่าง', 'มืด']) {
+      // A wrapped label is taller than one 14sp line.
+      expect(
+        tester.getSize(find.text(label)).height,
+        lessThan(24),
+        reason: label,
+      );
+    }
+  });
 }

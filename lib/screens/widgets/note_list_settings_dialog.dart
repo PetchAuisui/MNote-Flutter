@@ -83,6 +83,12 @@ class NoteListSettingsDialog extends StatelessWidget {
                   Center(
                     child: SegmentedButton<ThemeMode>(
                       showSelectedIcon: false,
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        padding: WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
                       segments: const [
                         ButtonSegment(
                           value: ThemeMode.system,
@@ -91,7 +97,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                             color: Colors.teal,
                             size: 18,
                           ),
-                          label: Text('ตามเครื่อง'),
+                          label: _ModeLabel('ตามเครื่อง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.light,
@@ -100,7 +106,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                             color: Colors.orange,
                             size: 18,
                           ),
-                          label: Text('สว่าง'),
+                          label: _ModeLabel('สว่าง'),
                         ),
                         ButtonSegment(
                           value: ThemeMode.dark,
@@ -109,7 +115,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                             color: Colors.indigoAccent,
                             size: 18,
                           ),
-                          label: Text('มืด'),
+                          label: _ModeLabel('มืด'),
                         ),
                       ],
                       selected: {currentMode},
@@ -223,6 +229,21 @@ class _AccentSwatch extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Keeps a mode name on one line, shrinking it on narrow dialogs.
+class _ModeLabel extends StatelessWidget {
+  const _ModeLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text, maxLines: 1, softWrap: false),
     );
   }
 }

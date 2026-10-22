@@ -639,8 +639,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
     if (chosen == null || chosen == doc.syncMode || !mounted) return;
     setState(() {
+      // Edit the current entry: a sync may have refreshed it while the dialog
+      // was open, and `doc` would bring the stale copy back.
       final index = _documents.indexWhere((d) => d.id == doc.id);
-      if (index != -1) _documents[index] = doc.copyWith(syncMode: chosen);
+      if (index != -1) {
+        _documents[index] = _documents[index].copyWith(syncMode: chosen);
+      }
     });
     await _persistLibrary();
   }

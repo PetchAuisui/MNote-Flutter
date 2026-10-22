@@ -514,5 +514,40 @@ void main() {
       );
       expect(await repo.allowsInk('a.md', 100), isFalse);
     });
+
+    test(
+      'deleting a never-sync document leaves the cloud copy alone',
+      () async {
+        await repo.startSync();
+        await settle();
+        final saved = await repo.save(
+          MarkdownDocument.untitled('x').rename('a.md'),
+        );
+        await settle();
+        final item = (await repo.loadMetadata())!.documents.single;
+        await repo.saveMetadata(
+          LibraryMetadata(documents: [item.copyWith(syncMode: SyncMode.never)]),
+        );
+        await settle();
+
+        await repo.delete(saved!.uri!);
+        await settle();
+
+        expect(cloud.docs[CloudDocument.idFor('a.md')]!.deleted, isFalse);
+      },
+    );
+
+    test('flipping sync off and on quickly ends up on', () async {
+      await repo.startSync();
+      await settle();
+
+      settings.enabled = false;
+      settings.enabled = true;
+      await settle();
+      await saveNote('a.md', 'x');
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
+    });
   });
 }

@@ -213,6 +213,44 @@ void main() {
     expect(doc.uri, newUri);
     expect(doc.id, newUri.toString());
   });
+
+  test(
+    'a file-less cloud placeholder is dropped once its file exists',
+    () async {
+      final uri = Uri.file('/docs/Me.md');
+      DocumentItem item(String id, Uri? uri) => DocumentItem(
+        id: id,
+        name: 'Me.md',
+        content: 'x',
+        updatedAt: DateTime(2026, 1, 1),
+        uri: uri,
+      );
+      await repository.saveMetadata(
+        LibraryMetadata(
+          documents: [
+            item('cloud_Me.md', null),
+            item(uri.toString(), uri),
+            DocumentItem(
+              id: 'welcome_initial_doc',
+              name: 'Welcome.md',
+              content: 'w',
+              updatedAt: DateTime(2026, 1, 1),
+            ),
+            DocumentItem(
+              id: 'cloud_Only.md',
+              name: 'Only.md',
+              content: 'o',
+              updatedAt: DateTime(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+
+      final ids = (await repository.loadMetadata())!.documents.map((d) => d.id);
+
+      expect(ids, [uri.toString(), 'welcome_initial_doc', 'cloud_Only.md']);
+    },
+  );
 }
 
 class _FailingDocumentStorage extends FakeDocumentStorage {

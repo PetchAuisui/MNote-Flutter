@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show FileSystemException;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -714,12 +715,24 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<void> _insertImage() async {
-    final image = await widget.imagePicker.pick();
-    if (image == null || !mounted) return;
-    if (_workspace.mode != WorkspaceMode.edit) {
-      _workspace.setMode(WorkspaceMode.edit);
+    final directory = _imageDirectory;
+    final messenger = ScaffoldMessenger.of(context);
+    final MarkdownImageReference? image;
+    try {
+      image = await widget.imagePicker.pick(
+        documentDirectory: directory == null ? null : Uri.parse(directory),
+      );
+    } on FileSystemException {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้')),
+      );
+      return;
     }
-    _replaceSelection('', '', placeholder: image.markdown);
+    if (image == null || !mounted) return;
+    if (!_isTextMode) _workspace.setMode(WorkspaceMode.split);
+    // A blank line after the image moves the cursor out of its block, which
+    // would otherwise stay as raw Markdown while it is being edited.
+    _replaceSelection('', '', placeholder: '${image.markdown}\n\n');
   }
 
   bool get _isTextMode =>
@@ -778,9 +791,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final textToAppend = file.content.trim();
     if (textToAppend.isEmpty) return;
 
-    if (_workspace.mode != WorkspaceMode.edit) {
-      _workspace.setMode(WorkspaceMode.edit);
-    }
+    if (!_isTextMode) _workspace.setMode(WorkspaceMode.split);
 
     final value = _textController.value;
     final currentText = value.text;

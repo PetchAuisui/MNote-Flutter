@@ -138,13 +138,15 @@ class FakeDocumentRepository implements DocumentRepository {
 }
 
 class FakeDeviceImagePicker extends DeviceImagePicker {
-  FakeDeviceImagePicker([this.result]);
+  FakeDeviceImagePicker([this.result, this.error]);
   final MarkdownImageReference? result;
+  final Object? error;
   int pickCount = 0;
 
   @override
-  Future<MarkdownImageReference?> pick() async {
+  Future<MarkdownImageReference?> pick({Uri? documentDirectory}) async {
     pickCount++;
+    if (error case final error?) throw error;
     return result;
   }
 }

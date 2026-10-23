@@ -763,6 +763,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context,
       document: _workspace.document,
       surfaceKey: _surfaceBoundaryKey,
+      inkLoader: () async =>
+          _ink.pen.currentSketch.lines.isEmpty ? null : _ink.encode(),
       exportSaver: widget.exportSaver ?? defaultExportSaver,
     );
   }

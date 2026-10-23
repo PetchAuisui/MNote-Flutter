@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
@@ -7,9 +8,11 @@ import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.d
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1046,7 +1049,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (!mounted) return;
 
-    await showExportBottomSheet(context, document: mdDoc);
+    final inkStorage =
+        InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
+    await showExportBottomSheet(
+      context,
+      document: mdDoc,
+      inkLoader: () async {
+        final bytes = await inkStorage.autoLoad(name: mdDoc.name);
+        return bytes == null ? null : utf8.decode(bytes);
+      },
+    );
   }
 
   void _moveToTrashDocument(DocumentItem doc) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_user.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
@@ -195,5 +196,43 @@ void main() {
       expect(auth.updatedName, isNull);
       expect(find.text('กรุณากรอกชื่อ'), findsOneWidget);
     });
+  });
+
+  testWidgets('a failed account deletion shows the error and stays signed in', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final auth = FakeAuthRepository(
+      currentUser: const AuthUser(
+        uid: 'u1',
+        email: 'g@mail.com',
+        providerIds: ['google.com'],
+      ),
+      error: const AuthException(AuthErrorCode.network),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          authRepository: auth,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('การตั้งค่า (Settings)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-account-tile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('account-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('delete-account-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('เชื่อมต่ออินเทอร์เน็ตไม่ได้'), findsOneWidget);
+    expect(auth.currentUser, isNotNull);
+    expect(find.byType(AuthPage), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }

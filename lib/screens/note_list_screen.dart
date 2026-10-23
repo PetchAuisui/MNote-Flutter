@@ -631,11 +631,26 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final sync = repository is SyncableDocumentRepository ? repository : null;
     // Stop syncing first so nothing is re-uploaded while the cloud is erased.
     await sync?.stopSync();
+    // Erasing the cloud data can take a while; keep the user informed.
+    if (mounted) {
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const PopScope(
+            canPop: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      );
+    }
     try {
       await auth.deleteAccount(password: password.isEmpty ? null : password);
+      if (mounted) Navigator.of(context).pop();
     } on AuthException catch (e) {
       unawaited(sync?.startSync());
       if (!mounted) return;
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(AuthValidators.messageFor(e))));

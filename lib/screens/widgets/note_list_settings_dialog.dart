@@ -419,8 +419,11 @@ class _AccountSection extends StatelessWidget {
           ListTile(
             key: const Key('settings-sign-out'),
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.logout_rounded),
-            title: const Text('ออกจากระบบ'),
+            leading: const Icon(Icons.logout_rounded, color: Color(0xFFD9534F)),
+            title: const Text(
+              'ออกจากระบบ',
+              style: TextStyle(color: Color(0xFFD9534F)),
+            ),
             onTap: () async {
               Navigator.of(context).pop();
               await onSignOut!();

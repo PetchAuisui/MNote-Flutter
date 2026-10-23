@@ -265,7 +265,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final MnoteBundle bundle;
     try {
       bundle = MnoteBundle.decode(bytes);
-      if (bundle.ink != null) InkSession().load(bundle.ink!);
+      if (bundle.ink != null) {
+        final probe = InkSession();
+        try {
+          probe.load(bundle.ink!);
+        } finally {
+          probe.dispose();
+        }
+      }
     } on FormatException {
       messenger.showSnackBar(
         const SnackBar(content: Text('ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้')),
@@ -824,10 +831,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context,
       document: _workspace.document,
       surfaceKey: _surfaceBoundaryKey,
-      inkLoader: () async =>
-          _ink.pen.currentSketch.lines.isEmpty ? null : _ink.encode(),
+      inkLoader: _currentInkSnapshot,
       exportSaver: widget.exportSaver ?? defaultExportSaver,
     );
+  }
+
+  /// The ink to export. The ink page loads saved ink only once it is shown,
+  /// so in another mode the session is still empty and the saved copy is used.
+  Future<String?> _currentInkSnapshot() async {
+    if (_ink.pen.currentSketch.lines.isNotEmpty) return _ink.encode();
+    final storage =
+        InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
+    final bytes = await storage.autoLoad(name: _workspace.document.name);
+    return bytes == null ? null : utf8.decode(bytes);
   }
 
   Future<void> _moveToTrash() async {
@@ -1620,9 +1636,7 @@ enum _DocumentAction {
 
 Future<Uint8List?> pickMnoteFile() async {
   final file = await FilePicker.pickFile(
-    dialogTitle: 'เปิดโน้ต Mnote',
-    type: FileType.custom,
-    allowedExtensions: const [MnoteBundle.extension],
+    dialogTitle: 'เปิดโน้ต Mnote (.mnote)',
   );
   return file?.readAsBytes();
 }

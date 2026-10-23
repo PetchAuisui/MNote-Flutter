@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
@@ -6,9 +9,12 @@ import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/data/mermaid_file_source.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/features/workspace/presentation/markdown_formatting_toolbar.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/live_markdown_controller.dart';
@@ -30,6 +36,7 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
     this.exportSaver,
+    this.mnotePicker = pickMnoteFile,
     this.assistant = const FirebaseAiAssistant(),
   });
 
@@ -38,6 +45,9 @@ class MarkdownWorkspacePage extends StatefulWidget {
   final DeviceImagePicker imagePicker;
   final MermaidFileSource mermaidFileSource;
   final ExportSaver? exportSaver;
+
+  /// Lets the user choose a `.mnote` file; null when they cancel.
+  final Future<Uint8List?> Function() mnotePicker;
 
   /// Documents open in writing mode first; the editor is one tap away.
   static WorkspaceMode defaultMode = WorkspaceMode.ink;
@@ -91,7 +101,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       showRawSource: true,
     );
     _markdownFocusNode = FocusNode()..addListener(_onMarkdownFocusChanged);
-    _titleController = TextEditingController(text: _workspace.document.name);
+    _titleController = TextEditingController(
+      text: _workspace.document.displayName,
+    );
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
@@ -171,8 +183,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         selection: TextSelection.collapsed(offset: content.length),
       );
     }
-    if (!_isEditingTitle && _titleController.text != _workspace.document.name) {
-      _titleController.text = _workspace.document.name;
+    final title = _workspace.document.displayName;
+    if (!_isEditingTitle && _titleController.text != title) {
+      _titleController.text = title;
     }
     if (_workspace.document.isDirty) {
       _scheduleAutoSave();
@@ -195,12 +208,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _titleFocusNode.requestFocus();
-      final extensionStart = _titleController.text.lastIndexOf('.');
       _titleController.selection = TextSelection(
         baseOffset: 0,
-        extentOffset: extensionStart > 0
-            ? extensionStart
-            : _titleController.text.length,
+        extentOffset: _titleController.text.length,
       );
     });
   }
@@ -210,7 +220,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final name = _normalizedDocumentName(_titleController.text);
     setState(() => _isEditingTitle = false);
     _workspace.updateName(name);
-    _titleController.text = _workspace.document.name;
+    _titleController.text = _workspace.document.displayName;
     _titleFocusNode.unfocus();
     if (_workspace.document.isDirty) {
       _scheduleAutoSave();
@@ -226,7 +236,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         lowerName.endsWith('.txt')) {
       return name;
     }
-    return '$name.md';
+    final current = _workspace.document.name.toLowerCase();
+    return '$name${current.endsWith('.txt') ? '.txt' : '.md'}';
   }
 
   Future<void> _openDocument() async {
@@ -242,6 +253,63 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _resetInk();
       _resetUndoHistory();
     }
+  }
+
+  /// Opens a `.mnote` export as a new note with both its Markdown and ink.
+  Future<void> _openMnote() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final storage =
+        InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
+    final bytes = await widget.mnotePicker();
+    if (bytes == null || !mounted) return;
+    final MnoteBundle bundle;
+    try {
+      bundle = MnoteBundle.decode(bytes);
+      if (bundle.ink != null) {
+        final probe = InkSession();
+        try {
+          probe.load(bundle.ink!);
+        } finally {
+          probe.dispose();
+        }
+      }
+    } on FormatException {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้')),
+      );
+      return;
+    }
+
+    _autoSaveTimer?.cancel();
+    if (_workspace.document.isDirty) await _workspace.save();
+    final existing = await widget.repository.listDocuments();
+    final name = MnoteBundle.uniqueName(bundle.name, {
+      for (final doc in existing) doc.name,
+    });
+    _workspace
+      ..newDocument()
+      ..updateName(name)
+      ..updateContent(bundle.markdown);
+    final saved = await _workspace.save();
+    if (!saved) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถบันทึกโน้ตที่เปิดได้')),
+      );
+      return;
+    }
+    final ink = bundle.ink;
+    if (ink != null) {
+      await storage.autoSave(
+        name: _workspace.document.name,
+        bytes: Uint8List.fromList(utf8.encode(ink)),
+      );
+    }
+    if (!mounted) return;
+    _resetInk();
+    _resetUndoHistory();
+    messenger.showSnackBar(
+      SnackBar(content: Text('เปิดโน้ต ${documentDisplayName(name)} แล้ว')),
+    );
   }
 
   Future<void> _newDocument() async {
@@ -763,8 +831,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context,
       document: _workspace.document,
       surfaceKey: _surfaceBoundaryKey,
+      inkLoader: _currentInkSnapshot,
       exportSaver: widget.exportSaver ?? defaultExportSaver,
     );
+  }
+
+  /// The ink to export. The ink page loads saved ink only once it is shown,
+  /// so in another mode the session is still empty and the saved copy is used.
+  Future<String?> _currentInkSnapshot() async {
+    if (_ink.pen.currentSketch.lines.isNotEmpty) return _ink.encode();
+    final storage =
+        InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
+    final bytes = await storage.autoLoad(name: _workspace.document.name);
+    return bytes == null ? null : utf8.decode(bytes);
   }
 
   Future<void> _moveToTrash() async {
@@ -774,7 +853,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
         title: const Text('ย้ายไปถังขยะ?'),
         content: Text(
-          'คุณต้องการย้าย "${_workspace.document.name}" ไปยังถังขยะหรือไม่?',
+          'คุณต้องการย้าย "${_workspace.document.displayName}" ไปยังถังขยะหรือไม่?',
         ),
         actions: [
           TextButton(
@@ -1052,7 +1131,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        document.name,
+                        document.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
@@ -1151,6 +1230,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 _newDocument();
               case _DocumentAction.openDocument:
                 _openDocument();
+              case _DocumentAction.openMnote:
+                _openMnote();
               case _DocumentAction.importFile:
                 _importTextFile();
               case _DocumentAction.saveAs:
@@ -1177,6 +1258,17 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   Icon(Icons.folder_open_outlined, size: 20),
                   SizedBox(width: 12),
                   Expanded(child: Text('เปิดเอกสารอื่น')),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              key: Key('toolbar-open-mnote'),
+              value: _DocumentAction.openMnote,
+              child: Row(
+                children: [
+                  Icon(Icons.draw_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('เปิดโน้ต Mnote (.mnote)')),
                 ],
               ),
             ),
@@ -1533,7 +1625,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 }
 
-enum _DocumentAction { newDocument, openDocument, importFile, saveAs, trash }
+enum _DocumentAction {
+  newDocument,
+  openDocument,
+  openMnote,
+  importFile,
+  saveAs,
+  trash,
+}
+
+Future<Uint8List?> pickMnoteFile() async {
+  final file = await FilePicker.pickFile(
+    dialogTitle: 'เปิดโน้ต Mnote (.mnote)',
+  );
+  return file?.readAsBytes();
+}
 
 class _LineNumberPainter extends CustomPainter {
   _LineNumberPainter({

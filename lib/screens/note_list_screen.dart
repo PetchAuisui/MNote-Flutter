@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
@@ -7,9 +8,11 @@ import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.d
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -278,7 +281,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
+              content: Text('ดึงไฟล์ "${doc.displayName}" เข้ามาแล้ว'),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
@@ -440,7 +443,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
             color: Theme.of(ctx).colorScheme.primary,
           ),
           title: const Text('เอกสารอยู่ในถังขยะ'),
-          content: Text('คุณต้องการกู้คืน "${item.name}" เพื่อเปิดดูหรือไม่?'),
+          content: Text(
+            'คุณต้องการกู้คืน "${item.displayName}" เพื่อเปิดดูหรือไม่?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -1046,7 +1051,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
     if (!mounted) return;
 
-    await showExportBottomSheet(context, document: mdDoc);
+    final inkStorage =
+        InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
+    await showExportBottomSheet(
+      context,
+      document: mdDoc,
+      inkLoader: () async {
+        final bytes = await inkStorage.autoLoad(name: mdDoc.name);
+        return bytes == null ? null : utf8.decode(bytes);
+      },
+    );
   }
 
   void _moveToTrashDocument(DocumentItem doc) {
@@ -1063,7 +1077,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
+          content: Text('ย้ายไฟล์ "${doc.displayName}" ไปยังถังขยะแล้ว'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
@@ -1088,7 +1102,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
+          content: Text('กู้คืนไฟล์ "${doc.displayName}" เรียบร้อยแล้ว'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -1102,7 +1116,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
         title: const Text('ลบไฟล์ถาวร?'),
         content: Text(
-          'คุณต้องการลบ "${doc.name}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+          'คุณต้องการลบ "${doc.displayName}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
         ),
         actions: [
           TextButton(
@@ -1139,7 +1153,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+            content: Text('ลบไฟล์ "${doc.displayName}" ถาวรแล้ว'),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),

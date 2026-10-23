@@ -8,12 +8,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
-enum ExportFormat { pdf, markdown, plainText, image }
+enum ExportFormat { pdf, markdown, plainText, image, mnote }
 
 String stripMarkdown(String markdown) {
   var text = markdown;
@@ -177,10 +178,15 @@ Future<Uint8List> generatePdf({
   return pdf.save();
 }
 
+/// Supplies the note's encoded ink for a `.mnote` export, or null when it has
+/// none.
+typedef InkSnapshotLoader = Future<String?> Function();
+
 Future<void> showExportBottomSheet(
   BuildContext context, {
   required MarkdownDocument document,
   GlobalKey? surfaceKey,
+  InkSnapshotLoader? inkLoader,
   ExportSaver exportSaver = defaultExportSaver,
   ExportSharer exportSharer = defaultExportSharer,
 }) {
@@ -191,6 +197,7 @@ Future<void> showExportBottomSheet(
     builder: (sheetContext) => ExportBottomSheet(
       document: document,
       surfaceKey: surfaceKey,
+      inkLoader: inkLoader,
       exportSaver: exportSaver,
       exportSharer: exportSharer,
     ),
@@ -202,12 +209,14 @@ class ExportBottomSheet extends StatefulWidget {
     super.key,
     required this.document,
     this.surfaceKey,
+    this.inkLoader,
     required this.exportSaver,
     this.exportSharer = defaultExportSharer,
   });
 
   final MarkdownDocument document;
   final GlobalKey? surfaceKey;
+  final InkSnapshotLoader? inkLoader;
   final ExportSaver exportSaver;
   final ExportSharer exportSharer;
 
@@ -231,6 +240,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         return 'ข้อความล้วน (.txt)';
       case ExportFormat.image:
         return 'รูปภาพ (.png)';
+      case ExportFormat.mnote:
+        return 'โน้ต Mnote (.mnote)';
     }
   }
 
@@ -325,7 +336,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                                   maxWidth: 240,
                                 ),
                                 child: Text(
-                                  widget.document.name,
+                                  widget.document.displayName,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -375,6 +386,16 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           onTap: () => setState(() => _selectedFormat = ExportFormat.pdf),
         ),
         _ExportOptionTile(
+          key: const Key('export-option-mnote'),
+          icon: Icons.draw_rounded,
+          iconColor: const Color(0xFF7B4BA0),
+          iconBgColor: const Color(0xFFF3E5F5),
+          title: 'โน้ต Mnote (.mnote)',
+          subtitle:
+              'รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้',
+          onTap: () => setState(() => _selectedFormat = ExportFormat.mnote),
+        ),
+        _ExportOptionTile(
           key: const Key('export-option-markdown'),
           icon: Icons.description_rounded,
           iconColor: const Color(0xFF1E88E5),
@@ -406,6 +427,27 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     );
   }
 
+  Widget _buildMnoteOptionsView(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก '
+            'เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ',
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          _buildActionButtons(saveLabel: 'บันทึกไฟล์', shareLabel: 'แชร์ไฟล์'),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
   // หน้า Drill-down กำหนด Options สำหรับประเภทไฟล์ที่เลือก
   Widget _buildOptionsView(BuildContext context) {
     switch (_selectedFormat!) {
@@ -417,6 +459,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         return _buildTextOptionsView(context, isMarkdown: true);
       case ExportFormat.plainText:
         return _buildTextOptionsView(context, isMarkdown: false);
+      case ExportFormat.mnote:
+        return _buildMnoteOptionsView(context);
     }
   }
 
@@ -716,7 +760,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     setState(() => _isProcessing = true);
 
     final format = _selectedFormat!;
-    final baseName = widget.document.name.replaceAll(RegExp(r'\.[^.]+$'), '');
+    final baseName = widget.document.displayName;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
@@ -732,6 +776,17 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           ext = 'md';
           mimeType = 'text/markdown';
           fileName = '$baseName.md';
+          break;
+
+        case ExportFormat.mnote:
+          bytes = MnoteBundle(
+            name: widget.document.name,
+            markdown: widget.document.content,
+            ink: await widget.inkLoader?.call(),
+          ).encode();
+          ext = MnoteBundle.extension;
+          mimeType = 'application/json';
+          fileName = '$baseName.${MnoteBundle.extension}';
           break;
 
         case ExportFormat.plainText:

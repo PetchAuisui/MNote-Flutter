@@ -1,3 +1,9 @@
+/// A document name as shown to people: without its file extension.
+String documentDisplayName(String name) {
+  final lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(0, lastDot) : name;
+}
+
 class MarkdownDocument {
   const MarkdownDocument({
     required this.name,
@@ -44,6 +50,8 @@ class MarkdownDocument {
   final String savedName;
   final String savedContent;
   final Uri? uri;
+
+  String get displayName => documentDisplayName(name);
 
   bool get isDirty => name != savedName || content != savedContent;
 

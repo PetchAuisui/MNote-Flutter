@@ -29,6 +29,21 @@ class MnoteBundle {
     ),
   );
 
+  /// [name] made distinct from [taken] by adding " (2)", " (3)"... before the
+  /// extension, so importing never overwrites an existing note.
+  static String uniqueName(String name, Set<String> taken) {
+    final lower = taken.map((n) => n.toLowerCase()).toSet();
+    if (!lower.contains(name.toLowerCase())) return name;
+    final dot = name.lastIndexOf('.');
+    final stem = dot > 0 ? name.substring(0, dot) : name;
+    final ext = dot > 0 ? name.substring(dot) : '';
+    var n = 2;
+    while (lower.contains('$stem ($n)$ext'.toLowerCase())) {
+      n++;
+    }
+    return '$stem ($n)$ext';
+  }
+
   /// Throws [FormatException] when [bytes] is not a supported bundle.
   factory MnoteBundle.decode(Uint8List bytes) {
     final Object? data;

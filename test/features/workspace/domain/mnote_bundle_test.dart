@@ -63,4 +63,10 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('uniqueName keeps a free name and numbers a taken one', () {
+    expect(MnoteBundle.uniqueName('a.md', {'b.md'}), 'a.md');
+    expect(MnoteBundle.uniqueName('a.md', {'A.md'}), 'a (2).md');
+    expect(MnoteBundle.uniqueName('a.md', {'a.md', 'a (2).md'}), 'a (3).md');
+  });
 }

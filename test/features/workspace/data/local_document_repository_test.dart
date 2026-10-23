@@ -112,6 +112,7 @@ void main() {
           name: 'โฟลเดอร์ทดสอบ',
           updatedAt: DateTime(2026, 1, 1),
           isStarred: true,
+          colorValue: 0xFF1E88E5,
         ),
       ],
       documents: [
@@ -135,6 +136,7 @@ void main() {
     expect(loaded?.folders.length, 1);
     expect(loaded?.folders.first.name, 'โฟลเดอร์ทดสอบ');
     expect(loaded?.folders.first.isStarred, isTrue);
+    expect(loaded?.folders.first.colorValue, 0xFF1E88E5);
     expect(loaded?.documents.length, 1);
     expect(loaded?.documents.first.name, 'test.md');
     expect(loaded?.documents.first.uri, Uri.file('/tmp/test.md'));

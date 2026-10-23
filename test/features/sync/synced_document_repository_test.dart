@@ -227,6 +227,25 @@ void main() {
     expect(cloud.folders['f2']!.name, 'Home');
   });
 
+  test('a folder color syncs both ways', () async {
+    cloud.folders['f1'] = CloudFolder(
+      id: 'f1',
+      name: 'Work',
+      updatedAt: DateTime(2026, 1, 1),
+      colorValue: 0xFFE53935,
+    );
+    await repo.startSync();
+    await settle();
+    final pulled = (await repo.loadMetadata())!.folders.single;
+    expect(pulled.colorValue, 0xFFE53935);
+
+    await repo.saveMetadata(
+      LibraryMetadata(folders: [pulled.withColor(0xFF43A047)]),
+    );
+    await settle();
+    expect(cloud.folders['f1']!.colorValue, 0xFF43A047);
+  });
+
   test('untouched bundled welcome document is not uploaded', () async {
     await repo.startSync();
     await settle();

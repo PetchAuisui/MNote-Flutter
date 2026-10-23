@@ -55,6 +55,7 @@ class CloudFolder {
     this.isStarred = false,
     this.isTrash = false,
     this.deleted = false,
+    this.colorValue,
   });
 
   factory CloudFolder.fromItem(FolderItem item) {
@@ -64,6 +65,7 @@ class CloudFolder {
       updatedAt: item.updatedAt,
       isStarred: item.isStarred,
       isTrash: item.isTrash,
+      colorValue: item.colorValue,
     );
   }
 
@@ -73,8 +75,10 @@ class CloudFolder {
   final bool isStarred;
   final bool isTrash;
   final bool deleted;
+  final int? colorValue;
 
-  String get signature => '$name\u0000$isStarred\u0000$isTrash';
+  String get signature =>
+      '$name\u0000$isStarred\u0000$isTrash\u0000${colorValue ?? ''}';
 }
 
 class CloudLibrarySnapshot {

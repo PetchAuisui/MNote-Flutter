@@ -39,6 +39,7 @@ class LibraryMetadata {
             'updatedAt': f.updatedAt.toIso8601String(),
             'isStarred': f.isStarred,
             'isTrash': f.isTrash,
+            'color': f.colorValue,
           },
         )
         .toList(),
@@ -73,6 +74,7 @@ class LibraryMetadata {
               DateTime.now(),
           isStarred: map['isStarred'] as bool? ?? false,
           isTrash: map['isTrash'] as bool? ?? false,
+          colorValue: map['color'] as int?,
         );
       }).toList(),
       documents: docsList.map((d) {
@@ -102,13 +104,27 @@ class FolderItem {
   final bool isStarred;
   final bool isTrash;
 
+  /// ARGB value of the folder's chosen color, or null for the theme color.
+  final int? colorValue;
+
   FolderItem({
     required this.id,
     required this.name,
     required this.updatedAt,
     this.isStarred = false,
     this.isTrash = false,
+    this.colorValue,
   });
+
+  /// Returns a copy with [colorValue] set to [color]; null clears it.
+  FolderItem withColor(int? color) => FolderItem(
+    id: id,
+    name: name,
+    updatedAt: DateTime.now(),
+    isStarred: isStarred,
+    isTrash: isTrash,
+    colorValue: color,
+  );
 
   FolderItem copyWith({
     String? id,
@@ -123,6 +139,7 @@ class FolderItem {
       updatedAt: updatedAt ?? this.updatedAt,
       isStarred: isStarred ?? this.isStarred,
       isTrash: isTrash ?? this.isTrash,
+      colorValue: colorValue,
     );
   }
 }

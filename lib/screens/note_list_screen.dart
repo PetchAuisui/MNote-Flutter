@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/auth/domain/auth_validators.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
-import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
@@ -615,7 +616,63 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final sync = _syncRepository?.settings;
     showDialog(
       context: context,
-      builder: (_) => NoteListSettingsDialog(syncSettings: sync),
+      builder: (_) => NoteListSettingsDialog(
+        syncSettings: sync,
+        authRepository: widget.authRepository,
+        onSignOut: widget.authRepository == null ? null : _signOut,
+        onDeleteAccount: widget.authRepository == null ? null : _deleteAccount,
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount(String password) async {
+    final auth = widget.authRepository!;
+    final repository = widget.repository;
+    final sync = repository is SyncableDocumentRepository ? repository : null;
+    // Stop syncing first so nothing is re-uploaded while the cloud is erased.
+    await sync?.stopSync();
+    // Erasing the cloud data can take a while; keep the user informed.
+    if (mounted) {
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const PopScope(
+            canPop: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      );
+    }
+    try {
+      await auth.deleteAccount(password: password.isEmpty ? null : password);
+      if (mounted) Navigator.of(context).pop();
+    } on AuthException catch (e) {
+      unawaited(sync?.startSync());
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AuthValidators.messageFor(e))));
+      return;
+    }
+    await _syncSubscription?.cancel();
+    _syncSubscription = null;
+    await sync?.stopSync(clearLocal: true);
+    await _setWelcomeRemoved(false);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => AuthPage(
+          repository: widget.repository,
+          authRepository: auth,
+          nextPage: NoteListScreen(
+            repository: widget.repository,
+            authRepository: auth,
+          ),
+        ),
+      ),
+      (_) => false,
     );
   }
 
@@ -1505,12 +1562,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
             tooltip: 'การตั้งค่า (Settings)',
             onPressed: _openSettings,
           ),
-          if (widget.authRepository?.currentUser != null)
-            AccountAvatarButton(
-              user: widget.authRepository!.currentUser!,
-              authRepository: widget.authRepository!,
-              onSignOut: _signOut,
-            ),
           const SizedBox(width: 8),
         ],
       ),

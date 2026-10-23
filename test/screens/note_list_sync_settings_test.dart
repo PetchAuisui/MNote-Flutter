@@ -67,9 +67,9 @@ void main() {
     );
     await pump(tester, auth: auth);
     repo.unsynced = 2;
-    await tester.tap(find.byTooltip('บัญชีของฉัน'));
+    await tester.tap(find.byTooltip('การตั้งค่า (Settings)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ออกจากระบบ'));
+    await tester.tap(find.byKey(const Key('settings-sign-out')));
     await tester.pumpAndSettle();
     expect(find.text('มีไฟล์ที่ไม่ได้ซิงก์'), findsOneWidget);
     return auth;
@@ -103,9 +103,9 @@ void main() {
     );
     await pump(tester, auth: auth);
 
-    await tester.tap(find.byTooltip('บัญชีของฉัน'));
+    await tester.tap(find.byTooltip('การตั้งค่า (Settings)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ออกจากระบบ'));
+    await tester.tap(find.byKey(const Key('settings-sign-out')));
     await letPreferencesFinish(tester);
 
     expect(find.text('มีไฟล์ที่ไม่ได้ซิงก์'), findsNothing);

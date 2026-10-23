@@ -336,7 +336,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                                   maxWidth: 240,
                                 ),
                                 child: Text(
-                                  widget.document.name,
+                                  widget.document.displayName,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -760,7 +760,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     setState(() => _isProcessing = true);
 
     final format = _selectedFormat!;
-    final baseName = widget.document.name.replaceAll(RegExp(r'\.[^.]+$'), '');
+    final baseName = widget.document.displayName;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 

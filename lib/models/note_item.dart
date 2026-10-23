@@ -1,3 +1,5 @@
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
+
 /// Per-document cloud sync choice, kept on this device only.
 enum SyncMode {
   /// Follow the global settings.
@@ -156,13 +158,7 @@ class DocumentItem {
   bool get isTxt => extension == 'txt';
   bool get isMarkdown => extension == 'md' || extension == 'markdown';
 
-  String get displayName {
-    final lastDot = name.lastIndexOf('.');
-    if (lastDot > 0) {
-      return name.substring(0, lastDot);
-    }
-    return name;
-  }
+  String get displayName => documentDisplayName(name);
 
   DocumentItem copyWith({
     String? id,

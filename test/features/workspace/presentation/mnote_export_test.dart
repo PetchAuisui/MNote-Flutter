@@ -93,7 +93,7 @@ void main() {
     await tester.tap(find.byKey(const Key('toolbar-open-mnote')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('เปิดโน้ต trip.md แล้ว'), findsOneWidget);
+    expect(find.textContaining('เปิดโน้ต trip แล้ว'), findsOneWidget);
     expect(jsonDecode(utf8.decode(storage.saved['trip.md']!)), jsonDecode(ink));
   });
 }

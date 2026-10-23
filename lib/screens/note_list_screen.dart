@@ -281,7 +281,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: Text('ดึงไฟล์ "${doc.name}" เข้ามาแล้ว'),
+              content: Text('ดึงไฟล์ "${doc.displayName}" เข้ามาแล้ว'),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
@@ -443,7 +443,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
             color: Theme.of(ctx).colorScheme.primary,
           ),
           title: const Text('เอกสารอยู่ในถังขยะ'),
-          content: Text('คุณต้องการกู้คืน "${item.name}" เพื่อเปิดดูหรือไม่?'),
+          content: Text(
+            'คุณต้องการกู้คืน "${item.displayName}" เพื่อเปิดดูหรือไม่?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -1075,7 +1077,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('ย้ายไฟล์ "${doc.name}" ไปยังถังขยะแล้ว'),
+          content: Text('ย้ายไฟล์ "${doc.displayName}" ไปยังถังขยะแล้ว'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
@@ -1100,7 +1102,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('กู้คืนไฟล์ "${doc.name}" เรียบร้อยแล้ว'),
+          content: Text('กู้คืนไฟล์ "${doc.displayName}" เรียบร้อยแล้ว'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -1114,7 +1116,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
         title: const Text('ลบไฟล์ถาวร?'),
         content: Text(
-          'คุณต้องการลบ "${doc.name}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+          'คุณต้องการลบ "${doc.displayName}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
         ),
         actions: [
           TextButton(
@@ -1151,7 +1153,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('ลบไฟล์ "${doc.name}" ถาวรแล้ว'),
+            content: Text('ลบไฟล์ "${doc.displayName}" ถาวรแล้ว'),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),

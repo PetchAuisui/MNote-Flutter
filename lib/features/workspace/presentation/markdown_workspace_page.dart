@@ -102,7 +102,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
     _markdownFocusNode = FocusNode()..addListener(_onMarkdownFocusChanged);
     _titleController = TextEditingController(
-      text: _displayName(_workspace.document.name),
+      text: _workspace.document.displayName,
     );
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
@@ -183,7 +183,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         selection: TextSelection.collapsed(offset: content.length),
       );
     }
-    final title = _displayName(_workspace.document.name);
+    final title = _workspace.document.displayName;
     if (!_isEditingTitle && _titleController.text != title) {
       _titleController.text = title;
     }
@@ -220,19 +220,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final name = _normalizedDocumentName(_titleController.text);
     setState(() => _isEditingTitle = false);
     _workspace.updateName(name);
-    _titleController.text = _displayName(_workspace.document.name);
+    _titleController.text = _workspace.document.displayName;
     _titleFocusNode.unfocus();
     if (_workspace.document.isDirty) {
       _scheduleAutoSave();
     }
-  }
-
-  /// The title as shown: Markdown names hide their `.md`/`.markdown` suffix.
-  static String _displayName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.endsWith('.markdown')) return name.substring(0, name.length - 9);
-    if (lower.endsWith('.md')) return name.substring(0, name.length - 3);
-    return name;
   }
 
   String _normalizedDocumentName(String value) {
@@ -308,7 +300,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (!mounted) return;
     _resetInk();
     _resetUndoHistory();
-    messenger.showSnackBar(SnackBar(content: Text('เปิดโน้ต $name แล้ว')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('เปิดโน้ต ${documentDisplayName(name)} แล้ว')),
+    );
   }
 
   Future<void> _newDocument() async {
@@ -843,7 +837,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
         title: const Text('ย้ายไปถังขยะ?'),
         content: Text(
-          'คุณต้องการย้าย "${_workspace.document.name}" ไปยังถังขยะหรือไม่?',
+          'คุณต้องการย้าย "${_workspace.document.displayName}" ไปยังถังขยะหรือไม่?',
         ),
         actions: [
           TextButton(
@@ -1121,7 +1115,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        _displayName(document.name),
+                        document.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,

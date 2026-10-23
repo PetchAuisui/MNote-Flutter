@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show FileSystemException;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -715,9 +716,18 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   Future<void> _insertImage() async {
     final directory = _imageDirectory;
-    final image = await widget.imagePicker.pick(
-      documentDirectory: directory == null ? null : Uri.parse(directory),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    final MarkdownImageReference? image;
+    try {
+      image = await widget.imagePicker.pick(
+        documentDirectory: directory == null ? null : Uri.parse(directory),
+      );
+    } on FileSystemException {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้')),
+      );
+      return;
+    }
     if (image == null || !mounted) return;
     if (!_isTextMode) _workspace.setMode(WorkspaceMode.split);
     // A blank line after the image moves the cursor out of its block, which

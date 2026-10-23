@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/models/note_item.dart';
@@ -285,6 +287,37 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(NoteListScreen), findsOneWidget);
+  });
+
+  testWidgets('a failed image copy tells the user and leaves the note alone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = FakeDocumentRepository();
+    final imagePicker = FakeDeviceImagePicker(
+      null,
+      const FileSystemException('read-only'),
+    );
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          imagePicker: imagePicker,
+          initialDocument: MarkdownDocument.example('keep me'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('toolbar-image')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้'), findsOneWidget);
+    expect(find.textContaining('keep me'), findsWidgets);
   });
 
   testWidgets('importing a file from writing mode opens the Markdown tab', (

@@ -413,6 +413,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
         updatedAt: remote.updatedAt,
         isStarred: remote.isStarred,
         isTrash: remote.isTrash,
+        colorValue: remote.colorValue,
       );
       if (index == -1) {
         folders.add(item);
@@ -535,6 +536,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
           updatedAt: stamp,
           isStarred: candidate.isStarred,
           isTrash: candidate.isTrash,
+          colorValue: candidate.colorValue,
         ),
       );
     }

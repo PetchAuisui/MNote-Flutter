@@ -90,6 +90,7 @@ class FirestoreLibraryStore implements CloudLibraryStore {
         'isStarred': f.isStarred,
         'isTrash': f.isTrash,
         'deleted': f.deleted,
+        'color': f.colorValue,
       }),
     );
   }
@@ -131,6 +132,7 @@ class FirestoreLibraryStore implements CloudLibraryStore {
       isStarred: data['isStarred'] as bool? ?? false,
       isTrash: data['isTrash'] as bool? ?? false,
       deleted: data['deleted'] as bool? ?? false,
+      colorValue: (data['color'] as num?)?.toInt(),
     );
   }
 

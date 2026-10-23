@@ -132,13 +132,12 @@ void main() {
       },
     );
 
-    // 5. (Security) เนื้อหาโน้ตไม่ถูกส่งให้ AI
+    // 5. (Security) โน้ตถูกส่งเฉพาะตอนมีชิป และเนื้อหาโน้ตไม่ถูก render ในแชท
     testWidgets(
-      '5. (Security) note content is not sent to AI or rendered in chat panel',
+      '5. (Security) note is sent only with the chip shown and never rendered in chat',
       (tester) async {
         final fakeAssistant = FakeAiAssistant();
-        const secretNoteContent = 'ข้อมูลลับในโน้ตที่ห้ามส่งไป AI';
-
+        const secretNoteContent = 'ข้อมูลลับในโน้ต';
         await pumpWorkspace(
           tester,
           size: const Size(1024, 768),
@@ -149,23 +148,38 @@ void main() {
         await tester.tap(find.byKey(const Key('toolbar-assistant-button')));
         await tester.pumpAndSettle();
 
+        // เปิดแชตแล้วยังไม่ส่งอะไรออกไป
+        expect(fakeAssistant.callCount, 0);
+        expect(find.text('AI จะอ่าน: Test.md'), findsOneWidget);
+
+        // ส่งตอนมีชิป: ได้โน้ตจริง
         await tester.enterText(
           find.byKey(const Key('assistant-input')),
-          'สวัสดี',
+          'สรุป',
         );
         await tester.pump();
         await tester.tap(find.byKey(const Key('assistant-send')));
         await tester.pumpAndSettle();
+        expect(fakeAssistant.lastDocument?.content, secretNoteContent);
 
+        // กด x แล้วส่ง: ไม่ได้โน้ต
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('assistant-input')), 'ต่อ');
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('assistant-send')));
+        await tester.pumpAndSettle();
+        expect(fakeAssistant.callCount, 2);
         expect(fakeAssistant.lastDocument, isNull);
-        expect(fakeAssistant.lastText, 'สวัสดี');
 
-        final chatPanelFinder = find.byKey(const Key('assistant-chat-panel'));
-        final secretInChat = find.descendant(
-          of: chatPanelFinder,
-          matching: find.textContaining(secretNoteContent),
+        // เนื้อหาโน้ตไม่ถูกแสดงในแผงแชท มีแค่ชื่อ
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('assistant-chat-panel')),
+            matching: find.textContaining(secretNoteContent),
+          ),
+          findsNothing,
         );
-        expect(secretInChat, findsNothing);
       },
     );
 
@@ -198,6 +212,27 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    // 7. (Security) โน้ตว่าง: เปิดแชตแล้วต้องไม่มีทั้งชิปและปุ่มแนบ
+    testWidgets(
+      '7. (Security) empty note shows neither note chip nor attach button',
+      (tester) async {
+        final fakeAssistant = FakeAiAssistant();
+        await pumpWorkspace(
+          tester,
+          size: const Size(1024, 768),
+          assistant: fakeAssistant,
+          content: '',
+        );
+
+        await tester.tap(find.byKey(const Key('toolbar-assistant-button')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+        expect(find.byKey(const Key('assistant-note-attach')), findsNothing);
+        expect(find.textContaining('ไม่ได้อ่านโน้ต'), findsOneWidget);
       },
     );
   });

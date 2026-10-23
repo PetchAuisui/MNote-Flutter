@@ -14,6 +14,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/screens/widgets/folder_color_dialog.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note_item.dart';
@@ -538,6 +539,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
     _persistLibrary();
   }
 
+  Future<void> _changeFolderColor(FolderItem folder) async {
+    final choice = await showFolderColorDialog(context, folder);
+    if (choice == null || !mounted) return;
+    if (choice.color == folder.colorValue) return;
+    setState(() {
+      final index = _folders.indexWhere((f) => f.id == folder.id);
+      if (index != -1) _folders[index] = folder.withColor(choice.color);
+    });
+    await _persistLibrary();
+  }
+
   void _toggleDocumentStar(DocumentItem doc) {
     setState(() {
       final index = _documents.indexWhere((d) => d.id == doc.id);
@@ -903,9 +915,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                 ...availableFolders.map(
                   (f) => ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.folder_outlined,
-                      color: Colors.amber,
+                      color: folderColor(f, Colors.amber),
                     ),
                     title: Text(f.name),
                     onTap: () => Navigator.pop(ctx, f.id),
@@ -1796,7 +1808,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         final sheetTheme = Theme.of(ctx);
         final sheetPrimary = sheetTheme.colorScheme.primary;
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1804,7 +1816,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ListTile(
                   leading: Icon(
                     Icons.folder_rounded,
-                    color: sheetPrimary,
+                    color: folderColor(folder, sheetPrimary),
                     size: 28,
                   ),
                   title: Text(
@@ -1855,6 +1867,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     onTap: () {
                       Navigator.pop(ctx);
                       _renameFolder(folder);
+                    },
+                  ),
+                  ListTile(
+                    key: const Key('folder-change-color'),
+                    leading: Icon(
+                      Icons.palette_outlined,
+                      color: folderColor(folder, sheetPrimary),
+                    ),
+                    title: const Text('เปลี่ยนสีโฟลเดอร์'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _changeFolderColor(folder);
                     },
                   ),
                   ListTile(
@@ -2276,7 +2300,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Icon(Icons.folder_rounded, size: 128, color: primary),
+                      Icon(
+                        Icons.folder_rounded,
+                        size: 128,
+                        color: folderColor(folder, primary),
+                      ),
                       Positioned(
                         bottom: 8,
                         child: Container(
@@ -2834,7 +2862,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
         for (final item in items)
           if (item is FolderItem)
             ListTile(
-              leading: Icon(Icons.folder_rounded, color: primary, size: 36),
+              leading: Icon(
+                Icons.folder_rounded,
+                color: folderColor(item, primary),
+                size: 36,
+              ),
               title: Text(
                 item.name,
                 style: const TextStyle(

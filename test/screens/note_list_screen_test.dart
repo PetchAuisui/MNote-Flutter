@@ -874,6 +874,48 @@ void main() {
     },
   );
 
+  testWidgets('a folder can be given a color and reset to the default', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    final folder = FolderItem(
+      id: 'f_color',
+      name: 'โฟลเดอร์สี',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(repository: repo, initialFolders: [folder]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Icon folderIcon() => tester
+        .widgetList<Icon>(find.byIcon(Icons.folder_rounded))
+        .firstWhere((icon) => icon.size == 128);
+    final defaultColor = folderIcon().color;
+
+    await tester.longPress(find.text('โฟลเดอร์สี'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-change-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-color-ffe53935')));
+    await tester.pumpAndSettle();
+
+    expect(folderIcon().color, const Color(0xFFE53935));
+    expect(repo.storedMetadata!.folders.single.colorValue, 0xFFE53935);
+
+    await tester.longPress(find.text('โฟลเดอร์สี'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-change-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-color-default')));
+    await tester.pumpAndSettle();
+
+    expect(folderIcon().color, defaultColor);
+    expect(repo.storedMetadata!.folders.single.colorValue, isNull);
+  });
+
   testWidgets('moves document to folder and back to root successfully', (
     tester,
   ) async {

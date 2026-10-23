@@ -719,10 +719,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       documentDirectory: directory == null ? null : Uri.parse(directory),
     );
     if (image == null || !mounted) return;
-    if (_workspace.mode != WorkspaceMode.edit) {
-      _workspace.setMode(WorkspaceMode.edit);
-    }
-    _replaceSelection('', '', placeholder: image.markdown);
+    if (!_isTextMode) _workspace.setMode(WorkspaceMode.split);
+    // A blank line after the image moves the cursor out of its block, which
+    // would otherwise stay as raw Markdown while it is being edited.
+    _replaceSelection('', '', placeholder: '${image.markdown}\n\n');
   }
 
   bool get _isTextMode =>
@@ -781,9 +781,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final textToAppend = file.content.trim();
     if (textToAppend.isEmpty) return;
 
-    if (_workspace.mode != WorkspaceMode.edit) {
-      _workspace.setMode(WorkspaceMode.edit);
-    }
+    if (!_isTextMode) _workspace.setMode(WorkspaceMode.split);
 
     final value = _textController.value;
     final currentText = value.text;

@@ -8,6 +8,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
+import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'helpers/fakes.dart';
@@ -286,6 +287,36 @@ void main() {
     expect(find.byType(NoteListScreen), findsOneWidget);
   });
 
+  testWidgets('importing a file from writing mode opens the Markdown tab', (
+    tester,
+  ) async {
+    MarkdownWorkspacePage.defaultMode = WorkspaceMode.ink;
+    addTearDown(() => MarkdownWorkspacePage.defaultMode = WorkspaceMode.split);
+    final repo = FakeDocumentRepository()
+      ..openResult = MarkdownDocument.untitled('imported');
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(repository: repo),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-add-file')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<SegmentedButton<WorkspaceMode>>(
+            find.byKey(const Key('workspace-mode-switcher')),
+          )
+          .selected,
+      {WorkspaceMode.split},
+    );
+  });
+
   testWidgets(
     'toolbar image button inserts image and more actions menu supports import file',
     (tester) async {
@@ -320,6 +351,16 @@ void main() {
 
       expect(imagePicker.pickCount, 1);
       expect(find.textContaining('![photo](photo.png)'), findsOneWidget);
+      // The Markdown tab stays selected rather than jumping to a mode that has
+      // no tab, so the inserted image is shown rendered.
+      expect(
+        tester
+            .widget<SegmentedButton<WorkspaceMode>>(
+              find.byKey(const Key('workspace-mode-switcher')),
+            )
+            .selected,
+        {WorkspaceMode.split},
+      );
 
       // Tap more actions menu and select import file
       await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));

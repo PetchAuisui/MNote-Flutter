@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:mnote/features/sync/domain/cloud_library_store.dart';
+import 'package:mnote/features/sync/domain/network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_companion.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
@@ -22,8 +23,11 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     required this._uidProvider,
     required this.settings,
     this.companions = const [],
+    this.network,
   }) {
     settings.addListener(_onSettingsChanged);
+    // The repository lives as long as the app, so this is never cancelled.
+    network?.changes.listen((_) => _onSettingsChanged());
   }
 
   static const ownerPrefKey = 'mnote_sync_owner_uid';
@@ -39,6 +43,12 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   /// Started and stopped together with the library (e.g. pen ink).
   final List<SyncCompanion> companions;
 
+  /// Used to hold sync back on mobile data when the user asked for Wi-Fi only.
+  final NetworkMonitor? network;
+
+  bool get _shouldRun =>
+      settings.enabled && !(settings.wifiOnly && (network?.isMetered ?? false));
+
   final _changes = StreamController<void>.broadcast();
   StreamSubscription<CloudLibrarySnapshot>? _subscription;
   String? _uid;
@@ -51,6 +61,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   final Map<String, DateTime> _pendingDeletes = {};
 
   final _syncedNames = ValueNotifier<Set<String>>(const {});
+  final _lastSyncedAt = ValueNotifier<DateTime?>(null);
   // Signatures the server has confirmed, by document name.
   Map<String, String> _confirmed = const {};
 
@@ -58,12 +69,15 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   ValueListenable<Set<String>> get syncedNames => _syncedNames;
 
   @override
+  ValueListenable<DateTime?> get lastSyncedAt => _lastSyncedAt;
+
+  @override
   Stream<void> get changes => _changes.stream;
 
   @override
   Future<void> startSync() async {
     final uid = _uidProvider();
-    if (!settings.enabled) return;
+    if (!_shouldRun) return;
     if (uid == null || (uid == _uid && _subscription != null)) return;
 
     await _subscription?.cancel();
@@ -125,9 +139,9 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     _lifecycle = _lifecycle
         .then<void>((_) async {
           final running = _subscription != null;
-          if (!settings.enabled && running) {
+          if (!_shouldRun && running) {
             await stopSync();
-          } else if (settings.enabled && !running) {
+          } else if (_shouldRun && !running) {
             await startSync();
           } else if (running) {
             _pushSoon();
@@ -139,6 +153,24 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
         .catchError((Object e) {
           debugPrint('Sync settings change failed: $e');
         });
+  }
+
+  @override
+  Future<bool> syncNow() async {
+    if (_uid == null || !_ready) return false;
+    _pushSoon();
+    for (final companion in companions) {
+      unawaited(companion.refresh());
+    }
+    try {
+      await _queue;
+      await _store.waitForPendingWrites().timeout(const Duration(seconds: 15));
+    } catch (e) {
+      debugPrint('Sync now failed: $e');
+      return false;
+    }
+    _lastSyncedAt.value = DateTime.now();
+    return true;
   }
 
   @override
@@ -312,6 +344,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     final metadata = await _inner.loadMetadata();
     await _push(metadata);
     _refreshSynced(metadata);
+    if (!snapshot.hasPendingWrites) _lastSyncedAt.value = DateTime.now();
     if (changed) _changes.add(null);
   }
 

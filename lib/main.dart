@@ -8,6 +8,7 @@ import 'package:mnote/core/theme/theme_preferences.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/sync/data/connectivity_network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 
 Future<void> main() async {
@@ -33,7 +34,16 @@ Future<void> main() async {
     return;
   }
 
-  runApp(MnoteApp(authRepository: authRepository, syncSettings: syncSettings));
+  final networkMonitor = ConnectivityNetworkMonitor();
+  await networkMonitor.start();
+
+  runApp(
+    MnoteApp(
+      authRepository: authRepository,
+      syncSettings: syncSettings,
+      networkMonitor: networkMonitor,
+    ),
+  );
 }
 
 /// Debug builds use the Debug provider (token is printed in the native log and

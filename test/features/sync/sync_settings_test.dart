@@ -13,10 +13,11 @@ DocumentItem doc(String content, [SyncMode mode = SyncMode.auto]) =>
     );
 
 void main() {
-  test('defaults: sync on and ink on', () {
+  test('defaults: sync on, ink on, Wi-Fi only off', () {
     final s = SyncSettings();
     expect(s.enabled, isTrue);
     expect(s.syncInk, isTrue);
+    expect(s.wifiOnly, isFalse);
   });
 
   test('values persist across loads', () async {
@@ -24,12 +25,14 @@ void main() {
     final s = SyncSettings();
     s
       ..enabled = false
-      ..syncInk = false;
+      ..syncInk = false
+      ..wifiOnly = true;
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     final loaded = await SyncSettings.load();
     expect(loaded.enabled, isFalse);
     expect(loaded.syncInk, isFalse);
+    expect(loaded.wifiOnly, isTrue);
   });
 
   test('notifies listeners on change', () {

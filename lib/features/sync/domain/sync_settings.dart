@@ -6,10 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// The user's global cloud-sync choices, saved on this device.
 class SyncSettings extends ChangeNotifier {
-  SyncSettings({this._enabled = true, this._syncInk = true});
+  SyncSettings({
+    this._enabled = true,
+    this._syncInk = true,
+    this._wifiOnly = false,
+  });
 
   static const enabledKey = 'mnote_sync_enabled';
   static const inkKey = 'mnote_sync_ink';
+  static const wifiOnlyKey = 'mnote_sync_wifi_only';
 
   /// Firestore documents hold at most 1 MiB; leave room for the other fields.
   /// Larger documents and ink are never synced.
@@ -17,15 +22,22 @@ class SyncSettings extends ChangeNotifier {
 
   bool _enabled;
   bool _syncInk;
+  bool _wifiOnly;
 
   /// Master switch. When off nothing is uploaded or downloaded.
   bool get enabled => _enabled;
 
   bool get syncInk => _syncInk;
 
+  /// When on, nothing syncs over mobile data.
+  bool get wifiOnly => _wifiOnly;
+
   set enabled(bool value) => _update(() => _enabled = value, enabledKey, value);
 
   set syncInk(bool value) => _update(() => _syncInk = value, inkKey, value);
+
+  set wifiOnly(bool value) =>
+      _update(() => _wifiOnly = value, wifiOnlyKey, value);
 
   /// Restores saved choices. Never throws: defaults are kept on failure.
   static Future<SyncSettings> load() async {
@@ -34,6 +46,7 @@ class SyncSettings extends ChangeNotifier {
       return SyncSettings(
         enabled: prefs.getBool(enabledKey) ?? true,
         syncInk: prefs.getBool(inkKey) ?? true,
+        wifiOnly: prefs.getBool(wifiOnlyKey) ?? false,
       );
     } catch (e) {
       debugPrint('Could not load sync settings: $e');

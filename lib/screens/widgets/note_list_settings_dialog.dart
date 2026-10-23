@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
+import 'package:mnote/features/auth/presentation/widgets/delete_account_dialog.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
-  const NoteListSettingsDialog({super.key, this.syncSettings});
+  const NoteListSettingsDialog({
+    super.key,
+    this.syncSettings,
+    this.authRepository,
+    this.onSignOut,
+    this.onDeleteAccount,
+  });
+
+  /// When provided with a signed-in user, an account section is shown.
+  final AuthRepository? authRepository;
+  final Future<void> Function()? onSignOut;
+
+  /// Deletes the account; receives the password for email accounts.
+  final Future<void> Function(String password)? onDeleteAccount;
 
   /// When provided, a cloud sync section is shown.
   final SyncSettings? syncSettings;
@@ -49,6 +65,14 @@ class NoteListSettingsDialog extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (authRepository?.currentUser != null) ...[
+                    _AccountSection(
+                      authRepository: authRepository!,
+                      onSignOut: onSignOut,
+                      onDeleteAccount: onDeleteAccount,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   Text(
                     'สีของแอป (Accent)',
                     style: TextStyle(
@@ -331,6 +355,100 @@ class _SyncSection extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Who is signed in, with sign-out and delete-account actions.
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({
+    required this.authRepository,
+    this.onSignOut,
+    this.onDeleteAccount,
+  });
+
+  final AuthRepository authRepository;
+  final Future<void> Function()? onSignOut;
+  final Future<void> Function(String password)? onDeleteAccount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = authRepository.currentUser!;
+    final name = user.displayName?.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'บัญชี (Account)',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        ListTile(
+          key: const Key('settings-account-tile'),
+          contentPadding: EdgeInsets.zero,
+          leading: AccountAvatar(user: user, radius: 22),
+          title: Text(
+            (name != null && name.isNotEmpty) ? name : 'ไม่ระบุชื่อ',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            user.email,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => AccountDialog(
+              user: user,
+              authRepository: authRepository,
+              onSignOut: () async {
+                Navigator.of(context).pop();
+                await onSignOut?.call();
+              },
+            ),
+          ),
+        ),
+        if (onSignOut != null)
+          ListTile(
+            key: const Key('settings-sign-out'),
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.logout_rounded),
+            title: const Text('ออกจากระบบ'),
+            onTap: () async {
+              Navigator.of(context).pop();
+              await onSignOut!();
+            },
+          ),
+        if (onDeleteAccount != null)
+          ListTile(
+            key: const Key('settings-delete-account'),
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.delete_forever_rounded,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'ลบบัญชี',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            subtitle: const Text('ลบบัญชีและไฟล์บน cloud ถาวร'),
+            onTap: () async {
+              final password = await showDialog<String>(
+                context: context,
+                builder: (_) => DeleteAccountDialog(user: user),
+              );
+              if (password == null || !context.mounted) return;
+              Navigator.of(context).pop();
+              await onDeleteAccount!(password);
+            },
+          ),
+      ],
     );
   }
 }

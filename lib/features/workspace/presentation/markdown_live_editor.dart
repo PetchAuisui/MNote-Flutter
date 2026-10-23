@@ -235,46 +235,34 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       child: Container(
         key: const Key('markdown-live-active-block'),
         margin: const EdgeInsets.symmetric(vertical: 4),
+        // A white, fully outlined box: a blockquote is a grey fill with a bar
+        // on the left, so the block being edited must not look like one.
         decoration: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: 0.08),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.25),
-            width: 1,
-          ),
+          border: Border.all(color: colorScheme.primary, width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 3.5,
-              child: ColoredBox(color: colorScheme.primary),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: TextField(
+            key: const Key('markdown-live-block-editor'),
+            controller: _blockController,
+            focusNode: _focus,
+            maxLines: null,
+            onTapOutside: (_) => _focus.unfocus(),
+            style: const TextStyle(
+              fontSize: 17,
+              height: MarkdownDocumentStyle.lineHeight,
+              color: Color(0xFF202124),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              child: TextField(
-                key: const Key('markdown-live-block-editor'),
-                controller: _blockController,
-                focusNode: _focus,
-                maxLines: null,
-                onTapOutside: (_) => _focus.unfocus(),
-                style: const TextStyle(
-                  fontSize: 17,
-                  height: MarkdownDocumentStyle.lineHeight,
-                  color: Color(0xFF202124),
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'เริ่มเขียน Markdown…',
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 4),
-                ),
-              ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              hintText: 'เริ่มเขียน Markdown…',
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 4),
             ),
-          ],
+          ),
         ),
       ),
     );

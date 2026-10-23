@@ -101,7 +101,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       showRawSource: true,
     );
     _markdownFocusNode = FocusNode()..addListener(_onMarkdownFocusChanged);
-    _titleController = TextEditingController(text: _workspace.document.name);
+    _titleController = TextEditingController(
+      text: _displayName(_workspace.document.name),
+    );
     _editorScrollController = ScrollController();
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
@@ -181,8 +183,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         selection: TextSelection.collapsed(offset: content.length),
       );
     }
-    if (!_isEditingTitle && _titleController.text != _workspace.document.name) {
-      _titleController.text = _workspace.document.name;
+    final title = _displayName(_workspace.document.name);
+    if (!_isEditingTitle && _titleController.text != title) {
+      _titleController.text = title;
     }
     if (_workspace.document.isDirty) {
       _scheduleAutoSave();
@@ -205,12 +208,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _titleFocusNode.requestFocus();
-      final extensionStart = _titleController.text.lastIndexOf('.');
       _titleController.selection = TextSelection(
         baseOffset: 0,
-        extentOffset: extensionStart > 0
-            ? extensionStart
-            : _titleController.text.length,
+        extentOffset: _titleController.text.length,
       );
     });
   }
@@ -220,11 +220,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final name = _normalizedDocumentName(_titleController.text);
     setState(() => _isEditingTitle = false);
     _workspace.updateName(name);
-    _titleController.text = _workspace.document.name;
+    _titleController.text = _displayName(_workspace.document.name);
     _titleFocusNode.unfocus();
     if (_workspace.document.isDirty) {
       _scheduleAutoSave();
     }
+  }
+
+  /// The title as shown: Markdown names hide their `.md`/`.markdown` suffix.
+  static String _displayName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.markdown')) return name.substring(0, name.length - 9);
+    if (lower.endsWith('.md')) return name.substring(0, name.length - 3);
+    return name;
   }
 
   String _normalizedDocumentName(String value) {
@@ -236,7 +244,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         lowerName.endsWith('.txt')) {
       return name;
     }
-    return '$name.md';
+    final current = _workspace.document.name.toLowerCase();
+    return '$name${current.endsWith('.txt') ? '.txt' : '.md'}';
   }
 
   Future<void> _openDocument() async {
@@ -1112,7 +1121,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        document.name,
+                        _displayName(document.name),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,

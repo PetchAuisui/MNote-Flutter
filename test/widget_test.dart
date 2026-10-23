@@ -59,7 +59,7 @@ void main() {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
     }
-    expect(find.text('Welcome.md'), findsOneWidget);
+    expect(find.text('Welcome'), findsOneWidget);
     expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
     expect(find.byType(MermaidDiagramView), findsOneWidget);
     expect(find.byType(Table), findsOneWidget);
@@ -102,7 +102,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(_buildWorkspaceApp());
-    expect(find.text('Untitled.md'), findsOneWidget);
+    expect(find.text('Untitled'), findsOneWidget);
     expect(_editor, findsOneWidget);
     expect(find.byTooltip('Markdown'), findsOneWidget);
     expect(find.byTooltip('เขียน'), findsOneWidget);
@@ -223,7 +223,7 @@ void main() {
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    expect(find.text('Project notes.md'), findsOneWidget);
+    expect(find.text('Project notes'), findsOneWidget);
     expect(find.text('ยังไม่ได้บันทึก'), findsOneWidget);
     expect(find.byKey(const Key('document-title-field')), findsNothing);
   });

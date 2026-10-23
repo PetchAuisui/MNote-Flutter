@@ -1,11 +1,19 @@
 import 'chat_message.dart';
 
-/// เนื้อหาโน้ตที่ผู้ใช้เลือกแนบให้ AI อ่าน ตอนนี้ยังไม่ส่งจริง เตรียมไว้สำหรับฟีเจอร์ในอนาคต
+/// เนื้อหาโน้ตที่แนบให้ AI อ่านพร้อมคำถาม
+///
+/// ผู้ใช้เห็นชิปและเอาออกได้ก่อนส่งเสมอ
+/// เนื้อหาจะไม่ถูกเก็บในประวัติแชท ส่งเฉพาะข้อความที่แนบเท่านั้น
 final class AiDocumentContext {
+  /// จำกัดความยาวเพื่อคุมโควตา เกินแล้วแจ้ง error ไม่ตัดทิ้ง
+  static const int maxContentLength = 20000;
+
   final String title;
   final String content;
 
   const AiDocumentContext({required this.title, required this.content});
+
+  bool get isTooLong => content.length > maxContentLength;
 }
 
 final class AiAssistantException implements Exception {

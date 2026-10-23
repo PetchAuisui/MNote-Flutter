@@ -236,10 +236,32 @@ class LocalDocumentRepository implements DocumentRepository {
       documents.add(current);
     }
 
+    // Cloud sync adds a file-less placeholder when a remote note arrives
+    // before its file exists. Once the file is registered the placeholder is a
+    // duplicate of it (same name, the name being the cloud key).
+    final fileBacked = {
+      for (final d in documents)
+        if (d.uri != null) d.name,
+    };
+    final withoutPlaceholders = documents
+        .where(
+          (d) =>
+              d.uri != null ||
+              d.id == _welcomeId ||
+              !fileBacked.contains(d.name),
+        )
+        .toList();
+    if (withoutPlaceholders.length != documents.length) changed = true;
+
     return changed
-        ? LibraryMetadata(folders: metadata.folders, documents: documents)
+        ? LibraryMetadata(
+            folders: metadata.folders,
+            documents: withoutPlaceholders,
+          )
         : null;
   }
+
+  static const _welcomeId = 'welcome_initial_doc';
 
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {

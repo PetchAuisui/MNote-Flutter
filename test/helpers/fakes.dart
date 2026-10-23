@@ -143,7 +143,7 @@ class FakeDeviceImagePicker extends DeviceImagePicker {
   int pickCount = 0;
 
   @override
-  Future<MarkdownImageReference?> pick() async {
+  Future<MarkdownImageReference?> pick({Uri? documentDirectory}) async {
     pickCount++;
     return result;
   }

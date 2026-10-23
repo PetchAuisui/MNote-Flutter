@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 class MarkdownImageReference {
   const MarkdownImageReference({required this.alt, required this.uri});
@@ -12,15 +15,55 @@ class MarkdownImageReference {
 class DeviceImagePicker {
   const DeviceImagePicker();
 
-  Future<MarkdownImageReference?> pick() async {
+  static const folder = 'images';
+
+  /// Lets the user choose an image and copies it next to the document (into
+  /// `images/`), returning a reference relative to [documentDirectory]. The
+  /// picker's own copy lives in a temporary folder that the system clears and
+  /// whose path changes between launches, so it must not be linked directly.
+  /// Without a file-based [documentDirectory] the app documents folder is used.
+  Future<MarkdownImageReference?> pick({Uri? documentDirectory}) async {
     final file = await FilePicker.pickFile(
       dialogTitle: 'Insert image',
       type: FileType.image,
     );
     if (file == null) return null;
 
-    final dotIndex = file.name.lastIndexOf('.');
-    final alt = dotIndex > 0 ? file.name.substring(0, dotIndex) : file.name;
-    return MarkdownImageReference(alt: alt, uri: file.uri);
+    final base = documentDirectory?.scheme == 'file'
+        ? Directory.fromUri(documentDirectory!)
+        : await getApplicationDocumentsDirectory();
+    return copyIntoDocument(
+      directory: base,
+      fileName: file.name,
+      bytes: await file.readAsBytes(),
+    );
+  }
+
+  /// Stores [bytes] as `images/<fileName>` under [directory], renaming on a
+  /// clash so an existing picture is never overwritten.
+  static Future<MarkdownImageReference> copyIntoDocument({
+    required Directory directory,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final dotIndex = fileName.lastIndexOf('.');
+    final alt = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+    final extension = dotIndex > 0 ? fileName.substring(dotIndex) : '';
+    final images = Directory('${directory.path}/$folder');
+    await images.create(recursive: true);
+    final name = _uniqueName(images, alt, extension);
+    await File('${images.path}/$name').writeAsBytes(bytes);
+    return MarkdownImageReference(
+      alt: alt,
+      uri: Uri(pathSegments: [folder, name]),
+    );
+  }
+
+  static String _uniqueName(Directory directory, String stem, String ext) {
+    var name = '$stem$ext';
+    for (var n = 2; File('${directory.path}/$name').existsSync(); n++) {
+      name = '$stem ($n)$ext';
+    }
+    return name;
   }
 }

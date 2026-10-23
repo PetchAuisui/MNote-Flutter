@@ -714,7 +714,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<void> _insertImage() async {
-    final image = await widget.imagePicker.pick();
+    final directory = _imageDirectory;
+    final image = await widget.imagePicker.pick(
+      documentDirectory: directory == null ? null : Uri.parse(directory),
+    );
     if (image == null || !mounted) return;
     if (_workspace.mode != WorkspaceMode.edit) {
       _workspace.setMode(WorkspaceMode.edit);

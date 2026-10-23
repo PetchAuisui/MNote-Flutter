@@ -4,6 +4,7 @@ import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_user.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
+import 'package:mnote/features/auth/presentation/widgets/delete_account_dialog.dart';
 
 String accountInitial(AuthUser user) {
   final source = (user.displayName?.trim().isNotEmpty ?? false)
@@ -49,47 +50,19 @@ class AccountAvatar extends StatelessWidget {
   }
 }
 
-/// App-bar icon showing the user's avatar; opens an account dialog.
-class AccountAvatarButton extends StatelessWidget {
-  const AccountAvatarButton({
-    super.key,
-    required this.user,
-    required this.authRepository,
-    required this.onSignOut,
-  });
-
-  final AuthUser user;
-  final AuthRepository authRepository;
-  final Future<void> Function() onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: 'บัญชีของฉัน',
-      onPressed: () => showDialog<void>(
-        context: context,
-        builder: (_) => AccountDialog(
-          user: user,
-          authRepository: authRepository,
-          onSignOut: onSignOut,
-        ),
-      ),
-      icon: AccountAvatar(user: user),
-    );
-  }
-}
-
 class AccountDialog extends StatefulWidget {
   const AccountDialog({
     super.key,
     required this.user,
     required this.authRepository,
-    required this.onSignOut,
+    this.onDeleteAccount,
   });
 
   final AuthUser user;
   final AuthRepository authRepository;
-  final Future<void> Function() onSignOut;
+
+  /// Deletes the account; receives the password for email accounts.
+  final Future<void> Function(String password)? onDeleteAccount;
 
   @override
   State<AccountDialog> createState() => _AccountDialogState();
@@ -181,6 +154,16 @@ class _AccountDialogState extends State<AccountDialog> {
       setState(() => _busy = false);
       _setMessage(AuthValidators.messageFor(e), error: true);
     }
+  }
+
+  Future<void> _confirmDelete() async {
+    final password = await showDialog<String>(
+      context: context,
+      builder: (_) => DeleteAccountDialog(user: _user),
+    );
+    if (password == null || !mounted) return;
+    Navigator.of(context).pop();
+    await widget.onDeleteAccount!(password);
   }
 
   @override
@@ -319,17 +302,16 @@ class _AccountDialogState extends State<AccountDialog> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('ปิด'),
               ),
-              TextButton.icon(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await widget.onSignOut();
-                },
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('ออกจากระบบ'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFD9534F),
+              if (widget.onDeleteAccount != null)
+                TextButton.icon(
+                  key: const Key('account-delete'),
+                  onPressed: _confirmDelete,
+                  icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                  label: const Text('ลบบัญชี'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFD9534F),
+                  ),
                 ),
-              ),
             ],
     );
   }

@@ -6,7 +6,6 @@ import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
-import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
@@ -1548,12 +1547,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
             tooltip: 'การตั้งค่า (Settings)',
             onPressed: _openSettings,
           ),
-          if (widget.authRepository?.currentUser != null)
-            AccountAvatarButton(
-              user: widget.authRepository!.currentUser!,
-              authRepository: widget.authRepository!,
-              onSignOut: _signOut,
-            ),
           const SizedBox(width: 8),
         ],
       ),

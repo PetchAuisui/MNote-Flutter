@@ -3,7 +3,6 @@ import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
-import 'package:mnote/features/auth/presentation/widgets/delete_account_dialog.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
@@ -407,10 +406,12 @@ class _AccountSection extends StatelessWidget {
             builder: (_) => AccountDialog(
               user: user,
               authRepository: authRepository,
-              onSignOut: () async {
-                Navigator.of(context).pop();
-                await onSignOut?.call();
-              },
+              onDeleteAccount: onDeleteAccount == null
+                  ? null
+                  : (password) async {
+                      Navigator.of(context).pop();
+                      await onDeleteAccount!(password);
+                    },
             ),
           ),
         ),
@@ -423,29 +424,6 @@ class _AccountSection extends StatelessWidget {
             onTap: () async {
               Navigator.of(context).pop();
               await onSignOut!();
-            },
-          ),
-        if (onDeleteAccount != null)
-          ListTile(
-            key: const Key('settings-delete-account'),
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.delete_forever_rounded,
-              color: theme.colorScheme.error,
-            ),
-            title: Text(
-              'ลบบัญชี',
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-            subtitle: const Text('ลบบัญชีและไฟล์บน cloud ถาวร'),
-            onTap: () async {
-              final password = await showDialog<String>(
-                context: context,
-                builder: (_) => DeleteAccountDialog(user: user),
-              );
-              if (password == null || !context.mounted) return;
-              Navigator.of(context).pop();
-              await onDeleteAccount!(password);
             },
           ),
       ],

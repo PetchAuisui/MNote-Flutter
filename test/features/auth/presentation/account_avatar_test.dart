@@ -59,9 +59,7 @@ void main() {
     );
   });
 
-  testWidgets('note list shows initial icon, dialog, and signs out', (
-    tester,
-  ) async {
+  testWidgets('settings shows the account and signs out', (tester) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -83,14 +81,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('P'), findsOneWidget);
-    await tester.tap(find.byTooltip('บัญชีของฉัน'));
+    await tester.tap(find.byTooltip('การตั้งค่า (Settings)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-account-tile')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('account-name')), findsOneWidget);
-    expect(find.text('pet@mail.com'), findsOneWidget);
+    expect(find.byKey(const Key('account-email')), findsOneWidget);
+    await tester.tap(find.text('ปิด'));
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('ออกจากระบบ'));
+    await tester.tap(find.byKey(const Key('settings-sign-out')));
     await tester.pumpAndSettle();
 
     expect(auth.currentUser, isNull);
@@ -109,15 +110,21 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AccountAvatarButton(
-              user: user,
-              authRepository: auth,
-              onSignOut: auth.signOut,
+            body: Builder(
+              builder: (context) => IconButton(
+                tooltip: 'การตั้งค่า (Settings)',
+                icon: const Icon(Icons.settings),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) =>
+                      AccountDialog(user: user, authRepository: auth),
+                ),
+              ),
             ),
           ),
         ),
       );
-      await tester.tap(find.byTooltip('บัญชีของฉัน'));
+      await tester.tap(find.byTooltip('การตั้งค่า (Settings)'));
       await tester.pumpAndSettle();
       return auth;
     }

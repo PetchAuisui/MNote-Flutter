@@ -199,6 +199,9 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
         final canSend = _textController.text.trim().isNotEmpty && !isResponding;
         final canClear = messages.isNotEmpty && !isResponding;
 
+        final hasAttached = widget.controller.isNoteAttached;
+        final canAttach = widget.controller.canAttachNote;
+
         return Material(
           key: const Key('assistant-chat-panel'),
           type: MaterialType.transparency,
@@ -243,7 +246,9 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
-                  'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ',
+                  hasAttached
+                      ? 'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini'
+                      : 'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ',
                   key: const Key('assistant-privacy-note'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -303,42 +308,79 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
 
               const Divider(height: 1),
 
-              // 5. ช่องพิมพ์ข้อความ
+              // 5. ช่องพิมพ์ข้อความ พร้อมแถบแนบโน้ต
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('assistant-input'),
-                        controller: _textController,
-                        minLines: 1,
-                        maxLines: 5,
-                        maxLength: AssistantChatController.maxInputLength,
-                        textInputAction: TextInputAction.send,
-                        decoration: const InputDecoration(
-                          hintText: 'ถามอะไรก็ได้…',
-                          counterText: '',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                    if (hasAttached) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: InputChip(
+                          key: const Key('assistant-note-chip'),
+                          avatar: const Icon(Icons.description_outlined),
+                          label: Text(
+                            'AI จะอ่าน: ${widget.controller.attachedNoteTitle}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+                          onDeleted: () =>
+                              widget.controller.setNoteAttached(false),
+                          deleteButtonTooltipMessage: 'ไม่แนบโน้ต',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ] else if (canAttach) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ActionChip(
+                          key: const Key('assistant-note-attach'),
+                          avatar: const Icon(Icons.attach_file),
+                          label: const Text('แนบโน้ตนี้'),
+                          onPressed: () =>
+                              widget.controller.setNoteAttached(true),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const Key('assistant-input'),
+                            controller: _textController,
+                            minLines: 1,
+                            maxLines: 5,
+                            maxLength: AssistantChatController.maxInputLength,
+                            textInputAction: TextInputAction.send,
+                            decoration: const InputDecoration(
+                              hintText: 'ถามอะไรก็ได้…',
+                              counterText: '',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(24),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                            ),
+                            onSubmitted: (_) {
+                              if (canSend) _sendMessage();
+                            },
                           ),
                         ),
-                        onSubmitted: (_) {
-                          if (canSend) _sendMessage();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      key: const Key('assistant-send'),
-                      icon: const Icon(Icons.arrow_upward_rounded),
-                      tooltip: 'ส่ง',
-                      onPressed: canSend ? () => _sendMessage() : null,
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          key: const Key('assistant-send'),
+                          icon: const Icon(Icons.arrow_upward_rounded),
+                          tooltip: 'ส่ง',
+                          onPressed: canSend ? () => _sendMessage() : null,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -434,9 +476,43 @@ class _MessageBubble extends StatelessWidget {
           child: showTypingIndicator
               ? const _TypingIndicator()
               : isUser
-              ? SelectableText(
-                  message.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (message.attachedNoteTitle != null)
+                      Padding(
+                        key: const Key('assistant-message-note-label'),
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.description_outlined,
+                              size: 14,
+                              color: textColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'แนบ: ${message.attachedNoteTitle}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    SelectableText(
+                      message.text,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: textColor,
+                      ),
+                    ),
+                  ],
                 )
               : MarkdownBody(
                   // MarkdownBody แปลงใหม่เฉพาะตอน data เปลี่ยน

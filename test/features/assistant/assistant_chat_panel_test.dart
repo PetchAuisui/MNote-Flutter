@@ -45,7 +45,7 @@ void main() {
 
   group('AssistantChatPanel Widget Tests', () {
     testWidgets(
-      '1. should show empty state, privacy note, and 3 suggestion chips',
+      '1. should show empty state, privacy note without note, and 3 suggestion chips',
       (tester) async {
         final fakeAssistant = FakeAiAssistant();
         final controller = AssistantChatController(fakeAssistant);
@@ -54,6 +54,9 @@ void main() {
 
         expect(find.byKey(const Key('assistant-empty')), findsOneWidget);
         expect(find.byKey(const Key('assistant-privacy-note')), findsOneWidget);
+        expect(find.textContaining('ไม่ได้อ่านโน้ต'), findsOneWidget);
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+        expect(find.byKey(const Key('assistant-note-attach')), findsNothing);
         expect(find.byKey(const Key('assistant-suggestion-0')), findsOneWidget);
         expect(find.byKey(const Key('assistant-suggestion-1')), findsOneWidget);
         expect(find.byKey(const Key('assistant-suggestion-2')), findsOneWidget);
@@ -396,5 +399,218 @@ void main() {
         'สวัสดี',
       );
     });
+
+    // 17. มีโน้ต: เห็นชิป, find.text('AI จะอ่าน: a.md'), find.byIcon(Icons.description_outlined) และแถบความเป็นส่วนตัวมีคำว่า "โน้ตที่แนบ"
+    testWidgets(
+      '17. displays note chip with title, description icon, and privacy note indicates attached note',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        expect(find.byKey(const Key('assistant-note-chip')), findsOneWidget);
+        expect(find.text('AI จะอ่าน: a.md'), findsOneWidget);
+        expect(find.byIcon(Icons.description_outlined), findsOneWidget);
+        expect(find.textContaining('โน้ตที่แนบ'), findsOneWidget);
+      },
+    );
+
+    // 18. กด x: tap(find.byTooltip('ไม่แนบโน้ต')) แล้วชิปต้องหาย ปุ่มแนบต้องขึ้น และแถบเปลี่ยนเป็น "ไม่ได้อ่านโน้ต"
+    testWidgets(
+      '18. tapping chip delete button removes chip, reveals attach button, and updates privacy note',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+        expect(find.byKey(const Key('assistant-note-attach')), findsOneWidget);
+        expect(find.textContaining('ไม่ได้อ่านโน้ต'), findsOneWidget);
+      },
+    );
+
+    // 19. กดแนบกลับ: ชิปกลับมา
+    testWidgets(
+      '19. tapping attach button restores note chip and attached state',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+
+        await tester.tap(find.byKey(const Key('assistant-note-attach')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('assistant-note-chip')), findsOneWidget);
+        expect(find.text('AI จะอ่าน: a.md'), findsOneWidget);
+      },
+    );
+
+    // 20. (Security) ที่เห็นตรงกับที่ส่ง (ระดับหน้าจอ): มีชิปแล้วส่ง fake.lastDocument != null / กด x แล้วส่ง == null
+    testWidgets(
+      '20. (Security) UI attachment chip presence strictly reflects in sent document and verifies callCount',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        // ส่งเมื่อมีชิป
+        expect(find.byKey(const Key('assistant-note-chip')), findsOneWidget);
+        await sendText(tester, 'ถามตอนแนบ');
+        await tester.pumpAndSettle();
+
+        expect(fake.callCount, 1);
+        expect(fake.lastDocument?.title, 'a.md');
+
+        // กด x เอาโน้ตออก แล้วส่ง
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+
+        await sendText(tester, 'ถามตอนไม่แนบ');
+        await tester.pumpAndSettle();
+
+        expect(fake.callCount, 2);
+        expect(fake.lastDocument, isNull);
+      },
+    );
+
+    // 21. ป้ายบนข้อความ: ส่งตอนมีชิป ข้อความต้องมี assistant-message-note-label / ส่งตอนไม่มีชิป ต้องไม่มี
+    testWidgets(
+      '21. renders attached note label on user message bubble only when sent with attachment',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        // ส่งรอบที่ 1: มีโน้ต
+        await sendText(tester, 'ข้อความแรก');
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('assistant-message-note-label')),
+          findsOneWidget,
+        );
+        expect(find.text('แนบ: a.md'), findsOneWidget);
+
+        // เอาโน้ตออกแล้วส่งรอบที่ 2
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+
+        await sendText(tester, 'ข้อความที่สอง');
+        await tester.pumpAndSettle();
+
+        // ป้ายต้องยังคงมีแค่ 1 ตัว (มาจากข้อความแรกเท่านั้น)
+        expect(
+          find.byKey(const Key('assistant-message-note-label')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // 22. (Security) โน้ตว่าง: ไม่มีทั้งชิปและปุ่มแนบ
+    testWidgets(
+      '22. (Security) empty or whitespace note content renders neither chip nor attach button',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'empty.md', content: '   \n  ');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+        expect(find.byKey(const Key('assistant-note-attach')), findsNothing);
+        expect(find.textContaining('ไม่ได้อ่านโน้ต'), findsOneWidget);
+      },
+    );
+
+    // 23. เปิดแผงใหม่: กด x แล้ว pumpWidget ใหม่ด้วย controller ตัวเดิม ชิปต้องยังไม่กลับมา
+    testWidgets(
+      '23. unattached note state persists in controller across panel rebuilds/reopens',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        const note = AiDocumentContext(title: 'a.md', content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        // กด x เพื่อถอดโน้ตออก
+        await tester.tap(find.byTooltip('ไม่แนบโน้ต'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+
+        // ปิดแผง: เอา panel ออกจากหน้าจอ State จะถูก dispose จริง
+        await tester.pumpWidget(const SizedBox());
+
+        // เปิดใหม่: ได้ State ตัวใหม่ แต่ใช้ controller ตัวเดิม
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('assistant-note-chip')), findsNothing);
+        expect(find.byKey(const Key('assistant-note-attach')), findsOneWidget);
+      },
+    );
+
+    // 24. ชื่อยาว 200 ตัว: ต้องไม่มี overflow error
+    testWidgets(
+      '24. handles very long note title without throwing RenderFlex overflow exception',
+      (tester) async {
+        final fake = FakeAiAssistant();
+        final longTitle = 'a' * 200;
+        final note = AiDocumentContext(title: longTitle, content: 'เนื้อหา');
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => note,
+        );
+
+        await tester.pumpWidget(buildTestWidget(controller: controller));
+
+        // ส่งข้อความเพื่อให้เกิดบับเบิลที่มีป้ายกำกับชื่อยาว
+        await sendText(tester, 'ทดสอบชื่อยาว');
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const Key('assistant-message-note-label')),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

@@ -895,9 +895,9 @@ void main() {
         .firstWhere((icon) => icon.size == 128);
     final defaultColor = folderIcon().color;
 
-    await tester.longPress(find.text('โฟลเดอร์สี'));
+    await tester.tap(find.byKey(const Key('folder-menu-f_color')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('folder-change-color')));
+    await tester.tap(find.byKey(const Key('folder-menu-color')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('folder-color-ffe53935')));
     await tester.pumpAndSettle();

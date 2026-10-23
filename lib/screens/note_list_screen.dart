@@ -2426,6 +2426,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   onSelected: (val) {
                     if (val == 'open') _handleFolderTap(folder);
                     if (val == 'rename') _renameFolder(folder);
+                    if (val == 'color') _changeFolderColor(folder);
                     if (val == 'trash') _moveToTrashFolder(folder);
                     if (val == 'restore') _restoreFolder(folder);
                     if (val == 'delete_perm') _permanentlyDeleteFolder(folder);
@@ -2472,6 +2473,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 Icon(Icons.edit_outlined, size: 18),
                                 SizedBox(width: 8),
                                 Text('เปลี่ยนชื่อโฟลเดอร์'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            key: Key('folder-menu-color'),
+                            value: 'color',
+                            child: Row(
+                              children: [
+                                Icon(Icons.palette_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('เปลี่ยนสีโฟลเดอร์'),
                               ],
                             ),
                           ),
@@ -2902,6 +2914,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     onSelected: (val) {
                       if (val == 'open') _handleFolderTap(item);
                       if (val == 'rename') _renameFolder(item);
+                      if (val == 'color') _changeFolderColor(item);
                       if (val == 'trash') _moveToTrashFolder(item);
                       if (val == 'restore') _restoreFolder(item);
                       if (val == 'delete_perm') _permanentlyDeleteFolder(item);
@@ -2958,6 +2971,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   Icon(Icons.edit_outlined, size: 18),
                                   SizedBox(width: 8),
                                   Text('เปลี่ยนชื่อโฟลเดอร์'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              key: Key('folder-menu-color'),
+                              value: 'color',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.palette_outlined, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('เปลี่ยนสีโฟลเดอร์'),
                                 ],
                               ),
                             ),

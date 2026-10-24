@@ -5,8 +5,9 @@ import 'chat_message.dart';
 /// ผู้ใช้เห็นชิปและเอาออกได้ก่อนส่งเสมอ
 /// เนื้อหาจะไม่ถูกเก็บในประวัติแชท ส่งเฉพาะข้อความที่แนบเท่านั้น
 final class AiDocumentContext {
-  /// จำกัดความยาวเพื่อคุมโควตา เกินแล้วแจ้ง error ไม่ตัดทิ้ง
-  static const int maxContentLength = 20000;
+  /// เพดานจริงของแผนฟรีโดยประมาณ (TPM 250K token × ~4 ตัวอักษรต่อ token)
+  /// เกินนี้ Gemini ไม่รับอยู่แล้ว ตรวจไว้เพื่อแจ้งผู้ใช้ให้ชัดเจน
+  static const int maxContentLength = 1000000;
 
   final String title;
   final String content;

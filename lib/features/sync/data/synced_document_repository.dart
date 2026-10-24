@@ -104,10 +104,13 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   }
 
   @override
-  Future<void> stopSync({bool clearLocal = false}) async {
+  Future<void> stopSync({bool clearLocal = false}) =>
+      _stopSync(clearLocal: clearLocal);
+
+  Future<void> _stopSync({bool clearLocal = false, bool flush = true}) async {
     // Edits saved just before sign-out may still be waiting in the queue;
     // upload them first so clearing the local copy cannot lose them.
-    if (_uid != null && _ready) {
+    if (flush && _uid != null && _ready) {
       await _enqueue(() async => _push(await _inner.loadMetadata()));
     }
     await _subscription?.cancel();
@@ -140,7 +143,8 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
         .then<void>((_) async {
           final running = _subscription != null;
           if (!_shouldRun && running) {
-            await stopSync();
+            // Held back by Wi-Fi only: do not spend mobile data on a last push.
+            await _stopSync(flush: !settings.enabled);
           } else if (_shouldRun && !running) {
             await startSync();
           } else if (running) {

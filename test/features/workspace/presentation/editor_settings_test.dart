@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
@@ -109,20 +108,20 @@ void main() {
       return theme;
     }
 
-    testWidgets('default options leave them exactly as before', (tester) async {
+    testWidgets('match the body text', (tester) async {
       final theme = await resolvedTheme(tester);
-      final plain = MarkdownStyleSheet.fromTheme(theme);
       final sheet = MarkdownDocumentStyle.sheet(theme);
-      expect(sheet.tableBody, plain.tableBody);
-      expect(sheet.tableHead, plain.tableHead);
-      expect(sheet.checkbox, plain.checkbox);
+      expect(sheet.tableBody!.fontSize, sheet.p!.fontSize);
+      expect(sheet.tableBody!.height, sheet.p!.height);
+      expect(sheet.tableHead!.fontSize, sheet.p!.fontSize);
+      expect(sheet.tableHead!.fontWeight, FontWeight.w600);
+      expect(sheet.checkbox!.fontSize, sheet.p!.fontSize);
     });
 
     testWidgets('follow the size, line height and font the user chose', (
       tester,
     ) async {
       final theme = await resolvedTheme(tester);
-      final plain = MarkdownStyleSheet.fromTheme(theme);
       const options = DocumentTextOptions(
         bodySize: 25.5,
         lineHeight: 1.9,
@@ -130,16 +129,11 @@ void main() {
       );
       final sheet = MarkdownDocumentStyle.sheet(theme, options);
 
-      expect(
-        sheet.tableBody!.fontSize,
-        greaterThan(plain.tableBody!.fontSize!),
-      );
-      expect(sheet.tableBody!.height, greaterThan(plain.tableBody!.height!));
+      expect(sheet.tableBody!.fontSize, 25.5);
+      expect(sheet.tableBody!.height, 1.9);
       expect(sheet.tableBody!.fontFamily, contains('Sarabun'));
       expect(sheet.tableHead!.fontFamily, contains('Sarabun'));
-      expect(sheet.tableHead!.fontWeight, plain.tableHead!.fontWeight);
-      // A size the default style leaves to inheritance stays inherited.
-      expect(sheet.tableHead!.fontSize, plain.tableHead!.fontSize);
+      expect(sheet.tableHead!.fontSize, 25.5);
     });
   });
 

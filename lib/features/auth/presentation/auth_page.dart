@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
@@ -119,12 +120,12 @@ class _AuthPageState extends State<AuthPage>
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
               Icon(Icons.check_circle, color: Colors.white),
               SizedBox(width: 12),
               Text(
-                'ล็อกอินสำเร็จ',
+                context.l10n.loginSuccess,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -195,7 +196,7 @@ class _AuthPageState extends State<AuthPage>
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(AuthValidators.messageFor(e)),
+            content: Text(AuthValidators.messageFor(context.l10n, e)),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -319,13 +320,13 @@ class _AuthPageState extends State<AuthPage>
                             ),
                             const SizedBox(height: 16),
                             AuthPrimaryButton(
-                              label: 'เข้าสู่ระบบ',
+                              label: context.l10n.login,
                               onPressed: () => _openEmailFlow(false),
                             ),
                             const SizedBox(height: 8),
                             TextButton(
                               onPressed: () => _openEmailFlow(true),
-                              child: const Text('สมัครสมาชิกใหม่'),
+                              child: Text(context.l10n.registerNew),
                             ),
                           ],
                         ),

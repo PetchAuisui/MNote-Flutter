@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
@@ -55,25 +56,26 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _error = AuthValidators.messageFor(e);
+        _error = AuthValidators.messageFor(context.l10n, e);
       });
     }
   }
 
   Future<void> _resetPassword() async {
-    final emailError = AuthValidators.email(_email.text);
+    final emailError = AuthValidators.email(context.l10n, _email.text);
     if (emailError != null) {
-      setState(() => _error = 'กรอกอีเมลก่อนเพื่อรีเซ็ตรหัสผ่าน');
+      setState(() => _error = context.l10n.enterEmailFirst);
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       await widget.authRepository.sendPasswordReset(_email.text);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.resetLinkSent)));
     } on AuthException catch (e) {
-      if (mounted) setState(() => _error = AuthValidators.messageFor(e));
+      if (mounted) {
+        setState(() => _error = AuthValidators.messageFor(l, e));
+      }
     }
   }
 
@@ -109,7 +111,7 @@ class _LoginPageState extends State<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'เข้าสู่ระบบ',
+                      context.l10n.login,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 30,
@@ -120,30 +122,30 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 28),
                     AuthTextField(
                       controller: _email,
-                      label: 'อีเมล',
+                      label: context.l10n.email,
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
-                      validator: AuthValidators.email,
+                      validator: (v) => AuthValidators.email(context.l10n, v),
                     ),
                     const SizedBox(height: 16),
                     AuthTextField(
                       controller: _password,
-                      label: 'รหัสผ่าน',
+                      label: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscure: true,
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.password],
                       validator: (v) =>
-                          (v ?? '').isEmpty ? 'กรุณากรอกรหัสผ่าน' : null,
+                          (v ?? '').isEmpty ? context.l10n.enterPassword : null,
                       onSubmitted: (_) => _submit(),
                     ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _resetPassword,
-                        child: const Text('ลืมรหัสผ่าน?'),
+                        child: Text(context.l10n.forgotPassword),
                       ),
                     ),
                     if (_error != null) ...[
@@ -156,14 +158,14 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 12),
                     ],
                     AuthPrimaryButton(
-                      label: 'เข้าสู่ระบบ',
+                      label: context.l10n.login,
                       isLoading: _isLoading,
                       onPressed: _submit,
                     ),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: _isLoading ? null : _openRegister,
-                      child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
+                      child: Text(context.l10n.noAccountRegister),
                     ),
                   ],
                 ),

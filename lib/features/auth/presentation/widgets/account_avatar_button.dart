@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
@@ -76,21 +77,6 @@ class _AccountDialogState extends State<AccountDialog> {
   bool _messageIsError = false;
   late final _nameController = TextEditingController(text: _user.displayName);
 
-  static const _months = [
-    'ม.ค.',
-    'ก.พ.',
-    'มี.ค.',
-    'เม.ย.',
-    'พ.ค.',
-    'มิ.ย.',
-    'ก.ค.',
-    'ส.ค.',
-    'ก.ย.',
-    'ต.ค.',
-    'พ.ย.',
-    'ธ.ค.',
-  ];
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -98,15 +84,15 @@ class _AccountDialogState extends State<AccountDialog> {
   }
 
   String? get _memberSince {
-    final d = _user.createdAt?.toLocal();
+    final d = _user.createdAt;
     if (d == null) return null;
-    return '${d.day} ${_months[d.month - 1]} ${d.year + 543}';
+    return context.l10n.shortDate(d);
   }
 
   String get _providerLabel {
-    if (_user.usesGoogle) return 'เข้าสู่ระบบด้วย Google';
-    if (_user.usesPassword) return 'เข้าสู่ระบบด้วยอีเมล';
-    return 'บัญชี Mnote';
+    if (_user.usesGoogle) return context.l10n.providerGoogle;
+    if (_user.usesPassword) return context.l10n.providerEmail;
+    return context.l10n.providerMnote;
   }
 
   void _setMessage(String text, {bool error = false}) => setState(() {
@@ -115,7 +101,10 @@ class _AccountDialogState extends State<AccountDialog> {
   });
 
   Future<void> _saveName() async {
-    final error = AuthValidators.displayName(_nameController.text);
+    final error = AuthValidators.displayName(
+      context.l10n,
+      _nameController.text,
+    );
     if (error != null) return _setMessage(error, error: true);
     setState(() {
       _busy = true;
@@ -131,11 +120,11 @@ class _AccountDialogState extends State<AccountDialog> {
         _editing = false;
         _busy = false;
       });
-      _setMessage('บันทึกชื่อแล้ว');
+      _setMessage(context.l10n.nameSaved);
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _setMessage(AuthValidators.messageFor(e), error: true);
+      _setMessage(AuthValidators.messageFor(context.l10n, e), error: true);
     }
   }
 
@@ -148,11 +137,11 @@ class _AccountDialogState extends State<AccountDialog> {
       await widget.authRepository.sendPasswordReset(_user.email);
       if (!mounted) return;
       setState(() => _busy = false);
-      _setMessage('ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ ${_user.email} แล้ว');
+      _setMessage(context.l10n.resetLinkSentTo(_user.email));
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _setMessage(AuthValidators.messageFor(e), error: true);
+      _setMessage(AuthValidators.messageFor(context.l10n, e), error: true);
     }
   }
 
@@ -188,8 +177,8 @@ class _AccountDialogState extends State<AccountDialog> {
                   textAlign: TextAlign.center,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _saveName(),
-                  decoration: const InputDecoration(
-                    labelText: 'ชื่อที่แสดง',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.displayNameLabel,
                     border: OutlineInputBorder(),
                   ),
                 )
@@ -201,7 +190,7 @@ class _AccountDialogState extends State<AccountDialog> {
                       child: Text(
                         (name != null && name.isNotEmpty)
                             ? name
-                            : 'ไม่ระบุชื่อ',
+                            : context.l10n.noName,
                         key: const Key('account-name'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
@@ -212,7 +201,7 @@ class _AccountDialogState extends State<AccountDialog> {
                     ),
                     IconButton(
                       key: const Key('account-edit-name'),
-                      tooltip: 'แก้ไขชื่อ',
+                      tooltip: context.l10n.editName,
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.edit_outlined, size: 18),
                       onPressed: () => setState(() {
@@ -247,7 +236,7 @@ class _AccountDialogState extends State<AccountDialog> {
               if (since != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'สมาชิกตั้งแต่ $since',
+                  context.l10n.memberSince(since),
                   key: const Key('account-since'),
                   style: const TextStyle(
                     fontSize: 13,
@@ -261,7 +250,7 @@ class _AccountDialogState extends State<AccountDialog> {
                   key: const Key('account-reset-password'),
                   onPressed: _busy ? null : _resetPassword,
                   icon: const Icon(Icons.lock_reset, size: 18),
-                  label: const Text('เปลี่ยนรหัสผ่านทางอีเมล'),
+                  label: Text(context.l10n.changePasswordByEmail),
                 ),
               ],
               if (_message != null) ...[
@@ -289,25 +278,25 @@ class _AccountDialogState extends State<AccountDialog> {
                 onPressed: _busy
                     ? null
                     : () => setState(() => _editing = false),
-                child: const Text('ยกเลิก'),
+                child: Text(context.l10n.cancel),
               ),
               FilledButton(
                 key: const Key('account-save-name'),
                 onPressed: _busy ? null : _saveName,
-                child: const Text('บันทึก'),
+                child: Text(context.l10n.save),
               ),
             ]
           : [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('ปิด'),
+                child: Text(context.l10n.close),
               ),
               if (widget.onDeleteAccount != null)
                 TextButton.icon(
                   key: const Key('account-delete'),
                   onPressed: _confirmDelete,
                   icon: const Icon(Icons.delete_forever_rounded, size: 18),
-                  label: const Text('ลบบัญชี'),
+                  label: Text(context.l10n.deleteAccount),
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFFD9534F),
                   ),

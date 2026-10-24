@@ -4,6 +4,8 @@ import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
+import 'package:mnote/l10n/l10n.dart';
+import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
 import 'package:mnote/features/workspace/presentation/ink_settings.dart';
@@ -60,8 +62,8 @@ class NoteListSettingsDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'การตั้งค่า',
+              Text(
+                context.l10n.settingsTitle,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
             ],
@@ -82,7 +84,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                     const SizedBox(height: 24),
                   ],
                   Text(
-                    'สีของแอป (Accent)',
+                    context.l10n.accentTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -130,7 +132,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'โหมดการแสดงผล (Theme)',
+                    context.l10n.themeTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -157,7 +159,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                                   color: Colors.teal,
                                   size: 18,
                                 ),
-                          label: const _ModeLabel('ตามเครื่อง'),
+                          label: _ModeLabel(context.l10n.themeSystem),
                         ),
                         ButtonSegment(
                           value: ThemeMode.light,
@@ -168,7 +170,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                                   color: Colors.orange,
                                   size: 18,
                                 ),
-                          label: const _ModeLabel('สว่าง'),
+                          label: _ModeLabel(context.l10n.themeLight),
                         ),
                         ButtonSegment(
                           value: ThemeMode.dark,
@@ -179,7 +181,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                                   color: Colors.indigoAccent,
                                   size: 18,
                                 ),
-                          label: const _ModeLabel('มืด'),
+                          label: _ModeLabel(context.l10n.themeDark),
                         ),
                       ],
                       selected: {currentMode},
@@ -192,10 +194,10 @@ class NoteListSettingsDialog extends StatelessWidget {
                   Center(
                     child: Text(
                       currentMode == ThemeMode.system
-                          ? 'ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง'
+                          ? context.l10n.themeHintSystem
                           : (currentMode == ThemeMode.dark
-                                ? 'เปิดใช้งานโหมดมืด'
-                                : 'เปิดใช้งานโหมดสว่าง'),
+                                ? context.l10n.themeHintDark
+                                : context.l10n.themeHintLight),
                       style: TextStyle(
                         fontSize: 11.5,
                         color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -205,6 +207,8 @@ class NoteListSettingsDialog extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  const _LanguageSection(),
                   const SizedBox(height: 20),
                   const _EditorSection(),
                   const SizedBox(height: 20),
@@ -244,7 +248,7 @@ class NoteListSettingsDialog extends StatelessWidget {
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('เสร็จสิ้น'),
+              child: Text(context.l10n.done),
             ),
           ],
         );
@@ -271,9 +275,9 @@ class _AccentSwatch extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: 'สี${accent.label}',
+      label: context.l10n.accentName(context.l10n.accentLabel(accent)),
       child: Tooltip(
-        message: accent.label,
+        message: context.l10n.accentLabel(accent),
         child: InkResponse(
           key: ValueKey('accent_${accent.name}'),
           onTap: onTap,
@@ -346,7 +350,7 @@ class _SyncSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ซิงก์กับบัญชี (Cloud sync)',
+              context.l10n.syncTitle,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -356,23 +360,23 @@ class _SyncSection extends StatelessWidget {
             SwitchListTile(
               key: const Key('sync-enabled-switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('ซิงก์ไฟล์ขึ้นบัญชี'),
-              subtitle: const Text('ปิดแล้วเก็บในเครื่องนี้เท่านั้น'),
+              title: Text(context.l10n.syncFiles),
+              subtitle: Text(context.l10n.syncFilesOffHint),
               value: enabled,
               onChanged: (v) => settings.enabled = v,
             ),
             SwitchListTile(
               key: const Key('sync-ink-switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('ซิงก์หมึกปากกา'),
+              title: Text(context.l10n.syncInk),
               value: settings.syncInk,
               onChanged: enabled ? (v) => settings.syncInk = v : null,
             ),
             SwitchListTile(
               key: const Key('sync-wifi-only-switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('ซิงก์เฉพาะ Wi-Fi'),
-              subtitle: const Text('ไม่ใช้เน็ตมือถือในการซิงก์'),
+              title: Text(context.l10n.syncWifiOnly),
+              subtitle: Text(context.l10n.syncWifiOnlyHint),
               value: settings.wifiOnly,
               onChanged: enabled ? (v) => settings.wifiOnly = v : null,
             ),
@@ -405,28 +409,15 @@ class _SyncStatusTileState extends State<_SyncStatusTile> {
     if (!mounted) return;
     setState(() => _syncing = false);
     if (!ok) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(
-          content: Text('ซิงก์ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'),
-        ),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.l10n.syncFailed)));
     }
   }
 
-  static String describe(DateTime? at, DateTime now) {
-    if (at == null) return 'ยังไม่ได้ซิงก์ในรอบนี้';
-    final diff = now.difference(at);
-    final String ago;
-    if (diff.inSeconds < 60) {
-      ago = 'เมื่อสักครู่';
-    } else if (diff.inMinutes < 60) {
-      ago = '${diff.inMinutes} นาทีที่แล้ว';
-    } else if (diff.inHours < 24) {
-      ago = '${diff.inHours} ชั่วโมงที่แล้ว';
-    } else {
-      ago = '${diff.inDays} วันที่แล้ว';
-    }
-    return 'ซิงก์ล่าสุด: $ago';
+  static String describe(AppLocalizations l, DateTime? at, DateTime now) {
+    if (at == null) return l.syncNotYet;
+    return l.syncLast(l.timeAgo(at, now));
   }
 
   @override
@@ -437,7 +428,9 @@ class _SyncStatusTileState extends State<_SyncStatusTile> {
         key: const Key('sync-status-tile'),
         contentPadding: EdgeInsets.zero,
         title: Text(
-          widget.enabled ? describe(at, DateTime.now()) : 'ปิดการซิงก์อยู่',
+          widget.enabled
+              ? describe(context.l10n, at, DateTime.now())
+              : context.l10n.syncOff,
           style: const TextStyle(fontSize: 14),
         ),
         trailing: _syncing
@@ -450,7 +443,7 @@ class _SyncStatusTileState extends State<_SyncStatusTile> {
                 key: const Key('sync-now-button'),
                 onPressed: widget.enabled ? _syncNow : null,
                 icon: const Icon(Icons.sync_rounded, size: 18),
-                label: const Text('ซิงก์ตอนนี้'),
+                label: Text(context.l10n.syncNow),
               ),
       ),
     );
@@ -478,7 +471,7 @@ class _AccountSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'บัญชี (Account)',
+          context.l10n.accountTitle,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -490,7 +483,7 @@ class _AccountSection extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           leading: AccountAvatar(user: user, radius: 22),
           title: Text(
-            (name != null && name.isNotEmpty) ? name : 'ไม่ระบุชื่อ',
+            (name != null && name.isNotEmpty) ? name : context.l10n.noName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -519,8 +512,8 @@ class _AccountSection extends StatelessWidget {
             key: const Key('settings-sign-out'),
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.logout_rounded, color: Color(0xFFD9534F)),
-            title: const Text(
-              'ออกจากระบบ',
+            title: Text(
+              context.l10n.signOut,
               style: TextStyle(color: Color(0xFFD9534F)),
             ),
             onTap: () async {
@@ -548,7 +541,7 @@ class _EditorSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ตัวแก้ไข (Editor)',
+              context.l10n.editorTitle,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -556,17 +549,17 @@ class _EditorSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text('เปิดโน้ตด้วยโหมด', style: theme.textTheme.bodyMedium),
+            Text(context.l10n.editorOpenIn, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             SegmentedButton<WorkspaceMode>(
               key: const Key('editor-open-mode'),
               expandedInsets: EdgeInsets.zero,
               showSelectedIcon: false,
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: WorkspaceMode.ink,
                   icon: Icon(Icons.draw_rounded, size: 18),
-                  label: Text('เขียน'),
+                  label: Text(context.l10n.tabWrite),
                 ),
                 ButtonSegment(
                   value: WorkspaceMode.split,
@@ -578,7 +571,7 @@ class _EditorSection extends StatelessWidget {
               onSelectionChanged: (s) => settings.openMode = s.first,
             ),
             const SizedBox(height: 16),
-            Text('ฟอนต์ของข้อความ', style: theme.textTheme.bodyMedium),
+            Text(context.l10n.editorFont, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -595,7 +588,12 @@ class _EditorSection extends StatelessWidget {
                           width: double.infinity,
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(font.label, maxLines: 1),
+                            child: Text(
+                              font == EditorFont.app
+                                  ? context.l10n.fontApp
+                                  : font.label,
+                              maxLines: 1,
+                            ),
                           ),
                         ),
                         selected: settings.font == font,
@@ -608,7 +606,7 @@ class _EditorSection extends StatelessWidget {
             const SizedBox(height: 12),
             _LabeledSlider(
               sliderKey: const Key('editor-font-size'),
-              label: 'ขนาดตัวอักษร',
+              label: context.l10n.editorFontSize,
               valueLabel: settings.fontSize.round().toString(),
               value: settings.fontSize,
               min: EditorSettings.minFontSize,
@@ -620,7 +618,7 @@ class _EditorSection extends StatelessWidget {
             ),
             _LabeledSlider(
               sliderKey: const Key('editor-line-height'),
-              label: 'ระยะบรรทัด',
+              label: context.l10n.editorLineHeight,
               valueLabel: settings.lineHeight.toStringAsFixed(2),
               value: settings.lineHeight,
               min: EditorSettings.minLineHeight,
@@ -639,7 +637,7 @@ class _EditorSection extends StatelessWidget {
                 border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
               child: Text(
-                'ตัวอย่างข้อความ The quick brown fox',
+                context.l10n.editorSample,
                 style: settings.textOptions.apply(
                   TextStyle(
                     fontSize: settings.fontSize,
@@ -651,7 +649,7 @@ class _EditorSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'มีผลกับแท็บเขียนและ Markdown โน้ตที่วาดหมึกไว้แล้วจะคงขนาดเดิม เพื่อให้หมึกตรงกับตัวอักษรเสมอ',
+              context.l10n.editorNote,
               style: TextStyle(
                 fontSize: 11.5,
                 color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -664,7 +662,7 @@ class _EditorSection extends StatelessWidget {
               child: TextButton(
                 key: const Key('editor-reset'),
                 onPressed: settings.isDefaultLook ? null : settings.resetLook,
-                child: const Text('คืนค่าเริ่มต้น'),
+                child: Text(context.l10n.reset),
               ),
             ),
           ],
@@ -735,7 +733,7 @@ class _InkSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ปากกา (Ink)',
+            context.l10n.inkTitle,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -745,12 +743,67 @@ class _InkSection extends StatelessWidget {
           SwitchListTile(
             key: const Key('ink-finger-drawing'),
             contentPadding: EdgeInsets.zero,
-            title: const Text('วาดด้วยนิ้วได้'),
-            subtitle: const Text(
-              'ปิดไว้: วาดได้เฉพาะปากกา/Apple Pencil นิ้วใช้เลื่อนหน้า',
-            ),
+            title: Text(context.l10n.inkFinger),
+            subtitle: Text(context.l10n.inkFingerHint),
             value: settings.fingerDrawing,
             onChanged: (v) => settings.fingerDrawing = v,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lets the user pick the app language.
+class _LanguageSection extends StatelessWidget {
+  const _LanguageSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l = context.l10n;
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: MnoteApp.languageNotifier,
+      builder: (context, current, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.languageTitle,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SegmentedButton<AppLanguage>(
+            key: const Key('language-selector'),
+            expandedInsets: EdgeInsets.zero,
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: AppLanguage.system,
+                label: _ModeLabel(l.languageSystem),
+              ),
+              ButtonSegment(
+                value: AppLanguage.thai,
+                label: _ModeLabel(l.languageThai),
+              ),
+              ButtonSegment(
+                value: AppLanguage.english,
+                label: _ModeLabel(l.languageEnglish),
+              ),
+            ],
+            selected: {current},
+            onSelectionChanged: (s) => LanguagePreferences.set(s.first),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l.languageHint,
+            style: TextStyle(
+              fontSize: 11.5,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
           ),
         ],
       ),

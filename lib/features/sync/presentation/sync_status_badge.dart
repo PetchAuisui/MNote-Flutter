@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/models/note_item.dart';
@@ -27,7 +28,7 @@ class SyncStatusBadge extends StatelessWidget {
         final scheme = Theme.of(context).colorScheme;
         if (!repo.settings.allows(doc)) {
           return Tooltip(
-            message: _offReason(repo, doc),
+            message: _offReason(context, repo, doc),
             child: Icon(
               Icons.cloud_off_outlined,
               key: ValueKey('off-${doc.name}'),
@@ -38,7 +39,9 @@ class SyncStatusBadge extends StatelessWidget {
         }
         final isSynced = repo.syncedNames.value.contains(doc.name);
         return Tooltip(
-          message: isSynced ? 'Sync แล้ว' : 'รอ sync',
+          message: isSynced
+              ? context.l10n.badgeSynced
+              : context.l10n.badgePending,
           child: Icon(
             isSynced ? Icons.cloud_done_rounded : Icons.cloud_upload_outlined,
             key: ValueKey(
@@ -52,9 +55,13 @@ class SyncStatusBadge extends StatelessWidget {
     );
   }
 
-  static String _offReason(SyncableDocumentRepository repo, DocumentItem doc) {
-    if (!repo.settings.enabled) return 'ปิดการซิงก์อยู่';
-    if (doc.syncMode == SyncMode.never) return 'ไฟล์นี้ตั้งเป็นไม่ซิงก์';
-    return 'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์';
+  static String _offReason(
+    BuildContext context,
+    SyncableDocumentRepository repo,
+    DocumentItem doc,
+  ) {
+    if (!repo.settings.enabled) return context.l10n.badgeOffSyncOff;
+    if (doc.syncMode == SyncMode.never) return context.l10n.badgeOffNever;
+    return context.l10n.badgeOffTooBig;
   }
 }

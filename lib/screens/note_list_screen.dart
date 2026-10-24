@@ -8,6 +8,7 @@ import 'package:mnote/features/auth/domain/auth_validators.dart';
 import 'package:mnote/features/auth/presentation/auth_page.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
+import 'package:mnote/features/workspace/presentation/editor_settings.dart';
 import 'package:mnote/features/sync/presentation/sync_status_badge.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
@@ -2853,6 +2854,23 @@ class _NoteListScreenState extends State<NoteListScreen> {
 
   // พรีวิวเนื้อหาเอกสารในการ์ด (แยก Title บรรทัดแรกให้อ่านง่าย และตัดคำไม่ให้เสียรูปทรง)
   Widget _buildCardPreviewContent(String content, ThemeData theme) {
+    // The card is a fixed-size thumbnail, so only the font follows the editor
+    // settings, not the size or line height.
+    return ListenableBuilder(
+      listenable: EditorSettings.instance,
+      builder: (context, _) => _cardPreviewBody(
+        content,
+        theme,
+        EditorSettings.instance.textOptions.apply,
+      ),
+    );
+  }
+
+  Widget _cardPreviewBody(
+    String content,
+    ThemeData theme,
+    TextStyle Function(TextStyle) font,
+  ) {
     final rawLines = content
         .trim()
         .split('\n')
@@ -2862,10 +2880,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
     if (rawLines.isEmpty) {
       return Text(
         'เอกสารว่าง',
-        style: TextStyle(
-          fontSize: 11,
-          fontStyle: FontStyle.italic,
-          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        style: font(
+          TextStyle(
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
         ),
       );
     }
@@ -2882,11 +2902,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
       children: [
         Text(
           firstLine,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            height: 1.35,
-            color: theme.colorScheme.onSurface,
+          style: font(
+            TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.bold,
+              height: 1.35,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -2896,12 +2918,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
           Expanded(
             child: Text(
               remaining,
-              style: TextStyle(
-                fontSize: 10.5,
-                height: 1.35,
-                letterSpacing: 0.05,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.8,
+              style: font(
+                TextStyle(
+                  fontSize: 10.5,
+                  height: 1.35,
+                  letterSpacing: 0.05,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
               maxLines: 4,

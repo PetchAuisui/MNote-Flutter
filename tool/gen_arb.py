@@ -229,6 +229,14 @@ S = {
  'badgeOffSyncOff': ('ปิดการซิงก์อยู่', 'Sync is off'),
  'badgeOffNever': ('ไฟล์นี้ตั้งเป็นไม่ซิงก์', 'This note is set not to sync'),
  'badgeOffTooBig': ('ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์', 'This note is larger than 900 KB, so it is not synced'),
+ # about
+ 'aboutTitle': ('เกี่ยวกับ (About)', 'About'),
+ 'aboutVersion': ('เวอร์ชัน {version}', 'Version {version}', ['version']),
+ 'aboutLicenses': ('ใบอนุญาตโอเพนซอร์ส', 'Open-source licenses'),
+ 'aboutFeedback': ('แจ้งปัญหาหรือส่งความคิดเห็น', 'Report a problem or send feedback'),
+ 'aboutFeedbackHint': ('เปิดหน้า GitHub Issues ในเบราว์เซอร์', 'Opens GitHub Issues in your browser'),
+ 'aboutSource': ('ซอร์สโค้ดบน GitHub', 'Source code on GitHub'),
+ 'aboutOpenFailed': ('เปิดลิงก์ไม่สำเร็จ', 'Could not open the link'),
 }
 
 out = pathlib.Path(__file__).resolve().parent.parent / 'lib' / 'l10n'

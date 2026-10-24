@@ -215,5 +215,12 @@
   "badgePending": "Waiting to sync",
   "badgeOffSyncOff": "Sync is off",
   "badgeOffNever": "This note is set not to sync",
-  "badgeOffTooBig": "This note is larger than 900 KB, so it is not synced"
+  "badgeOffTooBig": "This note is larger than 900 KB, so it is not synced",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "aboutLicenses": "Open-source licenses",
+  "aboutFeedback": "Report a problem or send feedback",
+  "aboutFeedbackHint": "Opens GitHub Issues in your browser",
+  "aboutSource": "Source code on GitHub",
+  "aboutOpenFailed": "Could not open the link"
 }

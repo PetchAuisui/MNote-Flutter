@@ -442,5 +442,19 @@
   "badgePending": "รอ sync",
   "badgeOffSyncOff": "ปิดการซิงก์อยู่",
   "badgeOffNever": "ไฟล์นี้ตั้งเป็นไม่ซิงก์",
-  "badgeOffTooBig": "ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์"
+  "badgeOffTooBig": "ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์",
+  "aboutTitle": "เกี่ยวกับ (About)",
+  "aboutVersion": "เวอร์ชัน {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutLicenses": "ใบอนุญาตโอเพนซอร์ส",
+  "aboutFeedback": "แจ้งปัญหาหรือส่งความคิดเห็น",
+  "aboutFeedbackHint": "เปิดหน้า GitHub Issues ในเบราว์เซอร์",
+  "aboutSource": "ซอร์สโค้ดบน GitHub",
+  "aboutOpenFailed": "เปิดลิงก์ไม่สำเร็จ"
 }

@@ -727,4 +727,27 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get badgeOffTooBig => 'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์';
+
+  @override
+  String get aboutTitle => 'เกี่ยวกับ (About)';
+
+  @override
+  String aboutVersion(String version) {
+    return 'เวอร์ชัน $version';
+  }
+
+  @override
+  String get aboutLicenses => 'ใบอนุญาตโอเพนซอร์ส';
+
+  @override
+  String get aboutFeedback => 'แจ้งปัญหาหรือส่งความคิดเห็น';
+
+  @override
+  String get aboutFeedbackHint => 'เปิดหน้า GitHub Issues ในเบราว์เซอร์';
+
+  @override
+  String get aboutSource => 'ซอร์สโค้ดบน GitHub';
+
+  @override
+  String get aboutOpenFailed => 'เปิดลิงก์ไม่สำเร็จ';
 }

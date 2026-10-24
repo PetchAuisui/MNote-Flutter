@@ -55,6 +55,7 @@ dependencies:
   firebase_ai: ^4.0.0
   connectivity_plus: ^7.3.2
   intl: any
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

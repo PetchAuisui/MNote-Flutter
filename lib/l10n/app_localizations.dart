@@ -1393,6 +1393,48 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์'**
   String get badgeOffTooBig;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เกี่ยวกับ (About)'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In th, this message translates to:
+  /// **'เวอร์ชัน {version}'**
+  String aboutVersion(String version);
+
+  /// No description provided for @aboutLicenses.
+  ///
+  /// In th, this message translates to:
+  /// **'ใบอนุญาตโอเพนซอร์ส'**
+  String get aboutLicenses;
+
+  /// No description provided for @aboutFeedback.
+  ///
+  /// In th, this message translates to:
+  /// **'แจ้งปัญหาหรือส่งความคิดเห็น'**
+  String get aboutFeedback;
+
+  /// No description provided for @aboutFeedbackHint.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดหน้า GitHub Issues ในเบราว์เซอร์'**
+  String get aboutFeedbackHint;
+
+  /// No description provided for @aboutSource.
+  ///
+  /// In th, this message translates to:
+  /// **'ซอร์สโค้ดบน GitHub'**
+  String get aboutSource;
+
+  /// No description provided for @aboutOpenFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดลิงก์ไม่สำเร็จ'**
+  String get aboutOpenFailed;
 }
 
 class _AppLocalizationsDelegate

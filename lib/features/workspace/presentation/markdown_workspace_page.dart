@@ -85,8 +85,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   final GlobalKey _surfaceBoundaryKey = GlobalKey();
   late final TransformationController _inkTransform;
   InkTool _inkTool = InkTool.pen;
-  Color _inkPenColor = InkSettings.instance.penColor;
-  double _inkPenWidth = InkSettings.instance.penWidth;
+  Color _inkPenColor = const Color(0xFF202124);
+  double _inkPenWidth = 3;
   bool _inkTouch = InkSettings.instance.fingerDrawing;
   double _inkViewportWidth = 0;
 

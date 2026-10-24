@@ -13,16 +13,12 @@ import 'markdown_document_style.dart';
 class InkSession extends ChangeNotifier {
   static const pageWidth = DocumentPageMetrics.width;
   double height = DocumentPageMetrics.initialHeight;
-  late final ScribbleNotifier pen =
-      ScribbleNotifier(
-          allowedPointersMode: InkSettings.instance.fingerDrawing
-              ? ScribblePointerMode.all
-              : ScribblePointerMode.penOnly,
-          widths: const [3, 6, 12],
-        )
-        ..setColor(InkSettings.instance.penColor)
-        ..setStrokeWidth(InkSettings.instance.penWidth)
-        ..addListener(_onPenChanged);
+  late final ScribbleNotifier pen = ScribbleNotifier(
+    allowedPointersMode: InkSettings.instance.fingerDrawing
+        ? ScribblePointerMode.all
+        : ScribblePointerMode.penOnly,
+    widths: const [3, 6, 12],
+  )..addListener(_onPenChanged);
   final List<Color> colorPresets = [
     const Color(0xFF202124),
     const Color(0xFF275DAD),
@@ -42,7 +38,7 @@ class InkSession extends ChangeNotifier {
     const Color(0xFFFFB74D),
   ];
   final List<double> highlightWidthPresets = [12, 18, 28];
-  Color highlightColor = InkSettings.instance.highlightColor;
+  Color highlightColor = const Color(0xFFFFD54F);
   double highlightWidth = 18;
 
   static Color highlightInk(Color color) => color.withValues(alpha: 0.5);

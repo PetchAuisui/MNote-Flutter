@@ -18,6 +18,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
     this.onTapLink,
     this.builders,
     this.underlay,
+    this.textOptions = const DocumentTextOptions(),
   });
 
   /// Painted on the white page but beneath the text (e.g. highlighter ink).
@@ -28,6 +29,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
   final String? imageDirectory;
   final void Function(String, String?, String?)? onTapLink;
   final Map<String, MarkdownElementBuilder>? builders;
+  final DocumentTextOptions textOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,7 @@ class MarkdownDocumentSurface extends StatelessWidget {
                           selectable: selectable,
                           onTapLink: onTapLink,
                           builders: builders ?? const {},
+                          textOptions: textOptions,
                         ),
                     ],
                   ),

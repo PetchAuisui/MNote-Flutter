@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:scribble/scribble.dart';
 
+import 'editor_settings.dart';
 import 'markdown_document_canvas.dart';
+import 'markdown_document_style.dart';
 
 /// Coordinates belong to the page, never to Markdown blocks or the viewport.
 class InkSession extends ChangeNotifier {
@@ -54,6 +56,52 @@ class InkSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  DocumentTextOptions? _layout;
+
+  /// Whether anything has been drawn on the page.
+  bool get hasInk => pen.currentSketch.lines.isNotEmpty;
+
+  /// How the page text must be laid out under this ink. Ink is drawn at fixed
+  /// positions, so once a page has ink its text keeps the size, line height
+  /// and font it had when the first stroke was drawn, whatever the editor
+  /// settings say now. Ink saved before layouts existed used the defaults.
+  /// A page without ink follows [preferred].
+  DocumentTextOptions layoutFor(DocumentTextOptions preferred) =>
+      hasInk ? (_layout ?? const DocumentTextOptions()) : preferred;
+
+  void _syncLayoutLock() {
+    if (hasInk) {
+      _layout ??= EditorSettings.instance.textOptions;
+    } else {
+      _layout = null;
+    }
+  }
+
+  static DocumentTextOptions? _decodeLayout(Object? data) {
+    if (data is! Map) return null;
+    final size = data['size'];
+    final lineHeight = data['lineHeight'];
+    final font = data['font'];
+    if (size is! num ||
+        lineHeight is! num ||
+        !size.isFinite ||
+        !lineHeight.isFinite) {
+      return null;
+    }
+    final known = EditorFont.values.any((f) => f.familyName == font);
+    return DocumentTextOptions(
+      bodySize: size.toDouble().clamp(
+        EditorSettings.minFontSize,
+        EditorSettings.maxFontSize,
+      ),
+      lineHeight: lineHeight.toDouble().clamp(
+        EditorSettings.minLineHeight,
+        EditorSettings.maxLineHeight,
+      ),
+      fontFamily: known ? font as String? : null,
+    );
+  }
+
   String _savedSketch = jsonEncode(const Sketch(lines: []).toJson());
 
   void setColorPreset(int index, Color color) {
@@ -70,6 +118,7 @@ class InkSession extends ChangeNotifier {
   bool _straightening = false;
 
   void _onPenChanged() {
+    _syncLayoutLock();
     if (!_straightening) _straightenFinishedHighlight();
     notifyListeners();
   }
@@ -137,6 +186,12 @@ class InkSession extends ChangeNotifier {
     'width': pageWidth,
     'height': height,
     'sketch': pen.currentSketch.toJson(),
+    if (hasInk && _layout != null)
+      'layout': {
+        'size': _layout!.bodySize,
+        'lineHeight': _layout!.lineHeight,
+        'font': _layout!.fontFamily,
+      },
   });
 
   void markSaved(String snapshot) {
@@ -179,6 +234,9 @@ class InkSession extends ChangeNotifier {
     }
     height = extent;
     pen.setSketch(sketch: sketch);
+    _layout = sketch.lines.isEmpty
+        ? null
+        : _decodeLayout(data['layout']) ?? const DocumentTextOptions();
     _savedSketch = jsonEncode(sketch.toJson());
     notifyListeners();
   }

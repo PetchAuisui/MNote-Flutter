@@ -575,7 +575,7 @@ class _EditorSection extends StatelessWidget {
               onSelectionChanged: (s) => settings.openMode = s.first,
             ),
             const SizedBox(height: 16),
-            Text('ฟอนต์ในแท็บ Markdown', style: theme.textTheme.bodyMedium),
+            Text('ฟอนต์ของข้อความ', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -648,7 +648,7 @@ class _EditorSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'มีผลกับแท็บ Markdown เท่านั้น แท็บเขียนและหมึกไม่เปลี่ยน เพื่อให้หมึกตรงกับตัวอักษรเสมอ',
+              'มีผลกับแท็บเขียนและ Markdown โน้ตที่วาดหมึกไว้แล้วจะคงขนาดเดิม เพื่อให้หมึกตรงกับตัวอักษรเสมอ',
               style: TextStyle(
                 fontSize: 11.5,
                 color: theme.colorScheme.onSurfaceVariant.withValues(

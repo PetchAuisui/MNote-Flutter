@@ -7,6 +7,7 @@ import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
+import 'editor_settings.dart';
 import 'ink_session.dart';
 import 'ink_storage_scope.dart';
 import 'markdown_document_canvas.dart';
@@ -57,7 +58,12 @@ class _InkPageState extends State<InkPage> {
     super.initState();
     _storage = widget.fileStorage ?? const DeviceInkFileStorage();
     widget.session.pen.addListener(_onPenChanged);
+    EditorSettings.instance.addListener(_onEditorSettingsChanged);
     _attachTransform();
+  }
+
+  void _onEditorSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onPenChanged() {
@@ -140,6 +146,7 @@ class _InkPageState extends State<InkPage> {
           });
     }
     widget.session.pen.removeListener(_onPenChanged);
+    EditorSettings.instance.removeListener(_onEditorSettingsChanged);
     if (_ownsTransform) {
       _transform.dispose();
     }
@@ -286,6 +293,9 @@ class _InkPageState extends State<InkPage> {
                     markdown: widget.markdown,
                     height: widget.session.height,
                     selectable: false,
+                    textOptions: widget.session.layoutFor(
+                      EditorSettings.instance.textOptions,
+                    ),
                     imageDirectory: widget.imageDirectory,
                     builders: {'code': MermaidElementBuilder()},
                     // Highlighter strokes sit beneath the text, so the text

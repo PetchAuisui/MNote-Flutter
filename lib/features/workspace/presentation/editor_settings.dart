@@ -3,7 +3,7 @@ import 'package:mnote/features/workspace/presentation/markdown_document_style.da
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Fonts offered for typing; all are bundled with the app.
+/// Fonts offered for note text; all are bundled with the app.
 enum EditorFont {
   app('ตามแอป', null),
   sarabun('Sarabun', 'Sarabun'),
@@ -18,10 +18,12 @@ enum EditorFont {
   final String? familyName;
 }
 
-/// How the typing view looks, and how new notes open. Saved on this device.
+/// How note text looks in the writing and Markdown tabs, and which tab new
+/// notes open in. Saved on this device.
 ///
-/// These only change the typing view. The writing view and exports keep the
-/// fixed page metrics, so ink always stays where it was drawn.
+/// A page that already has ink keeps the layout it was drawn with (see
+/// `InkSession.layoutFor`), so ink always stays where it was drawn. Exports
+/// and the other views keep the fixed page metrics.
 class EditorSettings extends ChangeNotifier {
   EditorSettings({
     this._fontSize = defaultFontSize,
@@ -54,8 +56,8 @@ class EditorSettings extends ChangeNotifier {
   double get lineHeight => _lineHeight;
   EditorFont get font => _font;
 
-  /// Mode a note opens in: [WorkspaceMode.ink] (writing) or
-  /// [WorkspaceMode.split] (typing).
+  /// Tab a note opens in: [WorkspaceMode.ink] (เขียน) or
+  /// [WorkspaceMode.split] (Markdown).
   WorkspaceMode get openMode => _openMode;
 
   DocumentTextOptions get textOptions => DocumentTextOptions(

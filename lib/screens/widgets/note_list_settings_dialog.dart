@@ -555,39 +555,50 @@ class _EditorSection extends StatelessWidget {
             const SizedBox(height: 12),
             Text('เปิดโน้ตด้วยโหมด', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
-            Center(
-              child: SegmentedButton<WorkspaceMode>(
-                key: const Key('editor-open-mode'),
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: WorkspaceMode.ink,
-                    icon: Icon(Icons.draw_rounded, size: 18),
-                    label: Text('จด'),
-                  ),
-                  ButtonSegment(
-                    value: WorkspaceMode.split,
-                    icon: Icon(Icons.keyboard_rounded, size: 18),
-                    label: Text('พิมพ์'),
-                  ),
-                ],
-                selected: {settings.openMode},
-                onSelectionChanged: (s) => settings.openMode = s.first,
-              ),
+            SegmentedButton<WorkspaceMode>(
+              key: const Key('editor-open-mode'),
+              expandedInsets: EdgeInsets.zero,
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: WorkspaceMode.ink,
+                  icon: Icon(Icons.draw_rounded, size: 18),
+                  label: Text('จด'),
+                ),
+                ButtonSegment(
+                  value: WorkspaceMode.split,
+                  icon: Icon(Icons.keyboard_rounded, size: 18),
+                  label: Text('พิมพ์'),
+                ),
+              ],
+              selected: {settings.openMode},
+              onSelectionChanged: (s) => settings.openMode = s.first,
             ),
             const SizedBox(height: 16),
             Text('ฟอนต์ในโหมดพิมพ์', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
                 for (final font in EditorFont.values)
-                  ChoiceChip(
-                    key: ValueKey('editor-font-${font.name}'),
-                    label: Text(font.label),
-                    selected: settings.font == font,
-                    onSelected: (_) => settings.font = font,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: ChoiceChip(
+                        key: ValueKey('editor-font-${font.name}'),
+                        showCheckmark: false,
+                        padding: EdgeInsets.zero,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        label: SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(font.label, maxLines: 1),
+                          ),
+                        ),
+                        selected: settings.font == font,
+                        onSelected: (_) => settings.font = font,
+                      ),
+                    ),
                   ),
               ],
             ),

@@ -150,8 +150,8 @@ void main() {
   });
 
   group('settings section', () {
-    Future<void> open(WidgetTester tester) async {
-      tester.view.physicalSize = const Size(600, 2400);
+    Future<void> open(WidgetTester tester, {double width = 600}) async {
+      tester.view.physicalSize = Size(width, 2400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -171,6 +171,27 @@ void main() {
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
+    }
+
+    for (final width in [320.0, 600.0, 1000.0]) {
+      testWidgets('fits the whole width at $width', (tester) async {
+        await open(tester, width: width);
+        final mode = find.byKey(const Key('editor-open-mode'));
+        await tester.ensureVisible(mode);
+        final dialog = find.byType(AlertDialog);
+        final modeBox = tester.getRect(mode);
+        // The segmented button spans the same width as the font chips row.
+        final chips = tester.getRect(
+          find.byKey(const ValueKey('editor-font-app')),
+        );
+        final last = tester.getRect(
+          find.byKey(const ValueKey('editor-font-notoSansThai')),
+        );
+        expect(modeBox.left, lessThanOrEqualTo(chips.left));
+        expect(modeBox.right, greaterThanOrEqualTo(last.right - 4));
+        expect(tester.takeException(), isNull);
+        expect(dialog, findsOneWidget);
+      });
     }
 
     testWidgets('chooses the mode new notes open in', (tester) async {

@@ -11,6 +11,7 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/sync/data/connectivity_network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
+import 'package:mnote/features/workspace/presentation/ink_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ Future<void> main() async {
     await Future.wait([
       ThemePreferences.load(),
       EditorSettings.instance.restore(),
+      InkSettings.instance.restore(),
       Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     ]);
     await _activateAppCheck();

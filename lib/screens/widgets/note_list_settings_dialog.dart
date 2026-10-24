@@ -6,6 +6,7 @@ import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.d
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
+import 'package:mnote/features/workspace/presentation/ink_settings.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_style.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 
@@ -206,6 +207,8 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const _EditorSection(),
+                  const SizedBox(height: 20),
+                  const _InkSection(),
                   if (syncSettings != null) ...[
                     const SizedBox(height: 20),
                     _SyncSection(
@@ -713,6 +716,44 @@ class _LabeledSlider extends StatelessWidget {
         ),
         SizedBox(width: 32, child: Text(valueLabel, textAlign: TextAlign.end)),
       ],
+    );
+  }
+}
+
+/// Whether a finger can draw. Pen color and width live in each note's
+/// toolbar.
+class _InkSection extends StatelessWidget {
+  const _InkSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = InkSettings.instance;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ปากกา (Ink)',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          SwitchListTile(
+            key: const Key('ink-finger-drawing'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('วาดด้วยนิ้วได้'),
+            subtitle: const Text(
+              'ปิดไว้: วาดได้เฉพาะปากกา/Apple Pencil นิ้วใช้เลื่อนหน้า',
+            ),
+            value: settings.fingerDrawing,
+            onChanged: (v) => settings.fingerDrawing = v,
+          ),
+        ],
+      ),
     );
   }
 }

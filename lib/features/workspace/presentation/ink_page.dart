@@ -9,6 +9,7 @@ import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
 import 'ink_session.dart';
+import 'ink_settings.dart';
 import 'ink_storage_scope.dart';
 import 'markdown_document_canvas.dart';
 import 'mermaid/mermaid_element_builder.dart';
@@ -45,8 +46,8 @@ class _InkPageState extends State<InkPage> {
   bool _ownsTransform = false;
   final _pageKey = GlobalKey();
   InkTool _tool = InkTool.pen;
-  Color _penColor = const Color(0xFF202124);
-  double _penWidth = 3;
+  Color _penColor = InkSettings.instance.penColor;
+  double _penWidth = InkSettings.instance.penWidth;
   bool get _touch =>
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;

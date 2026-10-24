@@ -24,6 +24,7 @@ import 'package:mnote/features/workspace/presentation/workspace_controller.dart'
 import 'package:scribble/scribble.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'editor_settings.dart';
+import 'ink_settings.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
@@ -84,9 +85,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   final GlobalKey _surfaceBoundaryKey = GlobalKey();
   late final TransformationController _inkTransform;
   InkTool _inkTool = InkTool.pen;
-  Color _inkPenColor = const Color(0xFF202124);
-  double _inkPenWidth = 3;
-  bool _inkTouch = false;
+  Color _inkPenColor = InkSettings.instance.penColor;
+  double _inkPenWidth = InkSettings.instance.penWidth;
+  bool _inkTouch = InkSettings.instance.fingerDrawing;
   double _inkViewportWidth = 0;
 
   /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่

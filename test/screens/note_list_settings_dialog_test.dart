@@ -71,9 +71,15 @@ void main() {
     );
   });
 
+  // The ink pickers also show check marks; count only the accent swatches.
+  final accentChecks = find.descendant(
+    of: find.byWidgetPredicate((w) => w.key.toString().contains('accent_')),
+    matching: find.byIcon(Icons.check_rounded),
+  );
+
   testWidgets('selected swatch shows a check mark', (tester) async {
     await openSettings(tester);
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(accentChecks, findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('accent_orange')));
     await tester.pumpAndSettle();
@@ -85,7 +91,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(accentChecks, findsOneWidget);
   });
 
   testWidgets('light swatch (yellow) uses dark check icon for high contrast', (

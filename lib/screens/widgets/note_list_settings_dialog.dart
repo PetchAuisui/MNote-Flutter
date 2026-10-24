@@ -6,6 +6,7 @@ import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.d
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
+import 'package:mnote/features/workspace/presentation/ink_settings.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_style.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 
@@ -206,6 +207,8 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const _EditorSection(),
+                  const SizedBox(height: 20),
+                  const _InkSection(),
                   if (syncSettings != null) ...[
                     const SizedBox(height: 20),
                     _SyncSection(
@@ -712,6 +715,181 @@ class _LabeledSlider extends StatelessWidget {
           ),
         ),
         SizedBox(width: 32, child: Text(valueLabel, textAlign: TextAlign.end)),
+      ],
+    );
+  }
+}
+
+/// How the pen starts in a new note, and whether a finger can draw.
+class _InkSection extends StatelessWidget {
+  const _InkSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = InkSettings.instance;
+    final labelStyle = theme.textTheme.bodyMedium;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ปากกา (Ink)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('สีปากกา', style: labelStyle),
+            const SizedBox(height: 8),
+            _SwatchRow(
+              keyPrefix: 'ink-pen-color',
+              colors: InkSettings.penColors,
+              selected: settings.penColor,
+              onSelected: (c) => settings.penColor = c,
+            ),
+            const SizedBox(height: 16),
+            Text('ความหนาเส้น', style: labelStyle),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (final width in InkSettings.penWidths)
+                  Expanded(
+                    child: Center(
+                      child: InkResponse(
+                        key: ValueKey('ink-pen-width-${width.round()}'),
+                        radius: 28,
+                        onTap: () => settings.penWidth = width,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: settings.penWidth == width
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.outlineVariant,
+                              width: settings.penWidth == width ? 2.5 : 1,
+                            ),
+                          ),
+                          child: Container(
+                            width: 6 + width,
+                            height: 6 + width,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: settings.penColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('สีไฮไลต์', style: labelStyle),
+            const SizedBox(height: 8),
+            _SwatchRow(
+              keyPrefix: 'ink-highlight-color',
+              colors: InkSettings.highlightColors,
+              selected: settings.highlightColor,
+              onSelected: (c) => settings.highlightColor = c,
+            ),
+            SwitchListTile(
+              key: const Key('ink-finger-drawing'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('วาดด้วยนิ้วได้'),
+              subtitle: const Text(
+                'ปิดไว้: วาดได้เฉพาะปากกา/Apple Pencil นิ้วใช้เลื่อนหน้า',
+              ),
+              value: settings.fingerDrawing,
+              onChanged: (v) => settings.fingerDrawing = v,
+            ),
+            Text(
+              'ใช้ตอนเปิดโน้ต เปลี่ยนในแถบเครื่องมือของโน้ตได้ตามต้องการ',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.8,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const Key('ink-reset'),
+                onPressed: settings.isDefault ? null : settings.reset,
+                child: const Text('คืนค่าเริ่มต้น'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A row of color dots; the selected one gets a ring and a check.
+class _SwatchRow extends StatelessWidget {
+  const _SwatchRow({
+    required this.keyPrefix,
+    required this.colors,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String keyPrefix;
+  final List<Color> colors;
+  final Color selected;
+  final ValueChanged<Color> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        for (final color in colors)
+          Expanded(
+            child: Center(
+              child: InkResponse(
+                key: ValueKey(
+                  '$keyPrefix-${color.toARGB32().toRadixString(16)}',
+                ),
+                radius: 28,
+                onTap: () => onSelected(color),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: color == selected
+                          ? scheme.onSurface
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: color == selected
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: 20,
+                          color:
+                              ThemeData.estimateBrightnessForColor(color) ==
+                                  Brightness.light
+                              ? const Color(0xDD000000)
+                              : Colors.white,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

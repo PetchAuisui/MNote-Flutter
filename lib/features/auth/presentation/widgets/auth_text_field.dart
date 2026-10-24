@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
 
@@ -63,7 +64,9 @@ class _AuthTextFieldState extends State<AuthTextField> {
         prefixIcon: Icon(widget.icon, color: iconColor),
         suffixIcon: widget.obscure
             ? IconButton(
-                tooltip: _hidden ? 'แสดงรหัสผ่าน' : 'ซ่อนรหัสผ่าน',
+                tooltip: _hidden
+                    ? context.l10n.showPassword
+                    : context.l10n.hidePassword,
                 icon: Icon(
                   _hidden ? Icons.visibility_off : Icons.visibility,
                   color: iconColor,

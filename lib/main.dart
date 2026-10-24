@@ -7,6 +7,7 @@ import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/theme_preferences.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
+import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/sync/data/connectivity_network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
@@ -24,6 +25,7 @@ Future<void> main() async {
     // Restore saved theme and initialize Firebase concurrently to speed up launch.
     await Future.wait([
       ThemePreferences.load(),
+      LanguagePreferences.load(),
       EditorSettings.instance.restore(),
       InkSettings.instance.restore(),
       Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),

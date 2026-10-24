@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/auth/domain/auth_user.dart';
 
@@ -26,20 +27,17 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('ลบบัญชี'),
+      title: Text(context.l10n.deleteAccount),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'บัญชี ${widget.user.email} และไฟล์ทั้งหมดบน cloud จะถูกลบถาวร '
-            'ไฟล์ในเครื่องนี้จะถูกลบด้วย และกู้คืนไม่ได้',
-          ),
+          Text(context.l10n.deleteAccountBody(widget.user.email)),
           const SizedBox(height: 12),
           Text(
             _needsPassword
-                ? 'กรอกรหัสผ่านเพื่อยืนยัน'
-                : 'ระบบจะให้ยืนยันตัวตนด้วย Google อีกครั้ง',
+                ? context.l10n.deleteEnterPassword
+                : context.l10n.deleteGoogleReauth,
             style: const TextStyle(fontSize: 13),
           ),
           if (_needsPassword) ...[
@@ -50,8 +48,8 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
               obscureText: true,
               autofocus: true,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'รหัสผ่าน',
+              decoration: InputDecoration(
+                labelText: context.l10n.password,
                 border: OutlineInputBorder(),
               ),
             ),
@@ -61,7 +59,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('ยกเลิก'),
+          child: Text(context.l10n.cancel),
         ),
         TextButton(
           key: const Key('delete-account-confirm'),
@@ -71,7 +69,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
           style: TextButton.styleFrom(
             foregroundColor: Theme.of(context).colorScheme.error,
           ),
-          child: const Text('ลบบัญชีถาวร'),
+          child: Text(context.l10n.deleteForever),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:mnote/features/auth/domain/auth_exception.dart';
+import 'package:mnote/l10n/app_localizations.dart';
 
 class AuthValidators {
   const AuthValidators._();
@@ -6,56 +7,60 @@ class AuthValidators {
   static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
   static const minPasswordLength = 6;
 
-  static String? email(String? value) {
+  static String? email(AppLocalizations l, String? value) {
     final v = value?.trim() ?? '';
-    if (v.isEmpty) return 'กรุณากรอกอีเมล';
-    if (!_emailPattern.hasMatch(v)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+    if (v.isEmpty) return l.enterEmail;
+    if (!_emailPattern.hasMatch(v)) return l.invalidEmail;
     return null;
   }
 
-  static String? password(String? value) {
+  static String? password(AppLocalizations l, String? value) {
     final v = value ?? '';
-    if (v.isEmpty) return 'กรุณากรอกรหัสผ่าน';
+    if (v.isEmpty) return l.enterPassword;
     if (v.length < minPasswordLength) {
-      return 'รหัสผ่านต้องมีอย่างน้อย $minPasswordLength ตัวอักษร';
+      return l.passwordTooShort(minPasswordLength);
     }
     return null;
   }
 
-  static String? displayName(String? value) {
-    if ((value?.trim() ?? '').isEmpty) return 'กรุณากรอกชื่อ';
+  static String? displayName(AppLocalizations l, String? value) {
+    if ((value?.trim() ?? '').isEmpty) return l.enterName;
     return null;
   }
 
-  static String? confirmPassword(String? value, String password) {
-    if ((value ?? '').isEmpty) return 'กรุณายืนยันรหัสผ่าน';
-    if (value != password) return 'รหัสผ่านไม่ตรงกัน';
+  static String? confirmPassword(
+    AppLocalizations l,
+    String? value,
+    String password,
+  ) {
+    if ((value ?? '').isEmpty) return l.enterConfirmPassword;
+    if (value != password) return l.passwordMismatch;
     return null;
   }
 
-  static String messageFor(AuthException e) {
+  static String messageFor(AppLocalizations l, AuthException e) {
     switch (e.code) {
       case AuthErrorCode.invalidEmail:
-        return 'รูปแบบอีเมลไม่ถูกต้อง';
+        return l.invalidEmail;
       case AuthErrorCode.wrongCredentials:
       case AuthErrorCode.userNotFound:
-        return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+        return l.errWrongCredentials;
       case AuthErrorCode.userDisabled:
-        return 'บัญชีนี้ถูกระงับการใช้งาน';
+        return l.errUserDisabled;
       case AuthErrorCode.emailAlreadyInUse:
-        return 'อีเมลนี้ถูกใช้งานแล้ว';
+        return l.errEmailInUse;
       case AuthErrorCode.weakPassword:
-        return 'รหัสผ่านง่ายเกินไป';
+        return l.errWeakPassword;
       case AuthErrorCode.tooManyRequests:
-        return 'ลองใหม่หลายครั้งเกินไป กรุณารอสักครู่';
+        return l.errTooManyRequests;
       case AuthErrorCode.network:
-        return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้';
+        return l.errNetwork;
       case AuthErrorCode.cancelled:
-        return 'ยกเลิกการเข้าสู่ระบบ';
+        return l.errCancelled;
       case AuthErrorCode.configuration:
-        return 'เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง';
+        return l.errGoogleConfig;
       case AuthErrorCode.unknown:
-        return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+        return l.errUnknown;
     }
   }
 }

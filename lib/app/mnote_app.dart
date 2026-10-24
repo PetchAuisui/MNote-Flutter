@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
@@ -14,6 +15,7 @@ import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -44,6 +46,10 @@ class MnoteApp extends StatefulWidget {
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
       ValueNotifier<ThemeMode>(ThemeMode.system);
+
+  /// Global notifier for the language (follows the device by default)
+  static final ValueNotifier<AppLanguage> languageNotifier =
+      ValueNotifier<AppLanguage>(AppLanguage.system);
 
   /// Global notifier to switch app font family
   static final ValueNotifier<AppFontFamily> fontNotifier =
@@ -155,25 +161,43 @@ class _MnoteAppState extends State<MnoteApp> {
             return ValueListenableBuilder<AppAccent>(
               valueListenable: MnoteApp.accentNotifier,
               builder: (context, currentAccent, _) {
-                return MaterialApp(
-                  title: 'Mnote',
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.theme(
-                    Brightness.light,
-                    font: currentFont,
-                    accent: currentAccent,
+                return ValueListenableBuilder<AppLanguage>(
+                  valueListenable: MnoteApp.languageNotifier,
+                  builder: (context, language, _) => MaterialApp(
+                    title: 'Mnote',
+                    locale: language.locale,
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    // Thai is the default: any other device language shows Thai.
+                    localeResolutionCallback: (locale, supported) {
+                      for (final s in supported) {
+                        if (s.languageCode == locale?.languageCode) return s;
+                      }
+                      return const Locale('th');
+                    },
+                    debugShowCheckedModeBanner: false,
+                    theme: AppTheme.theme(
+                      Brightness.light,
+                      font: currentFont,
+                      accent: currentAccent,
+                    ),
+                    darkTheme: AppTheme.theme(
+                      Brightness.dark,
+                      font: currentFont,
+                      accent: currentAccent,
+                    ),
+                    themeMode: currentThemeMode,
+                    builder: ink == null
+                        ? null
+                        : (context, child) =>
+                              InkStorageScope(storage: ink, child: child!),
+                    home: widget.home ?? defaultHome,
                   ),
-                  darkTheme: AppTheme.theme(
-                    Brightness.dark,
-                    font: currentFont,
-                    accent: currentAccent,
-                  ),
-                  themeMode: currentThemeMode,
-                  builder: ink == null
-                      ? null
-                      : (context, child) =>
-                            InkStorageScope(storage: ink, child: child!),
-                  home: widget.home ?? defaultHome,
                 );
               },
             );

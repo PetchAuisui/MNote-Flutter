@@ -16,6 +16,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/screens/widgets/folder_color_dialog.dart';
 import 'package:mnote/screens/widgets/note_list_settings_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -653,9 +654,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
       unawaited(sync?.startSync());
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AuthValidators.messageFor(e))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AuthValidators.messageFor(context.l10n, e))),
+      );
       return;
     }
     await _syncSubscription?.cancel();

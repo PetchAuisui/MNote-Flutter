@@ -1,0 +1,171 @@
+{
+  "@@locale": "th",
+  "cancel": "ยกเลิก",
+  "save": "บันทึก",
+  "close": "ปิด",
+  "done": "เสร็จสิ้น",
+  "reset": "คืนค่าเริ่มต้น",
+  "followDevice": "ตามเครื่อง",
+  "settingsTitle": "การตั้งค่า",
+  "accentTitle": "สีของแอป (Accent)",
+  "accentName": "สี{color}",
+  "@accentName": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "accentBlue": "ฟ้า",
+  "accentPurple": "ม่วง",
+  "accentGreen": "เขียว",
+  "accentRed": "แดง",
+  "accentYellow": "เหลือง",
+  "accentPink": "ชมพู",
+  "accentOrange": "ส้ม",
+  "themeTitle": "โหมดการแสดงผล (Theme)",
+  "themeSystem": "ตามเครื่อง",
+  "themeLight": "สว่าง",
+  "themeDark": "มืด",
+  "themeHintSystem": "ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง",
+  "themeHintDark": "เปิดใช้งานโหมดมืด",
+  "themeHintLight": "เปิดใช้งานโหมดสว่าง",
+  "languageTitle": "ภาษา (Language)",
+  "languageSystem": "ตามภาษาเครื่อง",
+  "languageThai": "ไทย",
+  "languageEnglish": "English",
+  "languageHint": "ถ้าเครื่องใช้ภาษาที่แอปยังไม่รองรับ จะแสดงเป็นภาษาไทย",
+  "accountTitle": "บัญชี (Account)",
+  "noName": "ไม่ระบุชื่อ",
+  "signOut": "ออกจากระบบ",
+  "displayNameLabel": "ชื่อที่แสดง",
+  "editName": "แก้ไขชื่อ",
+  "memberSince": "สมาชิกตั้งแต่ {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "changePasswordByEmail": "เปลี่ยนรหัสผ่านทางอีเมล",
+  "deleteAccount": "ลบบัญชี",
+  "providerGoogle": "เข้าสู่ระบบด้วย Google",
+  "providerEmail": "เข้าสู่ระบบด้วยอีเมล",
+  "providerMnote": "บัญชี Mnote",
+  "nameSaved": "บันทึกชื่อแล้ว",
+  "resetLinkSentTo": "ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ {email} แล้ว",
+  "@resetLinkSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAccountBody": "บัญชี {email} และไฟล์ทั้งหมดบน cloud จะถูกลบถาวร ไฟล์ในเครื่องนี้จะถูกลบด้วย และกู้คืนไม่ได้",
+  "@deleteAccountBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteEnterPassword": "กรอกรหัสผ่านเพื่อยืนยัน",
+  "deleteGoogleReauth": "ระบบจะให้ยืนยันตัวตนด้วย Google อีกครั้ง",
+  "deleteForever": "ลบบัญชีถาวร",
+  "syncTitle": "ซิงก์กับบัญชี (Cloud sync)",
+  "syncFiles": "ซิงก์ไฟล์ขึ้นบัญชี",
+  "syncFilesOffHint": "ปิดแล้วเก็บในเครื่องนี้เท่านั้น",
+  "syncInk": "ซิงก์หมึกปากกา",
+  "syncWifiOnly": "ซิงก์เฉพาะ Wi-Fi",
+  "syncWifiOnlyHint": "ไม่ใช้เน็ตมือถือในการซิงก์",
+  "syncFailed": "ซิงก์ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
+  "syncNotYet": "ยังไม่ได้ซิงก์ในรอบนี้",
+  "syncJustNow": "เมื่อสักครู่",
+  "syncMinutesAgo": "{n} นาทีที่แล้ว",
+  "@syncMinutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncHoursAgo": "{n} ชั่วโมงที่แล้ว",
+  "@syncHoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDaysAgo": "{n} วันที่แล้ว",
+  "@syncDaysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLast": "ซิงก์ล่าสุด: {ago}",
+  "@syncLast": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "syncOff": "ปิดการซิงก์อยู่",
+  "syncNow": "ซิงก์ตอนนี้",
+  "editorTitle": "ตัวแก้ไข (Editor)",
+  "editorOpenIn": "เปิดโน้ตด้วยโหมด",
+  "tabWrite": "เขียน",
+  "tabMarkdown": "Markdown",
+  "editorFont": "ฟอนต์ของข้อความ",
+  "fontApp": "ตามแอป",
+  "editorFontSize": "ขนาดตัวอักษร",
+  "editorLineHeight": "ระยะบรรทัด",
+  "editorSample": "ตัวอย่างข้อความ The quick brown fox",
+  "editorNote": "มีผลกับแท็บเขียนและ Markdown โน้ตที่วาดหมึกไว้แล้วจะคงขนาดเดิม เพื่อให้หมึกตรงกับตัวอักษรเสมอ",
+  "inkTitle": "ปากกา (Ink)",
+  "inkFinger": "วาดด้วยนิ้วได้",
+  "inkFingerHint": "ปิดไว้: วาดได้เฉพาะปากกา/Apple Pencil นิ้วใช้เลื่อนหน้า",
+  "login": "เข้าสู่ระบบ",
+  "register": "สมัครสมาชิก",
+  "registerNew": "สมัครสมาชิกใหม่",
+  "email": "อีเมล",
+  "password": "รหัสผ่าน",
+  "confirmPassword": "ยืนยันรหัสผ่าน",
+  "forgotPassword": "ลืมรหัสผ่าน?",
+  "noAccountRegister": "ยังไม่มีบัญชี? สมัครสมาชิก",
+  "haveAccountLogin": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ",
+  "registerWithGoogle": "สมัครด้วย Google",
+  "orDivider": "หรือ",
+  "enterEmailFirst": "กรอกอีเมลก่อนเพื่อรีเซ็ตรหัสผ่าน",
+  "resetLinkSent": "ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว",
+  "loginSuccess": "ล็อกอินสำเร็จ",
+  "showPassword": "แสดงรหัสผ่าน",
+  "hidePassword": "ซ่อนรหัสผ่าน",
+  "enterPassword": "กรุณากรอกรหัสผ่าน",
+  "enterEmail": "กรุณากรอกอีเมล",
+  "invalidEmail": "รูปแบบอีเมลไม่ถูกต้อง",
+  "passwordTooShort": "รหัสผ่านต้องมีอย่างน้อย {min} ตัวอักษร",
+  "@passwordTooShort": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "enterName": "กรุณากรอกชื่อ",
+  "enterConfirmPassword": "กรุณายืนยันรหัสผ่าน",
+  "passwordMismatch": "รหัสผ่านไม่ตรงกัน",
+  "errWrongCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "errUserDisabled": "บัญชีนี้ถูกระงับการใช้งาน",
+  "errEmailInUse": "อีเมลนี้ถูกใช้งานแล้ว",
+  "errWeakPassword": "รหัสผ่านง่ายเกินไป",
+  "errTooManyRequests": "ลองใหม่หลายครั้งเกินไป กรุณารอสักครู่",
+  "errNetwork": "เชื่อมต่ออินเทอร์เน็ตไม่ได้",
+  "errCancelled": "ยกเลิกการเข้าสู่ระบบ",
+  "errGoogleConfig": "เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง",
+  "errUnknown": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+}

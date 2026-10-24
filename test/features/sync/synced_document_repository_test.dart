@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
 import 'package:mnote/features/sync/domain/cloud_library_store.dart';
+import 'package:mnote/features/sync/domain/network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -569,4 +570,119 @@ void main() {
       expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
     });
   });
+
+  group('Wi-Fi only and sync now', () {
+    late FakeNetwork network;
+
+    setUp(() {
+      network = FakeNetwork();
+      repo = SyncedDocumentRepository(
+        inner: LocalDocumentRepository(storage),
+        store: cloud,
+        uidProvider: () => uid,
+        settings: settings,
+        network: network,
+      );
+    });
+
+    test('does not start on mobile data when Wi-Fi only is on', () async {
+      settings.wifiOnly = true;
+      network.metered = true;
+
+      await repo.startSync();
+      await settle();
+      await repo.save(MarkdownDocument.untitled('hello').rename('a.md'));
+      await settle();
+
+      expect(cloud.docs, isEmpty);
+    });
+
+    test('mobile data is fine when Wi-Fi only is off', () async {
+      network.metered = true;
+
+      await repo.startSync();
+      await settle();
+      await repo.save(MarkdownDocument.untitled('hello').rename('a.md'));
+      await settle();
+
+      expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
+    });
+
+    test(
+      'starts when the device joins Wi-Fi and stops when it leaves',
+      () async {
+        settings.wifiOnly = true;
+        network.metered = true;
+        await repo.startSync();
+        await settle();
+
+        network.setMetered(false);
+        await settle();
+        await repo.save(MarkdownDocument.untitled('one').rename('a.md'));
+        await settle();
+        expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
+
+        network.setMetered(true);
+        await settle();
+        await repo.save(MarkdownDocument.untitled('two').rename('b.md'));
+        await settle();
+        expect(cloud.docs.containsKey(CloudDocument.idFor('b.md')), isFalse);
+      },
+    );
+
+    test('turning Wi-Fi only on while on mobile data stops sync', () async {
+      network.metered = true;
+      await repo.startSync();
+      await settle();
+
+      settings.wifiOnly = true;
+      await settle();
+      await repo.save(MarkdownDocument.untitled('x').rename('a.md'));
+      await settle();
+
+      expect(cloud.docs, isEmpty);
+    });
+
+    test('syncNow reports the time and returns true', () async {
+      await repo.startSync();
+      await settle();
+      await repo.save(MarkdownDocument.untitled('x').rename('a.md'));
+
+      expect(await repo.syncNow(), isTrue);
+      expect(repo.lastSyncedAt.value, isNotNull);
+      expect(cloud.docs.containsKey(CloudDocument.idFor('a.md')), isTrue);
+    });
+
+    test('syncNow is false while sync is off', () async {
+      settings.enabled = false;
+      await repo.startSync();
+
+      expect(await repo.syncNow(), isFalse);
+      expect(repo.lastSyncedAt.value, isNull);
+    });
+
+    test('the first confirmed snapshot sets the last sync time', () async {
+      await repo.startSync();
+      await settle();
+
+      expect(repo.lastSyncedAt.value, isNotNull);
+    });
+  });
+}
+
+class FakeNetwork implements NetworkMonitor {
+  final _controller = StreamController<void>.broadcast();
+
+  bool metered = false;
+
+  void setMetered(bool value) {
+    metered = value;
+    _controller.add(null);
+  }
+
+  @override
+  bool get isMetered => metered;
+
+  @override
+  Stream<void> get changes => _controller.stream;
 }

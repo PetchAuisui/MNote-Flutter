@@ -4,11 +4,13 @@ import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
+import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
   const NoteListSettingsDialog({
     super.key,
     this.syncSettings,
+    this.syncRepository,
     this.authRepository,
     this.onSignOut,
     this.onDeleteAccount,
@@ -23,6 +25,9 @@ class NoteListSettingsDialog extends StatelessWidget {
 
   /// When provided, a cloud sync section is shown.
   final SyncSettings? syncSettings;
+
+  /// When provided, the sync section shows the last sync and a sync-now button.
+  final SyncableDocumentRepository? syncRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +203,10 @@ class NoteListSettingsDialog extends StatelessWidget {
                   ),
                   if (syncSettings != null) ...[
                     const SizedBox(height: 20),
-                    _SyncSection(settings: syncSettings!),
+                    _SyncSection(
+                      settings: syncSettings!,
+                      repository: syncRepository,
+                    ),
                   ],
                   const SizedBox(height: 20),
                   Row(
@@ -312,11 +320,12 @@ class _ModeLabel extends StatelessWidget {
   }
 }
 
-/// Switches for syncing notes to the account.
+/// Switches for syncing notes to the account, plus the sync status.
 class _SyncSection extends StatelessWidget {
-  const _SyncSection({required this.settings});
+  const _SyncSection({required this.settings, this.repository});
 
   final SyncSettings settings;
+  final SyncableDocumentRepository? repository;
 
   @override
   Widget build(BuildContext context) {
@@ -351,9 +360,91 @@ class _SyncSection extends StatelessWidget {
               value: settings.syncInk,
               onChanged: enabled ? (v) => settings.syncInk = v : null,
             ),
+            SwitchListTile(
+              key: const Key('sync-wifi-only-switch'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('ซิงก์เฉพาะ Wi-Fi'),
+              subtitle: const Text('ไม่ใช้เน็ตมือถือในการซิงก์'),
+              value: settings.wifiOnly,
+              onChanged: enabled ? (v) => settings.wifiOnly = v : null,
+            ),
+            if (repository != null)
+              _SyncStatusTile(repository: repository!, enabled: enabled),
           ],
         );
       },
+    );
+  }
+}
+
+/// When the library was last confirmed in the cloud, with a sync-now button.
+class _SyncStatusTile extends StatefulWidget {
+  const _SyncStatusTile({required this.repository, required this.enabled});
+
+  final SyncableDocumentRepository repository;
+  final bool enabled;
+
+  @override
+  State<_SyncStatusTile> createState() => _SyncStatusTileState();
+}
+
+class _SyncStatusTileState extends State<_SyncStatusTile> {
+  bool _syncing = false;
+
+  Future<void> _syncNow() async {
+    setState(() => _syncing = true);
+    final ok = await widget.repository.syncNow();
+    if (!mounted) return;
+    setState(() => _syncing = false);
+    if (!ok) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('ซิงก์ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'),
+        ),
+      );
+    }
+  }
+
+  static String describe(DateTime? at, DateTime now) {
+    if (at == null) return 'ยังไม่ได้ซิงก์ในรอบนี้';
+    final diff = now.difference(at);
+    final String ago;
+    if (diff.inSeconds < 60) {
+      ago = 'เมื่อสักครู่';
+    } else if (diff.inMinutes < 60) {
+      ago = '${diff.inMinutes} นาทีที่แล้ว';
+    } else if (diff.inHours < 24) {
+      ago = '${diff.inHours} ชั่วโมงที่แล้ว';
+    } else {
+      ago = '${diff.inDays} วันที่แล้ว';
+    }
+    return 'ซิงก์ล่าสุด: $ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<DateTime?>(
+      valueListenable: widget.repository.lastSyncedAt,
+      builder: (context, at, _) => ListTile(
+        key: const Key('sync-status-tile'),
+        contentPadding: EdgeInsets.zero,
+        title: Text(
+          widget.enabled ? describe(at, DateTime.now()) : 'ปิดการซิงก์อยู่',
+          style: const TextStyle(fontSize: 14),
+        ),
+        trailing: _syncing
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              )
+            : TextButton.icon(
+                key: const Key('sync-now-button'),
+                onPressed: widget.enabled ? _syncNow : null,
+                icon: const Icon(Icons.sync_rounded, size: 18),
+                label: const Text('ซิงก์ตอนนี้'),
+              ),
+      ),
     );
   }
 }

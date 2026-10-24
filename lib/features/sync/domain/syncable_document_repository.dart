@@ -18,6 +18,14 @@ abstract interface class SyncableDocumentRepository
   /// Names of documents whose current content is confirmed in the cloud.
   ValueListenable<Set<String>> get syncedNames;
 
+  /// When everything was last confirmed in the cloud, or null if that has not
+  /// happened since the app started.
+  ValueListenable<DateTime?> get lastSyncedAt;
+
+  /// Uploads pending changes now and waits for the cloud to confirm them.
+  /// Returns false when sync is off or the cloud could not be reached.
+  Future<bool> syncNow();
+
   /// Starts syncing for the current user. Safe to call repeatedly.
   Future<void> startSync();
 

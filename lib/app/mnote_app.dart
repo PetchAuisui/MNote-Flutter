@@ -7,6 +7,7 @@ import 'package:mnote/features/sync/data/firestore_library_store.dart';
 import 'package:mnote/features/sync/data/firestore_ink_store.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
 import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
+import 'package:mnote/features/sync/domain/network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
@@ -24,6 +25,7 @@ class MnoteApp extends StatefulWidget {
     this.home,
     this.authRepository,
     this.syncSettings,
+    this.networkMonitor,
   });
 
   final DocumentRepository? documentRepository;
@@ -35,6 +37,9 @@ class MnoteApp extends StatefulWidget {
 
   /// Cloud sync choices; defaults are used when not provided.
   final SyncSettings? syncSettings;
+
+  /// Lets sync hold back on mobile data; sync always runs when null.
+  final NetworkMonitor? networkMonitor;
 
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
@@ -92,6 +97,7 @@ class _MnoteAppState extends State<MnoteApp> {
       uidProvider: () => auth.currentUser?.uid,
       settings: _syncSettings,
       companions: [?ink],
+      network: widget.networkMonitor,
     );
     ink?.policy = repository.allowsInk;
     return repository;

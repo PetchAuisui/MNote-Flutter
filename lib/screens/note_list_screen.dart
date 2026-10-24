@@ -618,6 +618,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       context: context,
       builder: (_) => NoteListSettingsDialog(
         syncSettings: sync,
+        syncRepository: _syncRepository,
         authRepository: widget.authRepository,
         onSignOut: widget.authRepository == null ? null : _signOut,
         onDeleteAccount: widget.authRepository == null ? null : _deleteAccount,

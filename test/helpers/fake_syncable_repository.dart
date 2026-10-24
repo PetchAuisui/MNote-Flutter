@@ -11,13 +11,26 @@ class FakeSyncableRepository extends FakeDocumentRepository
     : settings = settings ?? SyncSettings();
 
   final synced = ValueNotifier<Set<String>>({});
+  final lastSynced = ValueNotifier<DateTime?>(null);
   int unsynced = 0;
+  int syncNowCalls = 0;
+  bool syncNowResult = true;
 
   @override
   final SyncSettings settings;
 
   @override
   ValueListenable<Set<String>> get syncedNames => synced;
+
+  @override
+  ValueListenable<DateTime?> get lastSyncedAt => lastSynced;
+
+  @override
+  Future<bool> syncNow() async {
+    syncNowCalls += 1;
+    if (syncNowResult) lastSynced.value = DateTime.now();
+    return syncNowResult;
+  }
 
   @override
   Stream<void> get changes => const Stream.empty();

@@ -85,7 +85,28 @@ abstract final class MarkdownDocumentStyle {
         fontWeight: level <= 3 ? FontWeight.w700 : FontWeight.w600,
       ),
     );
-    return MarkdownStyleSheet.fromTheme(theme).copyWith(
+    final base = MarkdownStyleSheet.fromTheme(theme);
+    // Table cells and checkboxes have their own styles that the paragraph
+    // style does not reach. Keep their default look and apply only the
+    // changes the user made, so default pages stay exactly as before.
+    TextStyle? follow(TextStyle? style) {
+      if (style == null) return null;
+      final size = style.fontSize;
+      final height = style.height;
+      return options.apply(
+        style.copyWith(
+          fontSize: size == null ? null : size * options.scale,
+          height: height == null
+              ? null
+              : height * options.lineHeight / lineHeight,
+        ),
+      );
+    }
+
+    return base.copyWith(
+      tableHead: follow(base.tableHead),
+      tableBody: follow(base.tableBody),
+      checkbox: follow(base.checkbox),
       p: body,
       h1: heading(1),
       h2: heading(2),

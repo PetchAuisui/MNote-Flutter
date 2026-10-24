@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_style.dart';
+import 'package:mnote/features/workspace/presentation/markdown_rendered_block.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
@@ -87,6 +90,93 @@ void main() {
       expect(EditorSettings.instance.openMode, WorkspaceMode.ink);
       MarkdownWorkspacePage.defaultMode = WorkspaceMode.split;
       expect(EditorSettings.instance.openMode, WorkspaceMode.split);
+    });
+  });
+
+  group('table and checkbox styles', () {
+    Future<ThemeData> resolvedTheme(WidgetTester tester) async {
+      late ThemeData theme;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              theme = Theme.of(context);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      return theme;
+    }
+
+    testWidgets('default options leave them exactly as before', (tester) async {
+      final theme = await resolvedTheme(tester);
+      final plain = MarkdownStyleSheet.fromTheme(theme);
+      final sheet = MarkdownDocumentStyle.sheet(theme);
+      expect(sheet.tableBody, plain.tableBody);
+      expect(sheet.tableHead, plain.tableHead);
+      expect(sheet.checkbox, plain.checkbox);
+    });
+
+    testWidgets('follow the size, line height and font the user chose', (
+      tester,
+    ) async {
+      final theme = await resolvedTheme(tester);
+      final plain = MarkdownStyleSheet.fromTheme(theme);
+      const options = DocumentTextOptions(
+        bodySize: 25.5,
+        lineHeight: 1.9,
+        fontFamily: 'Sarabun',
+      );
+      final sheet = MarkdownDocumentStyle.sheet(theme, options);
+
+      expect(
+        sheet.tableBody!.fontSize,
+        greaterThan(plain.tableBody!.fontSize!),
+      );
+      expect(sheet.tableBody!.height, greaterThan(plain.tableBody!.height!));
+      expect(sheet.tableBody!.fontFamily, contains('Sarabun'));
+      expect(sheet.tableHead!.fontFamily, contains('Sarabun'));
+      expect(sheet.tableHead!.fontWeight, plain.tableHead!.fontWeight);
+      // A size the default style leaves to inheritance stays inherited.
+      expect(sheet.tableHead!.fontSize, plain.tableHead!.fontSize);
+    });
+  });
+
+  group('rendered table', () {
+    Future<(Size, Size)> cellSizes(
+      WidgetTester tester,
+      DocumentTextOptions options,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => MarkdownRenderedBlock(
+                markdown: '| Head |\n| --- |\n| Body |',
+                theme: Theme.of(context),
+                textOptions: options,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (
+        tester.getSize(find.text('Head', findRichText: true)),
+        tester.getSize(find.text('Body', findRichText: true)),
+      );
+    }
+
+    testWidgets('head and body cells follow the chosen size', (tester) async {
+      final normal = await cellSizes(tester, const DocumentTextOptions());
+      final big = await cellSizes(
+        tester,
+        const DocumentTextOptions(bodySize: 26),
+      );
+
+      expect(big.$1.height, greaterThan(normal.$1.height));
+      expect(big.$2.height, greaterThan(normal.$2.height));
     });
   });
 

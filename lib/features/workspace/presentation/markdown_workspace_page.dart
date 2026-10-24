@@ -23,6 +23,7 @@ import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:scribble/scribble.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'editor_settings.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
@@ -50,8 +51,11 @@ class MarkdownWorkspacePage extends StatefulWidget {
   /// Lets the user choose a `.mnote` file; null when they cancel.
   final Future<Uint8List?> Function() mnotePicker;
 
-  /// Documents open in writing mode first; the editor is one tap away.
-  static WorkspaceMode defaultMode = WorkspaceMode.ink;
+  /// The mode documents open in: writing unless the user chose typing.
+  static WorkspaceMode get defaultMode => EditorSettings.instance.openMode;
+
+  static set defaultMode(WorkspaceMode mode) =>
+      EditorSettings.instance.openMode = mode;
 
   /// ผู้ช่วย AI ถ้าเป็น null จะไม่แสดงปุ่ม AI บนแถบหัว
   final AiAssistant? assistant;

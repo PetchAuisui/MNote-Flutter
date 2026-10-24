@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/workspace/presentation/editor_settings.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/models/note_item.dart';
@@ -1154,4 +1155,34 @@ void main() {
       if (width >= 360) expect(card.width, 148);
     });
   }
+
+  testWidgets('card previews use the editor font, live', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(EditorSettings.instance.resetLook);
+    final repo = FakeDocumentRepository()
+      ..storedMetadata = LibraryMetadata(
+        folders: [],
+        documents: [
+          DocumentItem(
+            id: 'a',
+            name: 'Alpha.md',
+            content: '# Alpha title\n\nbody words here',
+            updatedAt: DateTime(2026),
+          ),
+        ],
+      );
+    await tester.pumpWidget(
+      MaterialApp(home: NoteListScreen(repository: repo)),
+    );
+    await tester.pumpAndSettle();
+    String? family() =>
+        tester.widget<Text>(find.text('Alpha title')).style?.fontFamily;
+    final before = family();
+
+    EditorSettings.instance.font = EditorFont.sarabun;
+    await tester.pumpAndSettle();
+
+    expect(family(), isNot(before));
+    expect(family(), contains('Sarabun'));
+  });
 }

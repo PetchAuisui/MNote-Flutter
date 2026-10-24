@@ -1,6 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/core/theme/app_theme.dart';
+
+/// How body text is sized in a rendered document. The defaults are the
+/// fixed page metrics that ink is drawn against; only the typing view passes
+/// the user's own values.
+class DocumentTextOptions {
+  const DocumentTextOptions({
+    this.bodySize = MarkdownDocumentStyle.bodySize,
+    this.lineHeight = MarkdownDocumentStyle.lineHeight,
+    this.fontFamily,
+  });
+
+  final double bodySize;
+  final double lineHeight;
+
+  /// A Google Fonts family bundled with the app, or null for the app font.
+  final String? fontFamily;
+
+  /// Headings and code scale with the body text.
+  double get scale => bodySize / MarkdownDocumentStyle.bodySize;
+
+  TextStyle apply(TextStyle style) => fontFamily == null
+      ? style
+      : GoogleFonts.getFont(fontFamily!, textStyle: style);
+
+  @override
+  bool operator ==(Object other) =>
+      other is DocumentTextOptions &&
+      other.bodySize == bodySize &&
+      other.lineHeight == lineHeight &&
+      other.fontFamily == fontFamily;
+
+  @override
+  int get hashCode => Object.hash(bodySize, lineHeight, fontFamily);
+}
 
 abstract final class MarkdownDocumentStyle {
   static const bodySize = 17.0;
@@ -31,18 +66,32 @@ abstract final class MarkdownDocumentStyle {
     useMaterial3: true,
   );
 
-  static MarkdownStyleSheet sheet(ThemeData theme) {
-    final body = theme.textTheme.bodyLarge!.copyWith(
-      fontSize: bodySize,
-      height: lineHeight,
-      color: textColor,
+  static MarkdownStyleSheet sheet(
+    ThemeData theme, [
+    DocumentTextOptions options = const DocumentTextOptions(),
+  ]) {
+    final body = options.apply(
+      theme.textTheme.bodyLarge!.copyWith(
+        fontSize: options.bodySize,
+        height: options.lineHeight,
+        color: textColor,
+      ),
     );
-    TextStyle heading(int level) => body.copyWith(
-      fontSize: headingSizes[level - 1],
-      height: 1.35,
-      fontWeight: level <= 3 ? FontWeight.w700 : FontWeight.w600,
+    TextStyle heading(int level) => options.apply(
+      theme.textTheme.bodyLarge!.copyWith(
+        fontSize: headingSizes[level - 1] * options.scale,
+        height: 1.35,
+        color: textColor,
+        fontWeight: level <= 3 ? FontWeight.w700 : FontWeight.w600,
+      ),
     );
-    return MarkdownStyleSheet.fromTheme(theme).copyWith(
+    final base = MarkdownStyleSheet.fromTheme(theme);
+    return base.copyWith(
+      // Table cells and checkboxes have their own styles that the paragraph
+      // style does not reach; they are set to match the body text.
+      tableHead: body.copyWith(fontWeight: FontWeight.w600),
+      tableBody: body,
+      checkbox: body.copyWith(color: base.checkbox?.color),
       p: body,
       h1: heading(1),
       h2: heading(2),
@@ -69,7 +118,7 @@ abstract final class MarkdownDocumentStyle {
       ),
       code: body.copyWith(
         fontFamily: 'monospace',
-        fontSize: 15,
+        fontSize: 15 * options.scale,
         backgroundColor: _translucentOnWhite(0xFFF1F1F3),
       ),
       codeblockPadding: const EdgeInsets.all(16),

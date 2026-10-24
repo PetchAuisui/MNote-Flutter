@@ -563,19 +563,19 @@ class _EditorSection extends StatelessWidget {
                 ButtonSegment(
                   value: WorkspaceMode.ink,
                   icon: Icon(Icons.draw_rounded, size: 18),
-                  label: Text('จด'),
+                  label: Text('เขียน'),
                 ),
                 ButtonSegment(
                   value: WorkspaceMode.split,
                   icon: Icon(Icons.keyboard_rounded, size: 18),
-                  label: Text('พิมพ์'),
+                  label: Text('Markdown'),
                 ),
               ],
               selected: {settings.openMode},
               onSelectionChanged: (s) => settings.openMode = s.first,
             ),
             const SizedBox(height: 16),
-            Text('ฟอนต์ในโหมดพิมพ์', style: theme.textTheme.bodyMedium),
+            Text('ฟอนต์ในแท็บ Markdown', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -648,7 +648,7 @@ class _EditorSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'มีผลกับโหมดพิมพ์เท่านั้น โหมดจดและหมึกไม่เปลี่ยน',
+              'มีผลกับแท็บ Markdown เท่านั้น แท็บเขียนและหมึกไม่เปลี่ยน เพื่อให้หมึกตรงกับตัวอักษรเสมอ',
               style: TextStyle(
                 fontSize: 11.5,
                 color: theme.colorScheme.onSurfaceVariant.withValues(

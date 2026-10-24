@@ -196,11 +196,11 @@ void main() {
 
     testWidgets('chooses the mode new notes open in', (tester) async {
       await open(tester);
-      await tester.tap(find.text('จด'));
+      await tester.tap(find.text('เขียน'));
       await tester.pumpAndSettle();
       expect(MarkdownWorkspacePage.defaultMode, WorkspaceMode.ink);
 
-      await tester.tap(find.text('พิมพ์'));
+      await tester.tap(find.text('Markdown'));
       await tester.pumpAndSettle();
       expect(MarkdownWorkspacePage.defaultMode, WorkspaceMode.split);
     });

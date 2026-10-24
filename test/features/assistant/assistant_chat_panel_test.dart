@@ -612,5 +612,16 @@ void main() {
         );
       },
     );
+
+    // 25. แสดงคำเตือน Disclaimer ใต้ช่องพิมพ์
+    testWidgets('25. shows a disclaimer that AI can make mistakes', (
+      tester,
+    ) async {
+      final controller = AssistantChatController(FakeAiAssistant());
+      await tester.pumpWidget(buildTestWidget(controller: controller));
+
+      expect(find.byKey(const Key('assistant-disclaimer')), findsOneWidget);
+      expect(find.textContaining('อาจตอบผิดพลาดได้'), findsOneWidget);
+    });
   });
 }

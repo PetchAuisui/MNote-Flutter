@@ -308,7 +308,7 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
 
               const Divider(height: 1),
 
-              // 5. ช่องพิมพ์ข้อความ พร้อมแถบแนบโน้ต
+              // 5. ช่องพิมพ์ข้อความ พร้อมแถบแนบโน้ต และคำเตือน Disclaimer
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -381,6 +381,15 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                           onPressed: canSend ? () => _sendMessage() : null,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ',
+                      key: const Key('assistant-disclaimer'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),

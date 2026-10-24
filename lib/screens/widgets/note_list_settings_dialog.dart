@@ -5,6 +5,9 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
+import 'package:mnote/features/workspace/presentation/editor_settings.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_style.dart';
+import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 
 class NoteListSettingsDialog extends StatelessWidget {
   const NoteListSettingsDialog({
@@ -201,6 +204,8 @@ class NoteListSettingsDialog extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  const _EditorSection(),
                   if (syncSettings != null) ...[
                     const SizedBox(height: 20),
                     _SyncSection(
@@ -520,6 +525,182 @@ class _AccountSection extends StatelessWidget {
               await onSignOut!();
             },
           ),
+      ],
+    );
+  }
+}
+
+/// How the typing view looks and which mode new notes open in.
+class _EditorSection extends StatelessWidget {
+  const _EditorSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = EditorSettings.instance;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ตัวแก้ไข (Editor)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('เปิดโน้ตด้วยโหมด', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Center(
+              child: SegmentedButton<WorkspaceMode>(
+                key: const Key('editor-open-mode'),
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: WorkspaceMode.ink,
+                    icon: Icon(Icons.draw_rounded, size: 18),
+                    label: Text('จด'),
+                  ),
+                  ButtonSegment(
+                    value: WorkspaceMode.split,
+                    icon: Icon(Icons.keyboard_rounded, size: 18),
+                    label: Text('พิมพ์'),
+                  ),
+                ],
+                selected: {settings.openMode},
+                onSelectionChanged: (s) => settings.openMode = s.first,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('ฟอนต์ในโหมดพิมพ์', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final font in EditorFont.values)
+                  ChoiceChip(
+                    key: ValueKey('editor-font-${font.name}'),
+                    label: Text(font.label),
+                    selected: settings.font == font,
+                    onSelected: (_) => settings.font = font,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _LabeledSlider(
+              sliderKey: const Key('editor-font-size'),
+              label: 'ขนาดตัวอักษร',
+              valueLabel: settings.fontSize.round().toString(),
+              value: settings.fontSize,
+              min: EditorSettings.minFontSize,
+              max: EditorSettings.maxFontSize,
+              divisions:
+                  (EditorSettings.maxFontSize - EditorSettings.minFontSize)
+                      .round(),
+              onChanged: (v) => settings.fontSize = v,
+            ),
+            _LabeledSlider(
+              sliderKey: const Key('editor-line-height'),
+              label: 'ระยะบรรทัด',
+              valueLabel: settings.lineHeight.toStringAsFixed(2),
+              value: settings.lineHeight,
+              min: EditorSettings.minLineHeight,
+              max: EditorSettings.maxLineHeight,
+              divisions: 14,
+              onChanged: (v) => settings.lineHeight = v,
+            ),
+            Container(
+              key: const Key('editor-preview'),
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Text(
+                'ตัวอย่างข้อความ The quick brown fox',
+                style: settings.textOptions.apply(
+                  TextStyle(
+                    fontSize: settings.fontSize,
+                    height: settings.lineHeight,
+                    color: MarkdownDocumentStyle.textColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'มีผลกับโหมดพิมพ์เท่านั้น โหมดจดและหมึกไม่เปลี่ยน',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.8,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const Key('editor-reset'),
+                onPressed: settings.isDefaultLook ? null : settings.resetLook,
+                child: const Text('คืนค่าเริ่มต้น'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LabeledSlider extends StatelessWidget {
+  const _LabeledSlider({
+    required this.sliderKey,
+    required this.label,
+    required this.valueLabel,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.onChanged,
+  });
+
+  final Key sliderKey;
+  final String label;
+  final String valueLabel;
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 104,
+          child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        Expanded(
+          child: Slider(
+            key: sliderKey,
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: valueLabel,
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(width: 32, child: Text(valueLabel, textAlign: TextAlign.end)),
       ],
     );
   }

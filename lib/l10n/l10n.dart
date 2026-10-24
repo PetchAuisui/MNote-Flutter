@@ -54,6 +54,17 @@ extension AppLocalizationsText on AppLocalizations {
     return '${enMonths[d.month - 1]} ${d.day}, ${d.year}';
   }
 
+  /// A date for note cards: `5 มี.ค. 69` in Thai (two-digit Buddhist year),
+  /// `Mar 5, 2026` in English.
+  String cardDate(DateTime date) {
+    if (localeName != 'th') return shortDate(date);
+    final year = date.year + (date.year < 2500 ? 543 : 0);
+    final short = (year % 100).toString().padLeft(2, '0');
+    final full = shortDate(date);
+    // shortDate ends with the four-digit Buddhist year; use the short form.
+    return '${full.substring(0, full.lastIndexOf(' '))} $short';
+  }
+
   /// How long ago [at] was, relative to [now].
   String timeAgo(DateTime at, DateTime now) {
     final diff = now.difference(at);

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/models/note_item.dart';
 
@@ -32,7 +33,7 @@ Future<FolderColorChoice?> showFolderColorDialog(
     builder: (ctx) {
       final primary = Theme.of(ctx).colorScheme.primary;
       return AlertDialog(
-        title: const Text('เปลี่ยนสีโฟลเดอร์'),
+        title: Text(context.l10n.folderColorTitle),
         content: Wrap(
           spacing: 14,
           runSpacing: 14,
@@ -41,7 +42,7 @@ Future<FolderColorChoice?> showFolderColorDialog(
               key: const Key('folder-color-default'),
               color: primary,
               selected: folder.colorValue == null,
-              label: 'สีเริ่มต้น',
+              label: context.l10n.defaultColor,
               onTap: () => Navigator.pop(ctx, (color: null)),
             ),
             for (final value in folderColorChoices)
@@ -56,7 +57,7 @@ Future<FolderColorChoice?> showFolderColorDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
         ],
       );
@@ -83,7 +84,7 @@ class _Swatch extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: label ?? 'สีโฟลเดอร์',
+      label: label ?? context.l10n.folderColorLabel,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,

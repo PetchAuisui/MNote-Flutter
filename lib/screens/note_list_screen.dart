@@ -285,7 +285,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: Text('ดึงไฟล์ "${doc.displayName}" เข้ามาแล้ว'),
+              content: Text(context.l10n.noteImported(doc.displayName)),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
@@ -297,7 +297,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
-              content: Text('เกิดข้อผิดพลาดในการดึงไฟล์: $e'),
+              content: Text(context.l10n.noteImportFailed('$e')),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
@@ -310,7 +310,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
   Future<void> _createNewFile({required bool isMarkdown}) async {
     final ext = isMarkdown ? 'md' : 'txt';
     final count = _documents.where((d) => d.extension == ext).length + 1;
-    final defaultName = isMarkdown ? 'เอกสาร_$count' : 'ข้อความ_$count';
+    final defaultName = isMarkdown
+        ? context.l10n.defaultDocName(count)
+        : context.l10n.defaultTextName(count);
 
     final textController = TextEditingController(text: defaultName);
 
@@ -319,14 +321,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(
           isMarkdown
-              ? 'สร้างไฟล์ Markdown ใหม่'
-              : 'สร้างไฟล์ข้อความ (.txt) ใหม่',
+              ? context.l10n.newMarkdownTitle
+              : context.l10n.newTextTitle,
         ),
         content: TextField(
           controller: textController,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: 'ชื่อไฟล์',
+            labelText: context.l10n.fileNameLabel,
             suffixText: '.$ext',
             border: const OutlineInputBorder(),
           ),
@@ -334,7 +336,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -346,7 +348,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
               if (raw.isEmpty) return;
               Navigator.of(ctx).pop('$raw.$ext');
             },
-            child: const Text('สร้างไฟล์'),
+            child: Text(context.l10n.createFile),
           ),
         ],
       ),
@@ -358,8 +360,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
       name: fileName,
       content: isMarkdown
-          ? '# $fileName\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...'
-          : 'บันทึกข้อความ $fileName\n\n',
+          ? context.l10n.newMarkdownBody(fileName)
+          : context.l10n.newTextBody(fileName),
       updatedAt: DateTime.now(),
       folderId: _currentFolderId,
     );
@@ -380,20 +382,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('สร้างโฟลเดอร์ใหม่'),
+        title: Text(context.l10n.newFolderTitle),
         content: TextField(
           controller: textController,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'ชื่อโฟลเดอร์',
-            hintText: 'เช่น วิชาสัมมนา, บันทึกย่อ',
+          decoration: InputDecoration(
+            labelText: context.l10n.folderNameLabel,
+            hintText: context.l10n.folderNameHint,
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -402,7 +404,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 Navigator.of(ctx).pop(name);
               }
             },
-            child: const Text('สร้าง'),
+            child: Text(context.l10n.create),
           ),
         ],
       ),
@@ -428,7 +430,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('สร้างโฟลเดอร์ "$name" เรียบร้อยแล้ว'),
+            content: Text(context.l10n.folderCreated(name)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -446,18 +448,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
             Icons.restore_from_trash_rounded,
             color: Theme.of(ctx).colorScheme.primary,
           ),
-          title: const Text('เอกสารอยู่ในถังขยะ'),
-          content: Text(
-            'คุณต้องการกู้คืน "${item.displayName}" เพื่อเปิดดูหรือไม่?',
-          ),
+          title: Text(context.l10n.trashedDocTitle),
+          content: Text(context.l10n.trashedDocBody(item.displayName)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('ยกเลิก'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('กู้คืนและเปิด'),
+              child: Text(context.l10n.restoreAndOpen),
             ),
           ],
         ),
@@ -573,18 +573,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
         final proceed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('มีไฟล์ที่ไม่ได้ซิงก์'),
-            content: Text(
-              'ไฟล์ $unsynced ไฟล์ไม่ได้อยู่บน cloud การออกจากระบบจะลบไฟล์เหล่านี้ออกจากเครื่องนี้ถาวร',
-            ),
+            title: Text(context.l10n.unsyncedTitle),
+            content: Text(context.l10n.unsyncedBody(unsynced)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('ยกเลิก'),
+                child: Text(context.l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('ออกจากระบบและลบ'),
+                child: Text(context.l10n.signOutAndDelete),
               ),
             ],
           ),
@@ -685,8 +683,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   String _syncModeLabel(SyncMode mode) => switch (mode) {
-    SyncMode.auto => 'ซิงก์',
-    SyncMode.never => 'ไม่ซิงก์',
+    SyncMode.auto => context.l10n.syncModeAuto,
+    SyncMode.never => context.l10n.syncModeNever,
   };
 
   Future<void> _chooseSyncMode(DocumentItem doc) async {
@@ -694,11 +692,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final chosen = await showDialog<SyncMode>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text('การซิงก์ "${doc.displayName}"'),
+        title: Text(context.l10n.syncModeTitle(doc.displayName)),
         children: [
           for (final (mode, detail) in [
-            (SyncMode.auto, 'อัปโหลดขึ้นบัญชีและรับการแก้ไขจากเครื่องอื่น'),
-            (SyncMode.never, 'ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น'),
+            (SyncMode.auto, context.l10n.syncModeAutoDesc),
+            (SyncMode.never, context.l10n.syncModeNeverDesc),
           ])
             ListTile(
               key: ValueKey('sync-mode-${mode.name}'),
@@ -745,11 +743,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('ย้ายโฟลเดอร์ "${folder.name}" ไปยังถังขยะแล้ว'),
+          content: Text(context.l10n.folderTrashed(folder.name)),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
-            label: 'เลิกทำ',
+            label: context.l10n.undo,
             onPressed: () => _restoreFolder(folder),
           ),
         ),
@@ -775,7 +773,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('กู้คืนโฟลเดอร์ "${folder.name}" เรียบร้อยแล้ว'),
+          content: Text(context.l10n.folderRestored(folder.name)),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -787,19 +785,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-        title: const Text('ลบโฟลเดอร์ถาวร?'),
-        content: Text(
-          'คุณต้องการลบโฟลเดอร์ "${folder.name}" และเอกสารภายในทั้งหมดอย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
-        ),
+        title: Text(context.l10n.deleteFolderTitle),
+        content: Text(context.l10n.deleteFolderBody(folder.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('ลบถาวร'),
+            child: Text(context.l10n.deleteForeverBtn),
           ),
         ],
       ),
@@ -828,7 +824,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('ลบโฟลเดอร์ "${folder.name}" ถาวรแล้ว'),
+            content: Text(context.l10n.folderDeleted(folder.name)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -843,20 +839,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('เปลี่ยนชื่อเอกสาร'),
+        title: Text(context.l10n.renameDocTitle),
         content: Form(
           key: formKey,
           child: TextFormField(
             key: const Key('rename-document-input'),
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'ชื่อเอกสาร',
-              hintText: 'กรอกชื่อเอกสารใหม่',
+            decoration: InputDecoration(
+              labelText: context.l10n.docNameLabel,
+              hintText: context.l10n.docNameHint,
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) {
-                return 'กรุณาระบุชื่อเอกสาร';
+                return context.l10n.docNameRequired;
               }
               return null;
             },
@@ -865,7 +861,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             key: const Key('rename-document-submit'),
@@ -874,7 +870,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 Navigator.pop(ctx, controller.text.trim());
               }
             },
-            child: const Text('บันทึก'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -922,7 +918,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('เปลี่ยนชื่อเอกสารเป็น "$newName" แล้ว'),
+            content: Text(context.l10n.docRenamed(newName)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -941,10 +937,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            const SnackBar(
-              content: Text(
-                'ยังไม่มีโฟลเดอร์สำหรับย้ายเอกสาร กรุณาสร้างโฟลเดอร์ก่อน',
-              ),
+            SnackBar(
+              content: Text(context.l10n.noFoldersToMove),
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 2),
             ),
@@ -957,7 +951,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('ย้ายเอกสารไปที่...'),
+        title: Text(context.l10n.moveDocTitle),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320, maxHeight: 350),
           child: SingleChildScrollView(
@@ -970,7 +964,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.home_outlined,
                       color: Colors.blue,
                     ),
-                    title: const Text('หน้าหลัก (นอกสุด)'),
+                    title: Text(context.l10n.moveToHome),
                     onTap: () => Navigator.pop(ctx, '__root__'),
                   ),
                 ...availableFolders.map(
@@ -990,7 +984,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
         ],
       ),
@@ -1001,8 +995,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final newFolderId = selected == '__root__' ? null : selected;
     final targetFolder = _folders.where((f) => f.id == newFolderId).firstOrNull;
     final destName = newFolderId == null
-        ? 'หน้าหลัก'
-        : (targetFolder?.name ?? 'โฟลเดอร์');
+        ? context.l10n.homeName
+        : (targetFolder?.name ?? context.l10n.folderFallback);
 
     setState(() {
       final idx = _documents.indexWhere((d) => d.id == doc.id);
@@ -1018,7 +1012,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('ย้าย "${doc.displayName}" ไปที่ "$destName" แล้ว'),
+            content: Text(context.l10n.docMoved(doc.displayName, destName)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -1033,20 +1027,20 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('เปลี่ยนชื่อโฟลเดอร์'),
+        title: Text(context.l10n.renameFolder),
         content: Form(
           key: formKey,
           child: TextFormField(
             key: const Key('rename-folder-input'),
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'ชื่อโฟลเดอร์',
-              hintText: 'กรอกชื่อโฟลเดอร์ใหม่',
+            decoration: InputDecoration(
+              labelText: context.l10n.folderNameLabel,
+              hintText: context.l10n.folderNameNewHint,
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) {
-                return 'กรุณาระบุชื่อโฟลเดอร์';
+                return context.l10n.folderNameRequired;
               }
               return null;
             },
@@ -1055,7 +1049,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             key: const Key('rename-folder-submit'),
@@ -1064,7 +1058,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 Navigator.pop(ctx, controller.text.trim());
               }
             },
-            child: const Text('บันทึก'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -1094,7 +1088,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('เปลี่ยนชื่อโฟลเดอร์เป็น "$newName" แล้ว'),
+            content: Text(context.l10n.folderRenamed(newName)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -1149,11 +1143,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('ย้ายไฟล์ "${doc.displayName}" ไปยังถังขยะแล้ว'),
+          content: Text(context.l10n.docTrashed(doc.displayName)),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           action: SnackBarAction(
-            label: 'เลิกทำ',
+            label: context.l10n.undo,
             onPressed: () => _restoreDocument(doc),
           ),
         ),
@@ -1174,7 +1168,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('กู้คืนไฟล์ "${doc.displayName}" เรียบร้อยแล้ว'),
+          content: Text(context.l10n.docRestored(doc.displayName)),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
@@ -1186,19 +1180,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-        title: const Text('ลบไฟล์ถาวร?'),
-        content: Text(
-          'คุณต้องการลบ "${doc.displayName}" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
-        ),
+        title: Text(context.l10n.deleteDocTitle),
+        content: Text(context.l10n.deleteDocBody(doc.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('ลบถาวร'),
+            child: Text(context.l10n.deleteForeverBtn),
           ),
         ],
       ),
@@ -1225,7 +1217,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('ลบไฟล์ "${doc.displayName}" ถาวรแล้ว'),
+            content: Text(context.l10n.docDeleted(doc.displayName)),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -1238,19 +1230,17 @@ class _NoteListScreenState extends State<NoteListScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
-        title: const Text('ล้างถังขยะ?'),
-        content: const Text(
-          'รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้',
-        ),
+        title: Text(context.l10n.emptyTrashTitle),
+        content: Text(context.l10n.emptyTrashBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('ล้างถังขยะ'),
+            child: Text(context.l10n.emptyTrash),
           ),
         ],
       ),
@@ -1295,8 +1285,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('ล้างถังขยะเรียบร้อยแล้ว'),
+          SnackBar(
+            content: Text(context.l10n.trashEmptied),
             behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 2),
           ),
@@ -1313,16 +1303,16 @@ class _NoteListScreenState extends State<NoteListScreen> {
             Icons.restore_from_trash_rounded,
             color: Theme.of(ctx).colorScheme.primary,
           ),
-          title: const Text('โฟลเดอร์อยู่ในถังขยะ'),
-          content: Text('คุณต้องการกู้คืนโฟลเดอร์ "${folder.name}" หรือไม่?'),
+          title: Text(context.l10n.trashedFolderTitle),
+          content: Text(context.l10n.trashedFolderBody(folder.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('ยกเลิก'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('กู้คืน'),
+              child: Text(context.l10n.restore),
             ),
           ],
         ),
@@ -1340,24 +1330,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   String _formatDate(DateTime dt, {bool includeTime = true}) {
-    final mNames = [
-      '',
-      'ม.ค.',
-      'ก.พ.',
-      'มี.ค.',
-      'เม.ย.',
-      'พ.ค.',
-      'มิ.ย.',
-      'ก.ค.',
-      'ส.ค.',
-      'ก.ย.',
-      'ต.ค.',
-      'พ.ย.',
-      'ธ.ค.',
-    ];
-    final yearThai = dt.year + (dt.year < 2500 ? 543 : 0);
-    final yearShort = (yearThai % 100).toString().padLeft(2, '0');
-    final dateStr = '${dt.day} ${mNames[dt.month]} $yearShort';
+    final dateStr = context.l10n.cardDate(dt);
     if (!includeTime) return dateStr;
     final min = dt.minute.toString().padLeft(2, '0');
     final hour = dt.hour.toString().padLeft(2, '0');
@@ -1501,8 +1474,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'ค้นหาไฟล์หรือโฟลเดอร์...',
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchHint,
                   border: InputBorder.none,
                 ),
                 onChanged: (val) {
@@ -1529,10 +1502,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   Flexible(
                     child: Text(
                       isTrashView
-                          ? 'ถังขยะ'
+                          ? context.l10n.trash
                           : (isRoot
                                 ? 'Mnote'
-                                : _currentFolder?.name ?? 'โฟลเดอร์'),
+                                : _currentFolder?.name ??
+                                      context.l10n.folderFallback),
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 24,
@@ -1547,7 +1521,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
             icon: Icon(
               _isSearching ? Icons.close_rounded : Icons.search_rounded,
             ),
-            tooltip: _isSearching ? 'ปิดการค้นหา' : 'ค้นหา',
+            tooltip: _isSearching
+                ? context.l10n.closeSearch
+                : context.l10n.search,
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -1562,7 +1538,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'การตั้งค่า (Settings)',
+            tooltip: context.l10n.settingsTooltip,
             onPressed: _openSettings,
           ),
           const SizedBox(width: 8),
@@ -1656,8 +1632,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       ),
       onPressed: hasTrash ? _emptyTrash : null,
       icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-      label: const Text(
-        'ล้างถังขยะ',
+      label: Text(
+        context.l10n.emptyTrash,
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
       ),
     );
@@ -1731,13 +1707,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _buildFilterMenuItem(
           value: ViewFilter.all,
           icon: Icons.grid_view_rounded,
-          title: 'ทั้งหมด',
+          title: context.l10n.filterAll,
           theme: theme,
         ),
         _buildFilterMenuItem(
           value: ViewFilter.starred,
           icon: Icons.star_rounded,
-          title: 'ติดดาว (รายการโปรด)',
+          title: context.l10n.filterStarred,
           theme: theme,
           iconColor: Colors.amber,
         ),
@@ -1748,14 +1724,14 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _buildFilterMenuItem(
           value: ViewFilter.foldersOnly,
           icon: Icons.folder_rounded,
-          title: 'โฟลเดอร์',
+          title: context.l10n.filterFolders,
           theme: theme,
           iconColor: primary,
         ),
         _buildFilterMenuItem(
           value: ViewFilter.filesOnly,
           icon: Icons.insert_drive_file_outlined,
-          title: 'เอกสารทั้งหมด',
+          title: context.l10n.filterAllDocs,
           theme: theme,
           iconColor: Colors.indigo,
         ),
@@ -1780,7 +1756,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _buildFilterMenuItem(
           value: ViewFilter.trash,
           icon: Icons.delete_outline_rounded,
-          title: 'ถังขยะ',
+          title: context.l10n.trash,
           theme: theme,
           iconColor: Colors.red,
           trailing: trashCount > 0
@@ -1886,7 +1862,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.restore_from_trash_rounded,
                       color: sheetPrimary,
                     ),
-                    title: const Text('กู้คืน'),
+                    title: Text(context.l10n.restore),
                     onTap: () {
                       Navigator.pop(ctx);
                       _restoreFolder(folder);
@@ -1897,8 +1873,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.delete_forever_rounded,
                       color: Colors.red,
                     ),
-                    title: const Text(
-                      'ลบถาวร',
+                    title: Text(
+                      context.l10n.deleteForeverBtn,
                       style: TextStyle(color: Colors.red),
                     ),
                     onTap: () {
@@ -1909,7 +1885,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ] else ...[
                   ListTile(
                     leading: const Icon(Icons.folder_open_rounded),
-                    title: const Text('เปิดโฟลเดอร์'),
+                    title: Text(context.l10n.openFolder),
                     onTap: () {
                       Navigator.pop(ctx);
                       _handleFolderTap(folder);
@@ -1917,7 +1893,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.edit_outlined),
-                    title: const Text('เปลี่ยนชื่อโฟลเดอร์'),
+                    title: Text(context.l10n.renameFolder),
                     onTap: () {
                       Navigator.pop(ctx);
                       _renameFolder(folder);
@@ -1929,7 +1905,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.palette_outlined,
                       color: folderColor(folder, sheetPrimary),
                     ),
-                    title: const Text('เปลี่ยนสีโฟลเดอร์'),
+                    title: Text(context.l10n.folderColor),
                     onTap: () {
                       Navigator.pop(ctx);
                       _changeFolderColor(folder);
@@ -1944,8 +1920,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                     ),
                     title: Text(
                       folder.isStarred
-                          ? 'ยกเลิกรายการโปรด'
-                          : 'เพิ่มในรายการโปรด',
+                          ? context.l10n.unfavorite
+                          : context.l10n.favorite,
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -1957,8 +1933,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.delete_outline_rounded,
                       color: Colors.red,
                     ),
-                    title: const Text(
-                      'ย้ายไปถังขยะ',
+                    title: Text(
+                      context.l10n.moveToTrash,
                       style: TextStyle(color: Colors.red),
                     ),
                     onTap: () {
@@ -2012,7 +1988,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.restore_from_trash_rounded,
                       color: sheetPrimary,
                     ),
-                    title: const Text('กู้คืน'),
+                    title: Text(context.l10n.restore),
                     onTap: () {
                       Navigator.pop(ctx);
                       _restoreDocument(doc);
@@ -2023,8 +1999,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.delete_forever_rounded,
                       color: Colors.red,
                     ),
-                    title: const Text(
-                      'ลบถาวร',
+                    title: Text(
+                      context.l10n.deleteForeverBtn,
                       style: TextStyle(color: Colors.red),
                     ),
                     onTap: () {
@@ -2035,7 +2011,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ] else ...[
                   ListTile(
                     leading: const Icon(Icons.edit_note_rounded),
-                    title: const Text('เปิดเอกสาร'),
+                    title: Text(context.l10n.openDoc),
                     onTap: () {
                       Navigator.pop(ctx);
                       _openDocument(doc);
@@ -2043,7 +2019,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.edit_outlined),
-                    title: const Text('เปลี่ยนชื่อไฟล์'),
+                    title: Text(context.l10n.renameDoc),
                     onTap: () {
                       Navigator.pop(ctx);
                       _renameDocument(doc);
@@ -2051,7 +2027,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.drive_file_move_outlined),
-                    title: const Text('ย้ายไปยังโฟลเดอร์'),
+                    title: Text(context.l10n.moveToFolder),
                     onTap: () {
                       Navigator.pop(ctx);
                       _moveDocument(doc);
@@ -2059,7 +2035,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.upload_rounded),
-                    title: const Text('ส่งออก'),
+                    title: Text(context.l10n.export),
                     onTap: () {
                       Navigator.pop(ctx);
                       _exportDocument(doc);
@@ -2068,7 +2044,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   if (_syncRepository != null)
                     ListTile(
                       leading: const Icon(Icons.cloud_sync_outlined),
-                      title: const Text('ตั้งค่าการซิงก์'),
+                      title: Text(context.l10n.syncSettingsMenu),
                       subtitle: Text(_syncModeLabel(doc.syncMode)),
                       onTap: () {
                         Navigator.pop(ctx);
@@ -2083,7 +2059,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       color: doc.isStarred ? Colors.amber : null,
                     ),
                     title: Text(
-                      doc.isStarred ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด',
+                      doc.isStarred
+                          ? context.l10n.unfavorite
+                          : context.l10n.favorite,
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -2095,8 +2073,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       Icons.delete_outline_rounded,
                       color: Colors.red,
                     ),
-                    title: const Text(
-                      'ย้ายไปถังขยะ',
+                    title: Text(
+                      context.l10n.moveToTrash,
                       style: TextStyle(color: Colors.red),
                     ),
                     onTap: () {
@@ -2119,7 +2097,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       icon: Icon(
         _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
       ),
-      tooltip: _isGridView ? 'มุมมองรายการ' : 'มุมมองตาราง',
+      tooltip: _isGridView ? context.l10n.listView : context.l10n.gridView,
       onPressed: () {
         setState(() {
           _isGridView = !_isGridView;
@@ -2131,7 +2109,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
   // ปุ่มเมนูจัดเรียงลำดับ
   Widget _buildSortButton(ThemeData theme) {
     return PopupMenuButton<SortMode>(
-      tooltip: 'จัดเรียงตาม',
+      tooltip: context.l10n.sortBy,
       initialValue: _sortMode,
       icon: const Icon(Icons.swap_vert_rounded),
       shape: RoundedRectangleBorder(
@@ -2149,25 +2127,25 @@ class _NoteListScreenState extends State<NoteListScreen> {
         _buildSortMenuItem(
           value: SortMode.newest,
           icon: Icons.schedule_rounded,
-          title: 'แก้ไขล่าสุด',
+          title: context.l10n.sortNewest,
           theme: theme,
         ),
         _buildSortMenuItem(
           value: SortMode.oldest,
           icon: Icons.history_rounded,
-          title: 'เก่าที่สุด',
+          title: context.l10n.sortOldest,
           theme: theme,
         ),
         _buildSortMenuItem(
           value: SortMode.nameAsc,
           icon: Icons.sort_by_alpha_rounded,
-          title: 'ชื่อ (ก - ฮ)',
+          title: context.l10n.sortNameAsc,
           theme: theme,
         ),
         _buildSortMenuItem(
           value: SortMode.nameDesc,
           icon: Icons.sort_by_alpha_rounded,
-          title: 'ชื่อ (ฮ - ก)',
+          title: context.l10n.sortNameDesc,
           theme: theme,
         ),
       ],
@@ -2215,7 +2193,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final primary = theme.colorScheme.primary;
 
     return PopupMenuButton<String>(
-      tooltip: 'สร้างใหม่หรือดึงไฟล์',
+      tooltip: context.l10n.createOrImport,
       onSelected: (action) {
         if (action == 'new_md') {
           _createNewFile(isMarkdown: true);
@@ -2234,22 +2212,22 @@ class _NoteListScreenState extends State<NoteListScreen> {
             children: [
               Icon(Icons.description_outlined, color: primary, size: 20),
               const SizedBox(width: 12),
-              const Expanded(child: Text('เอกสาร Markdown ใหม่ (.md)')),
+              Expanded(child: Text(context.l10n.newMarkdownItem)),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'new_txt',
           child: Row(
             children: [
               Icon(Icons.text_snippet_outlined, color: Colors.teal, size: 20),
               SizedBox(width: 12),
-              Expanded(child: Text('ไฟล์ข้อความใหม่ (.txt)')),
+              Expanded(child: Text(context.l10n.newTextItem)),
             ],
           ),
         ),
         if (_currentFolderId == null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'new_folder',
             child: Row(
               children: [
@@ -2259,18 +2237,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
                   size: 20,
                 ),
                 SizedBox(width: 12),
-                Expanded(child: Text('โฟลเดอร์ใหม่')),
+                Expanded(child: Text(context.l10n.newFolderItem)),
               ],
             ),
           ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'import',
           child: Row(
             children: [
               Icon(Icons.file_open_outlined, color: Colors.orange, size: 20),
               SizedBox(width: 12),
-              Expanded(child: Text('ดึงไฟล์จากเครื่อง (Import)')),
+              Expanded(child: Text(context.l10n.importItem)),
             ],
           ),
         ),
@@ -2291,7 +2269,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
             ),
             const SizedBox(width: 4),
             Text(
-              'ใหม่',
+              context.l10n.newButton,
               style: TextStyle(
                 color: theme.colorScheme.onPrimary,
                 fontWeight: FontWeight.bold,
@@ -2377,7 +2355,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                             ),
                           ),
                           child: Text(
-                            '$count ไฟล์',
+                            context.l10n.fileCount(count),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -2466,10 +2444,10 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 height: 32,
                 child: PopupMenuButton<String>(
                   key: Key('folder-menu-${folder.id}'),
-                  tooltip: 'ตัวเลือกโฟลเดอร์',
+                  tooltip: context.l10n.folderOptions,
                   iconSize: 18,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  constraints: BoxConstraints(),
                   icon: Icon(
                     Icons.more_vert_rounded,
                     size: 18,
@@ -2496,12 +2474,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   size: 18,
                                   color: primary,
                                 ),
-                                const SizedBox(width: 8),
-                                const Text('กู้คืน'),
+                                SizedBox(width: 8),
+                                Text(context.l10n.restore),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete_perm',
                             child: Row(
                               children: [
@@ -2512,21 +2490,21 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'ลบถาวร',
+                                  context.l10n.deleteForeverBtn,
                                   style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
                           ),
                         ]
-                      : const [
+                      : [
                           PopupMenuItem(
                             value: 'rename',
                             child: Row(
                               children: [
                                 Icon(Icons.edit_outlined, size: 18),
                                 SizedBox(width: 8),
-                                Text('เปลี่ยนชื่อโฟลเดอร์'),
+                                Text(context.l10n.renameFolder),
                               ],
                             ),
                           ),
@@ -2537,7 +2515,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               children: [
                                 Icon(Icons.palette_outlined, size: 18),
                                 SizedBox(width: 8),
-                                Text('เปลี่ยนสีโฟลเดอร์'),
+                                Text(context.l10n.folderColor),
                               ],
                             ),
                           ),
@@ -2552,7 +2530,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'ย้ายไปถังขยะ',
+                                  context.l10n.moveToTrash,
                                   style: TextStyle(color: Colors.red),
                                 ),
                               ],
@@ -2729,7 +2707,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 height: 32,
                 child: PopupMenuButton<String>(
                   key: Key('doc-menu-${doc.id}'),
-                  tooltip: 'ตัวเลือกเอกสาร',
+                  tooltip: context.l10n.docOptions,
                   iconSize: 18,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -2762,11 +2740,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   color: primary,
                                 ),
                                 const SizedBox(width: 8),
-                                const Text('กู้คืน'),
+                                Text(context.l10n.restore),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete_perm',
                             child: Row(
                               children: [
@@ -2777,7 +2755,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'ลบถาวร',
+                                  context.l10n.deleteForeverBtn,
                                   style: TextStyle(color: Colors.red),
                                 ),
                               ],
@@ -2791,7 +2769,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               children: [
                                 Icon(Icons.edit_outlined, size: 18),
                                 SizedBox(width: 8),
-                                Text('เปลี่ยนชื่อไฟล์'),
+                                Text(context.l10n.renameDoc),
                               ],
                             ),
                           ),
@@ -2801,7 +2779,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               children: [
                                 Icon(Icons.drive_file_move_outlined, size: 18),
                                 SizedBox(width: 8),
-                                Text('ย้ายไปยังโฟลเดอร์'),
+                                Text(context.l10n.moveToFolder),
                               ],
                             ),
                           ),
@@ -2811,18 +2789,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
                               children: [
                                 Icon(Icons.upload_rounded, size: 18),
                                 SizedBox(width: 8),
-                                Text('ส่งออก'),
+                                Text(context.l10n.export),
                               ],
                             ),
                           ),
                           if (_syncRepository != null)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'sync',
                               child: Row(
                                 children: [
                                   Icon(Icons.cloud_sync_outlined, size: 18),
                                   SizedBox(width: 8),
-                                  Text('ตั้งค่าการซิงก์'),
+                                  Text(context.l10n.syncSettingsMenu),
                                 ],
                               ),
                             ),
@@ -2837,7 +2815,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  'ย้ายไปถังขยะ',
+                                  context.l10n.moveToTrash,
                                   style: TextStyle(color: Colors.red),
                                 ),
                               ],
@@ -2880,7 +2858,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
         .toList();
     if (rawLines.isEmpty) {
       return Text(
-        'เอกสารว่าง',
+        context.l10n.emptyDoc,
         style: font(
           TextStyle(
             fontSize: 11,
@@ -2965,7 +2943,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ),
               ),
               subtitle: Text(
-                '${_documents.where((d) => d.folderId == item.id && !d.isTrash).length} ไฟล์ • ${_formatDate(item.updatedAt)}',
+                '${context.l10n.fileCount(_documents.where((d) => d.folderId == item.id && !d.isTrash).length)}'
+                ' • ${_formatDate(item.updatedAt)}',
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -2987,7 +2966,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       onPressed: () => _toggleFolderStar(item),
                     ),
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, size: 20),
+                    icon: Icon(Icons.more_vert_rounded, size: 20),
                     onSelected: (val) {
                       if (val == 'open') _handleFolderTap(item);
                       if (val == 'rename') _renameFolder(item);
@@ -3007,12 +2986,12 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                     size: 18,
                                     color: primary,
                                   ),
-                                  const SizedBox(width: 8),
-                                  const Text('กู้คืน'),
+                                  SizedBox(width: 8),
+                                  Text(context.l10n.restore),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'delete_perm',
                               child: Row(
                                 children: [
@@ -3023,21 +3002,21 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'ลบถาวร',
+                                    context.l10n.deleteForeverBtn,
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ],
                               ),
                             ),
                           ]
-                        : const [
+                        : [
                             PopupMenuItem(
                               value: 'open',
                               child: Row(
                                 children: [
                                   Icon(Icons.folder_open_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('เปิดโฟลเดอร์'),
+                                  Text(context.l10n.openFolder),
                                 ],
                               ),
                             ),
@@ -3047,7 +3026,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 children: [
                                   Icon(Icons.edit_outlined, size: 18),
                                   SizedBox(width: 8),
-                                  Text('เปลี่ยนชื่อโฟลเดอร์'),
+                                  Text(context.l10n.renameFolder),
                                 ],
                               ),
                             ),
@@ -3058,7 +3037,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 children: [
                                   Icon(Icons.palette_outlined, size: 18),
                                   SizedBox(width: 8),
-                                  Text('เปลี่ยนสีโฟลเดอร์'),
+                                  Text(context.l10n.folderColor),
                                 ],
                               ),
                             ),
@@ -3073,7 +3052,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'ย้ายไปถังขยะ',
+                                    context.l10n.moveToTrash,
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ],
@@ -3104,7 +3083,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ),
               ),
               subtitle: Text(
-                '${item.isTxt ? "ข้อความ TXT" : "Markdown"} • ${_formatDate(item.updatedAt)}',
+                '${item.isTxt ? context.l10n.textTypeName : "Markdown"} • ${_formatDate(item.updatedAt)}',
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -3152,11 +3131,11 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                     color: primary,
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text('กู้คืน'),
+                                  Text(context.l10n.restore),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'delete_perm',
                               child: Row(
                                 children: [
@@ -3167,7 +3146,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'ลบถาวร',
+                                    context.l10n.deleteForeverBtn,
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ],
@@ -3181,7 +3160,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 children: [
                                   Icon(Icons.edit_note_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('เปิดเอกสาร'),
+                                  Text(context.l10n.openDoc),
                                 ],
                               ),
                             ),
@@ -3191,7 +3170,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 children: [
                                   Icon(Icons.edit_outlined, size: 18),
                                   SizedBox(width: 8),
-                                  Text('เปลี่ยนชื่อไฟล์'),
+                                  Text(context.l10n.renameDoc),
                                 ],
                               ),
                             ),
@@ -3204,7 +3183,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                     size: 18,
                                   ),
                                   SizedBox(width: 8),
-                                  Text('ย้ายไปยังโฟลเดอร์'),
+                                  Text(context.l10n.moveToFolder),
                                 ],
                               ),
                             ),
@@ -3214,18 +3193,18 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                 children: [
                                   Icon(Icons.upload_rounded, size: 18),
                                   SizedBox(width: 8),
-                                  Text('ส่งออก'),
+                                  Text(context.l10n.export),
                                 ],
                               ),
                             ),
                             if (_syncRepository != null)
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'sync',
                                 child: Row(
                                   children: [
                                     Icon(Icons.cloud_sync_outlined, size: 18),
                                     SizedBox(width: 8),
-                                    Text('ตั้งค่าการซิงก์'),
+                                    Text(context.l10n.syncSettingsMenu),
                                   ],
                                 ),
                               ),
@@ -3240,7 +3219,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    'ย้ายไปถังขยะ',
+                                    context.l10n.moveToTrash,
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ],
@@ -3276,13 +3255,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'ถังขยะว่างเปล่า',
+              Text(
+                context.l10n.trashEmptyTitle,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
-                'ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ',
+                context.l10n.trashEmptyBody,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -3307,13 +3286,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'ยังไม่มีไฟล์หรือโฟลเดอร์',
+            Text(
+              context.l10n.emptyLibraryTitle,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์',
+              context.l10n.emptyLibraryBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -3329,19 +3308,19 @@ class _NoteListScreenState extends State<NoteListScreen> {
   String _getFilterLabel(ViewFilter filter) {
     switch (filter) {
       case ViewFilter.all:
-        return 'ทั้งหมด';
+        return context.l10n.filterAll;
       case ViewFilter.starred:
-        return 'ติดดาว';
+        return context.l10n.filterStarredShort;
       case ViewFilter.foldersOnly:
-        return 'โฟลเดอร์';
+        return context.l10n.filterFolders;
       case ViewFilter.filesOnly:
-        return 'เอกสารทั้งหมด';
+        return context.l10n.filterAllDocs;
       case ViewFilter.markdownOnly:
         return 'Markdown';
       case ViewFilter.txtOnly:
         return 'Text (.txt)';
       case ViewFilter.trash:
-        return 'ถังขยะ';
+        return context.l10n.trash;
     }
   }
 }

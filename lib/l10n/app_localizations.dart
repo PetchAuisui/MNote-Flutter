@@ -727,6 +727,672 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'**
   String get errUnknown;
+
+  /// No description provided for @noteImported.
+  ///
+  /// In th, this message translates to:
+  /// **'ดึงไฟล์ \"{name}\" เข้ามาแล้ว'**
+  String noteImported(String name);
+
+  /// No description provided for @noteImportFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'เกิดข้อผิดพลาดในการดึงไฟล์: {error}'**
+  String noteImportFailed(String error);
+
+  /// No description provided for @defaultDocName.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสาร_{n}'**
+  String defaultDocName(int n);
+
+  /// No description provided for @defaultTextName.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความ_{n}'**
+  String defaultTextName(int n);
+
+  /// No description provided for @newMarkdownTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างไฟล์ Markdown ใหม่'**
+  String get newMarkdownTitle;
+
+  /// No description provided for @newTextTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างไฟล์ข้อความ (.txt) ใหม่'**
+  String get newTextTitle;
+
+  /// No description provided for @fileNameLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อไฟล์'**
+  String get fileNameLabel;
+
+  /// No description provided for @createFile.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างไฟล์'**
+  String get createFile;
+
+  /// No description provided for @newMarkdownBody.
+  ///
+  /// In th, this message translates to:
+  /// **'# {name}\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...'**
+  String newMarkdownBody(String name);
+
+  /// No description provided for @newTextBody.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกข้อความ {name}\n\n'**
+  String newTextBody(String name);
+
+  /// No description provided for @newFolderTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างโฟลเดอร์ใหม่'**
+  String get newFolderTitle;
+
+  /// No description provided for @folderNameLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อโฟลเดอร์'**
+  String get folderNameLabel;
+
+  /// No description provided for @folderNameHint.
+  ///
+  /// In th, this message translates to:
+  /// **'เช่น วิชาสัมมนา, บันทึกย่อ'**
+  String get folderNameHint;
+
+  /// No description provided for @create.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้าง'**
+  String get create;
+
+  /// No description provided for @folderCreated.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างโฟลเดอร์ \"{name}\" เรียบร้อยแล้ว'**
+  String folderCreated(String name);
+
+  /// No description provided for @trashedDocTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสารอยู่ในถังขยะ'**
+  String get trashedDocTitle;
+
+  /// No description provided for @trashedDocBody.
+  ///
+  /// In th, this message translates to:
+  /// **'คุณต้องการกู้คืน \"{name}\" เพื่อเปิดดูหรือไม่?'**
+  String trashedDocBody(String name);
+
+  /// No description provided for @restoreAndOpen.
+  ///
+  /// In th, this message translates to:
+  /// **'กู้คืนและเปิด'**
+  String get restoreAndOpen;
+
+  /// No description provided for @unsyncedTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'มีไฟล์ที่ไม่ได้ซิงก์'**
+  String get unsyncedTitle;
+
+  /// No description provided for @unsyncedBody.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ {count} ไฟล์ไม่ได้อยู่บน cloud การออกจากระบบจะลบไฟล์เหล่านี้ออกจากเครื่องนี้ถาวร'**
+  String unsyncedBody(int count);
+
+  /// No description provided for @signOutAndDelete.
+  ///
+  /// In th, this message translates to:
+  /// **'ออกจากระบบและลบ'**
+  String get signOutAndDelete;
+
+  /// No description provided for @syncModeAuto.
+  ///
+  /// In th, this message translates to:
+  /// **'ซิงก์'**
+  String get syncModeAuto;
+
+  /// No description provided for @syncModeNever.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่ซิงก์'**
+  String get syncModeNever;
+
+  /// No description provided for @syncModeTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'การซิงก์ \"{name}\"'**
+  String syncModeTitle(String name);
+
+  /// No description provided for @syncModeAutoDesc.
+  ///
+  /// In th, this message translates to:
+  /// **'อัปโหลดขึ้นบัญชีและรับการแก้ไขจากเครื่องอื่น'**
+  String get syncModeAutoDesc;
+
+  /// No description provided for @syncModeNeverDesc.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น'**
+  String get syncModeNeverDesc;
+
+  /// No description provided for @undo.
+  ///
+  /// In th, this message translates to:
+  /// **'เลิกทำ'**
+  String get undo;
+
+  /// No description provided for @folderTrashed.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายโฟลเดอร์ \"{name}\" ไปยังถังขยะแล้ว'**
+  String folderTrashed(String name);
+
+  /// No description provided for @folderRestored.
+  ///
+  /// In th, this message translates to:
+  /// **'กู้คืนโฟลเดอร์ \"{name}\" เรียบร้อยแล้ว'**
+  String folderRestored(String name);
+
+  /// No description provided for @deleteFolderTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบโฟลเดอร์ถาวร?'**
+  String get deleteFolderTitle;
+
+  /// No description provided for @deleteFolderBody.
+  ///
+  /// In th, this message translates to:
+  /// **'คุณต้องการลบโฟลเดอร์ \"{name}\" และเอกสารภายในทั้งหมดอย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้'**
+  String deleteFolderBody(String name);
+
+  /// No description provided for @deleteForeverBtn.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบถาวร'**
+  String get deleteForeverBtn;
+
+  /// No description provided for @folderDeleted.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบโฟลเดอร์ \"{name}\" ถาวรแล้ว'**
+  String folderDeleted(String name);
+
+  /// No description provided for @renameDocTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อเอกสาร'**
+  String get renameDocTitle;
+
+  /// No description provided for @docNameLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อเอกสาร'**
+  String get docNameLabel;
+
+  /// No description provided for @docNameHint.
+  ///
+  /// In th, this message translates to:
+  /// **'กรอกชื่อเอกสารใหม่'**
+  String get docNameHint;
+
+  /// No description provided for @docNameRequired.
+  ///
+  /// In th, this message translates to:
+  /// **'กรุณาระบุชื่อเอกสาร'**
+  String get docNameRequired;
+
+  /// No description provided for @docRenamed.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อเอกสารเป็น \"{name}\" แล้ว'**
+  String docRenamed(String name);
+
+  /// No description provided for @noFoldersToMove.
+  ///
+  /// In th, this message translates to:
+  /// **'ยังไม่มีโฟลเดอร์สำหรับย้ายเอกสาร กรุณาสร้างโฟลเดอร์ก่อน'**
+  String get noFoldersToMove;
+
+  /// No description provided for @moveDocTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายเอกสารไปที่...'**
+  String get moveDocTitle;
+
+  /// No description provided for @moveToHome.
+  ///
+  /// In th, this message translates to:
+  /// **'หน้าหลัก (นอกสุด)'**
+  String get moveToHome;
+
+  /// No description provided for @homeName.
+  ///
+  /// In th, this message translates to:
+  /// **'หน้าหลัก'**
+  String get homeName;
+
+  /// No description provided for @folderFallback.
+  ///
+  /// In th, this message translates to:
+  /// **'โฟลเดอร์'**
+  String get folderFallback;
+
+  /// No description provided for @docMoved.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้าย \"{name}\" ไปที่ \"{dest}\" แล้ว'**
+  String docMoved(String name, String dest);
+
+  /// No description provided for @renameFolderTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อโฟลเดอร์'**
+  String get renameFolderTitle;
+
+  /// No description provided for @folderNameNewHint.
+  ///
+  /// In th, this message translates to:
+  /// **'กรอกชื่อโฟลเดอร์ใหม่'**
+  String get folderNameNewHint;
+
+  /// No description provided for @folderNameRequired.
+  ///
+  /// In th, this message translates to:
+  /// **'กรุณาระบุชื่อโฟลเดอร์'**
+  String get folderNameRequired;
+
+  /// No description provided for @folderRenamed.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อโฟลเดอร์เป็น \"{name}\" แล้ว'**
+  String folderRenamed(String name);
+
+  /// No description provided for @docTrashed.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายไฟล์ \"{name}\" ไปยังถังขยะแล้ว'**
+  String docTrashed(String name);
+
+  /// No description provided for @docRestored.
+  ///
+  /// In th, this message translates to:
+  /// **'กู้คืนไฟล์ \"{name}\" เรียบร้อยแล้ว'**
+  String docRestored(String name);
+
+  /// No description provided for @deleteDocTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบไฟล์ถาวร?'**
+  String get deleteDocTitle;
+
+  /// No description provided for @deleteDocBody.
+  ///
+  /// In th, this message translates to:
+  /// **'คุณต้องการลบ \"{name}\" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้'**
+  String deleteDocBody(String name);
+
+  /// No description provided for @docDeleted.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบไฟล์ \"{name}\" ถาวรแล้ว'**
+  String docDeleted(String name);
+
+  /// No description provided for @emptyTrashTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างถังขยะ?'**
+  String get emptyTrashTitle;
+
+  /// No description provided for @emptyTrashBody.
+  ///
+  /// In th, this message translates to:
+  /// **'รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้'**
+  String get emptyTrashBody;
+
+  /// No description provided for @emptyTrash.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างถังขยะ'**
+  String get emptyTrash;
+
+  /// No description provided for @trashEmptied.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างถังขยะเรียบร้อยแล้ว'**
+  String get trashEmptied;
+
+  /// No description provided for @trashedFolderTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'โฟลเดอร์อยู่ในถังขยะ'**
+  String get trashedFolderTitle;
+
+  /// No description provided for @trashedFolderBody.
+  ///
+  /// In th, this message translates to:
+  /// **'คุณต้องการกู้คืนโฟลเดอร์ \"{name}\" หรือไม่?'**
+  String trashedFolderBody(String name);
+
+  /// No description provided for @restore.
+  ///
+  /// In th, this message translates to:
+  /// **'กู้คืน'**
+  String get restore;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In th, this message translates to:
+  /// **'ค้นหาไฟล์หรือโฟลเดอร์...'**
+  String get searchHint;
+
+  /// No description provided for @trash.
+  ///
+  /// In th, this message translates to:
+  /// **'ถังขยะ'**
+  String get trash;
+
+  /// No description provided for @closeSearch.
+  ///
+  /// In th, this message translates to:
+  /// **'ปิดการค้นหา'**
+  String get closeSearch;
+
+  /// No description provided for @search.
+  ///
+  /// In th, this message translates to:
+  /// **'ค้นหา'**
+  String get search;
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In th, this message translates to:
+  /// **'การตั้งค่า (Settings)'**
+  String get settingsTooltip;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In th, this message translates to:
+  /// **'ทั้งหมด'**
+  String get filterAll;
+
+  /// No description provided for @filterStarred.
+  ///
+  /// In th, this message translates to:
+  /// **'ติดดาว (รายการโปรด)'**
+  String get filterStarred;
+
+  /// No description provided for @filterStarredShort.
+  ///
+  /// In th, this message translates to:
+  /// **'ติดดาว'**
+  String get filterStarredShort;
+
+  /// No description provided for @filterFolders.
+  ///
+  /// In th, this message translates to:
+  /// **'โฟลเดอร์'**
+  String get filterFolders;
+
+  /// No description provided for @filterAllDocs.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสารทั้งหมด'**
+  String get filterAllDocs;
+
+  /// No description provided for @openFolder.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดโฟลเดอร์'**
+  String get openFolder;
+
+  /// No description provided for @renameFolder.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อโฟลเดอร์'**
+  String get renameFolder;
+
+  /// No description provided for @folderColor.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนสีโฟลเดอร์'**
+  String get folderColor;
+
+  /// No description provided for @unfavorite.
+  ///
+  /// In th, this message translates to:
+  /// **'ยกเลิกรายการโปรด'**
+  String get unfavorite;
+
+  /// No description provided for @favorite.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มในรายการโปรด'**
+  String get favorite;
+
+  /// No description provided for @moveToTrash.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายไปถังขยะ'**
+  String get moveToTrash;
+
+  /// No description provided for @openDoc.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดเอกสาร'**
+  String get openDoc;
+
+  /// No description provided for @renameDoc.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนชื่อไฟล์'**
+  String get renameDoc;
+
+  /// No description provided for @moveToFolder.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายไปยังโฟลเดอร์'**
+  String get moveToFolder;
+
+  /// No description provided for @export.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออก'**
+  String get export;
+
+  /// No description provided for @syncSettingsMenu.
+  ///
+  /// In th, this message translates to:
+  /// **'ตั้งค่าการซิงก์'**
+  String get syncSettingsMenu;
+
+  /// No description provided for @listView.
+  ///
+  /// In th, this message translates to:
+  /// **'มุมมองรายการ'**
+  String get listView;
+
+  /// No description provided for @gridView.
+  ///
+  /// In th, this message translates to:
+  /// **'มุมมองตาราง'**
+  String get gridView;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In th, this message translates to:
+  /// **'จัดเรียงตาม'**
+  String get sortBy;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้ไขล่าสุด'**
+  String get sortNewest;
+
+  /// No description provided for @sortOldest.
+  ///
+  /// In th, this message translates to:
+  /// **'เก่าที่สุด'**
+  String get sortOldest;
+
+  /// No description provided for @sortNameAsc.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อ (ก - ฮ)'**
+  String get sortNameAsc;
+
+  /// No description provided for @sortNameDesc.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อ (ฮ - ก)'**
+  String get sortNameDesc;
+
+  /// No description provided for @createOrImport.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างใหม่หรือดึงไฟล์'**
+  String get createOrImport;
+
+  /// No description provided for @newMarkdownItem.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสาร Markdown ใหม่ (.md)'**
+  String get newMarkdownItem;
+
+  /// No description provided for @newTextItem.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ข้อความใหม่ (.txt)'**
+  String get newTextItem;
+
+  /// No description provided for @newFolderItem.
+  ///
+  /// In th, this message translates to:
+  /// **'โฟลเดอร์ใหม่'**
+  String get newFolderItem;
+
+  /// No description provided for @importItem.
+  ///
+  /// In th, this message translates to:
+  /// **'ดึงไฟล์จากเครื่อง (Import)'**
+  String get importItem;
+
+  /// No description provided for @newButton.
+  ///
+  /// In th, this message translates to:
+  /// **'ใหม่'**
+  String get newButton;
+
+  /// No description provided for @fileCount.
+  ///
+  /// In th, this message translates to:
+  /// **'{count} ไฟล์'**
+  String fileCount(int count);
+
+  /// No description provided for @folderOptions.
+  ///
+  /// In th, this message translates to:
+  /// **'ตัวเลือกโฟลเดอร์'**
+  String get folderOptions;
+
+  /// No description provided for @docOptions.
+  ///
+  /// In th, this message translates to:
+  /// **'ตัวเลือกเอกสาร'**
+  String get docOptions;
+
+  /// No description provided for @emptyDoc.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสารว่าง'**
+  String get emptyDoc;
+
+  /// No description provided for @textTypeName.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความ TXT'**
+  String get textTypeName;
+
+  /// No description provided for @trashEmptyTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ถังขยะว่างเปล่า'**
+  String get trashEmptyTitle;
+
+  /// No description provided for @trashEmptyBody.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ'**
+  String get trashEmptyBody;
+
+  /// No description provided for @emptyLibraryTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ยังไม่มีไฟล์หรือโฟลเดอร์'**
+  String get emptyLibraryTitle;
+
+  /// No description provided for @emptyLibraryBody.
+  ///
+  /// In th, this message translates to:
+  /// **'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์'**
+  String get emptyLibraryBody;
+
+  /// No description provided for @folderColorTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนสีโฟลเดอร์'**
+  String get folderColorTitle;
+
+  /// No description provided for @defaultColor.
+  ///
+  /// In th, this message translates to:
+  /// **'สีเริ่มต้น'**
+  String get defaultColor;
+
+  /// No description provided for @folderColorLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'สีโฟลเดอร์'**
+  String get folderColorLabel;
+
+  /// No description provided for @badgeSynced.
+  ///
+  /// In th, this message translates to:
+  /// **'Sync แล้ว'**
+  String get badgeSynced;
+
+  /// No description provided for @badgePending.
+  ///
+  /// In th, this message translates to:
+  /// **'รอ sync'**
+  String get badgePending;
+
+  /// No description provided for @badgeOffSyncOff.
+  ///
+  /// In th, this message translates to:
+  /// **'ปิดการซิงก์อยู่'**
+  String get badgeOffSyncOff;
+
+  /// No description provided for @badgeOffNever.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์นี้ตั้งเป็นไม่ซิงก์'**
+  String get badgeOffNever;
+
+  /// No description provided for @badgeOffTooBig.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์'**
+  String get badgeOffTooBig;
 }
 
 class _AppLocalizationsDelegate

@@ -345,4 +345,386 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get errUnknown => 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+
+  @override
+  String noteImported(String name) {
+    return 'ดึงไฟล์ \"$name\" เข้ามาแล้ว';
+  }
+
+  @override
+  String noteImportFailed(String error) {
+    return 'เกิดข้อผิดพลาดในการดึงไฟล์: $error';
+  }
+
+  @override
+  String defaultDocName(int n) {
+    return 'เอกสาร_$n';
+  }
+
+  @override
+  String defaultTextName(int n) {
+    return 'ข้อความ_$n';
+  }
+
+  @override
+  String get newMarkdownTitle => 'สร้างไฟล์ Markdown ใหม่';
+
+  @override
+  String get newTextTitle => 'สร้างไฟล์ข้อความ (.txt) ใหม่';
+
+  @override
+  String get fileNameLabel => 'ชื่อไฟล์';
+
+  @override
+  String get createFile => 'สร้างไฟล์';
+
+  @override
+  String newMarkdownBody(String name) {
+    return '# $name\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...';
+  }
+
+  @override
+  String newTextBody(String name) {
+    return 'บันทึกข้อความ $name\n\n';
+  }
+
+  @override
+  String get newFolderTitle => 'สร้างโฟลเดอร์ใหม่';
+
+  @override
+  String get folderNameLabel => 'ชื่อโฟลเดอร์';
+
+  @override
+  String get folderNameHint => 'เช่น วิชาสัมมนา, บันทึกย่อ';
+
+  @override
+  String get create => 'สร้าง';
+
+  @override
+  String folderCreated(String name) {
+    return 'สร้างโฟลเดอร์ \"$name\" เรียบร้อยแล้ว';
+  }
+
+  @override
+  String get trashedDocTitle => 'เอกสารอยู่ในถังขยะ';
+
+  @override
+  String trashedDocBody(String name) {
+    return 'คุณต้องการกู้คืน \"$name\" เพื่อเปิดดูหรือไม่?';
+  }
+
+  @override
+  String get restoreAndOpen => 'กู้คืนและเปิด';
+
+  @override
+  String get unsyncedTitle => 'มีไฟล์ที่ไม่ได้ซิงก์';
+
+  @override
+  String unsyncedBody(int count) {
+    return 'ไฟล์ $count ไฟล์ไม่ได้อยู่บน cloud การออกจากระบบจะลบไฟล์เหล่านี้ออกจากเครื่องนี้ถาวร';
+  }
+
+  @override
+  String get signOutAndDelete => 'ออกจากระบบและลบ';
+
+  @override
+  String get syncModeAuto => 'ซิงก์';
+
+  @override
+  String get syncModeNever => 'ไม่ซิงก์';
+
+  @override
+  String syncModeTitle(String name) {
+    return 'การซิงก์ \"$name\"';
+  }
+
+  @override
+  String get syncModeAutoDesc => 'อัปโหลดขึ้นบัญชีและรับการแก้ไขจากเครื่องอื่น';
+
+  @override
+  String get syncModeNeverDesc => 'ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น';
+
+  @override
+  String get undo => 'เลิกทำ';
+
+  @override
+  String folderTrashed(String name) {
+    return 'ย้ายโฟลเดอร์ \"$name\" ไปยังถังขยะแล้ว';
+  }
+
+  @override
+  String folderRestored(String name) {
+    return 'กู้คืนโฟลเดอร์ \"$name\" เรียบร้อยแล้ว';
+  }
+
+  @override
+  String get deleteFolderTitle => 'ลบโฟลเดอร์ถาวร?';
+
+  @override
+  String deleteFolderBody(String name) {
+    return 'คุณต้องการลบโฟลเดอร์ \"$name\" และเอกสารภายในทั้งหมดอย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้';
+  }
+
+  @override
+  String get deleteForeverBtn => 'ลบถาวร';
+
+  @override
+  String folderDeleted(String name) {
+    return 'ลบโฟลเดอร์ \"$name\" ถาวรแล้ว';
+  }
+
+  @override
+  String get renameDocTitle => 'เปลี่ยนชื่อเอกสาร';
+
+  @override
+  String get docNameLabel => 'ชื่อเอกสาร';
+
+  @override
+  String get docNameHint => 'กรอกชื่อเอกสารใหม่';
+
+  @override
+  String get docNameRequired => 'กรุณาระบุชื่อเอกสาร';
+
+  @override
+  String docRenamed(String name) {
+    return 'เปลี่ยนชื่อเอกสารเป็น \"$name\" แล้ว';
+  }
+
+  @override
+  String get noFoldersToMove =>
+      'ยังไม่มีโฟลเดอร์สำหรับย้ายเอกสาร กรุณาสร้างโฟลเดอร์ก่อน';
+
+  @override
+  String get moveDocTitle => 'ย้ายเอกสารไปที่...';
+
+  @override
+  String get moveToHome => 'หน้าหลัก (นอกสุด)';
+
+  @override
+  String get homeName => 'หน้าหลัก';
+
+  @override
+  String get folderFallback => 'โฟลเดอร์';
+
+  @override
+  String docMoved(String name, String dest) {
+    return 'ย้าย \"$name\" ไปที่ \"$dest\" แล้ว';
+  }
+
+  @override
+  String get renameFolderTitle => 'เปลี่ยนชื่อโฟลเดอร์';
+
+  @override
+  String get folderNameNewHint => 'กรอกชื่อโฟลเดอร์ใหม่';
+
+  @override
+  String get folderNameRequired => 'กรุณาระบุชื่อโฟลเดอร์';
+
+  @override
+  String folderRenamed(String name) {
+    return 'เปลี่ยนชื่อโฟลเดอร์เป็น \"$name\" แล้ว';
+  }
+
+  @override
+  String docTrashed(String name) {
+    return 'ย้ายไฟล์ \"$name\" ไปยังถังขยะแล้ว';
+  }
+
+  @override
+  String docRestored(String name) {
+    return 'กู้คืนไฟล์ \"$name\" เรียบร้อยแล้ว';
+  }
+
+  @override
+  String get deleteDocTitle => 'ลบไฟล์ถาวร?';
+
+  @override
+  String deleteDocBody(String name) {
+    return 'คุณต้องการลบ \"$name\" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้';
+  }
+
+  @override
+  String docDeleted(String name) {
+    return 'ลบไฟล์ \"$name\" ถาวรแล้ว';
+  }
+
+  @override
+  String get emptyTrashTitle => 'ล้างถังขยะ?';
+
+  @override
+  String get emptyTrashBody =>
+      'รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้';
+
+  @override
+  String get emptyTrash => 'ล้างถังขยะ';
+
+  @override
+  String get trashEmptied => 'ล้างถังขยะเรียบร้อยแล้ว';
+
+  @override
+  String get trashedFolderTitle => 'โฟลเดอร์อยู่ในถังขยะ';
+
+  @override
+  String trashedFolderBody(String name) {
+    return 'คุณต้องการกู้คืนโฟลเดอร์ \"$name\" หรือไม่?';
+  }
+
+  @override
+  String get restore => 'กู้คืน';
+
+  @override
+  String get searchHint => 'ค้นหาไฟล์หรือโฟลเดอร์...';
+
+  @override
+  String get trash => 'ถังขยะ';
+
+  @override
+  String get closeSearch => 'ปิดการค้นหา';
+
+  @override
+  String get search => 'ค้นหา';
+
+  @override
+  String get settingsTooltip => 'การตั้งค่า (Settings)';
+
+  @override
+  String get filterAll => 'ทั้งหมด';
+
+  @override
+  String get filterStarred => 'ติดดาว (รายการโปรด)';
+
+  @override
+  String get filterStarredShort => 'ติดดาว';
+
+  @override
+  String get filterFolders => 'โฟลเดอร์';
+
+  @override
+  String get filterAllDocs => 'เอกสารทั้งหมด';
+
+  @override
+  String get openFolder => 'เปิดโฟลเดอร์';
+
+  @override
+  String get renameFolder => 'เปลี่ยนชื่อโฟลเดอร์';
+
+  @override
+  String get folderColor => 'เปลี่ยนสีโฟลเดอร์';
+
+  @override
+  String get unfavorite => 'ยกเลิกรายการโปรด';
+
+  @override
+  String get favorite => 'เพิ่มในรายการโปรด';
+
+  @override
+  String get moveToTrash => 'ย้ายไปถังขยะ';
+
+  @override
+  String get openDoc => 'เปิดเอกสาร';
+
+  @override
+  String get renameDoc => 'เปลี่ยนชื่อไฟล์';
+
+  @override
+  String get moveToFolder => 'ย้ายไปยังโฟลเดอร์';
+
+  @override
+  String get export => 'ส่งออก';
+
+  @override
+  String get syncSettingsMenu => 'ตั้งค่าการซิงก์';
+
+  @override
+  String get listView => 'มุมมองรายการ';
+
+  @override
+  String get gridView => 'มุมมองตาราง';
+
+  @override
+  String get sortBy => 'จัดเรียงตาม';
+
+  @override
+  String get sortNewest => 'แก้ไขล่าสุด';
+
+  @override
+  String get sortOldest => 'เก่าที่สุด';
+
+  @override
+  String get sortNameAsc => 'ชื่อ (ก - ฮ)';
+
+  @override
+  String get sortNameDesc => 'ชื่อ (ฮ - ก)';
+
+  @override
+  String get createOrImport => 'สร้างใหม่หรือดึงไฟล์';
+
+  @override
+  String get newMarkdownItem => 'เอกสาร Markdown ใหม่ (.md)';
+
+  @override
+  String get newTextItem => 'ไฟล์ข้อความใหม่ (.txt)';
+
+  @override
+  String get newFolderItem => 'โฟลเดอร์ใหม่';
+
+  @override
+  String get importItem => 'ดึงไฟล์จากเครื่อง (Import)';
+
+  @override
+  String get newButton => 'ใหม่';
+
+  @override
+  String fileCount(int count) {
+    return '$count ไฟล์';
+  }
+
+  @override
+  String get folderOptions => 'ตัวเลือกโฟลเดอร์';
+
+  @override
+  String get docOptions => 'ตัวเลือกเอกสาร';
+
+  @override
+  String get emptyDoc => 'เอกสารว่าง';
+
+  @override
+  String get textTypeName => 'ข้อความ TXT';
+
+  @override
+  String get trashEmptyTitle => 'ถังขยะว่างเปล่า';
+
+  @override
+  String get trashEmptyBody => 'ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ';
+
+  @override
+  String get emptyLibraryTitle => 'ยังไม่มีไฟล์หรือโฟลเดอร์';
+
+  @override
+  String get emptyLibraryBody =>
+      'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์';
+
+  @override
+  String get folderColorTitle => 'เปลี่ยนสีโฟลเดอร์';
+
+  @override
+  String get defaultColor => 'สีเริ่มต้น';
+
+  @override
+  String get folderColorLabel => 'สีโฟลเดอร์';
+
+  @override
+  String get badgeSynced => 'Sync แล้ว';
+
+  @override
+  String get badgePending => 'รอ sync';
+
+  @override
+  String get badgeOffSyncOff => 'ปิดการซิงก์อยู่';
+
+  @override
+  String get badgeOffNever => 'ไฟล์นี้ตั้งเป็นไม่ซิงก์';
+
+  @override
+  String get badgeOffTooBig => 'ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์';
 }

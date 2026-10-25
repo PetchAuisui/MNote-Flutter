@@ -143,4 +143,22 @@ void main() {
     expect(find.byType(LicensePage), findsOneWidget);
     expect(find.textContaining('2.3.4 (56)'), findsOneWidget);
   });
+
+  testWidgets('the licenses open when the app reports no version', (
+    tester,
+  ) async {
+    PackageInfo.setMockInitialValues(
+      appName: '',
+      packageName: '',
+      version: '',
+      buildNumber: '',
+      buildSignature: '',
+    );
+    await openSettings(tester);
+    await tester.ensureVisible(find.byKey(const Key('about-licenses')));
+    await tester.tap(find.byKey(const Key('about-licenses')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LicensePage), findsOneWidget);
+  });
 }

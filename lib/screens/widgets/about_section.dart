@@ -119,12 +119,16 @@ class AboutSection extends StatelessWidget {
           leading: const Icon(Icons.description_outlined),
           title: Text(l.aboutLicenses),
           onTap: () async {
-            final info = await PackageInfo.fromPlatform();
+            // The licenses are useful even if the version cannot be read.
+            String? version;
+            try {
+              version = describeVersion(await PackageInfo.fromPlatform());
+            } catch (_) {}
             if (!context.mounted) return;
             showLicensePage(
               context: context,
               applicationName: 'Mnote',
-              applicationVersion: describeVersion(info),
+              applicationVersion: version,
             );
           },
         ),

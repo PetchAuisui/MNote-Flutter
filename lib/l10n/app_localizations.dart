@@ -2269,6 +2269,180 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ทำซ้ำ'**
   String get redo;
+
+  /// No description provided for @tplFlowLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ผังงาน (Flowchart)'**
+  String get tplFlowLabel;
+
+  /// No description provided for @tplFlowStart.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มต้น'**
+  String get tplFlowStart;
+
+  /// No description provided for @tplFlowStep.
+  ///
+  /// In th, this message translates to:
+  /// **'ขั้นตอน'**
+  String get tplFlowStep;
+
+  /// No description provided for @tplFlowCond.
+  ///
+  /// In th, this message translates to:
+  /// **'เงื่อนไข?'**
+  String get tplFlowCond;
+
+  /// No description provided for @tplYes.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช่'**
+  String get tplYes;
+
+  /// No description provided for @tplEnd.
+  ///
+  /// In th, this message translates to:
+  /// **'จบ'**
+  String get tplEnd;
+
+  /// No description provided for @tplNo.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่ใช่'**
+  String get tplNo;
+
+  /// No description provided for @tplSeqLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ลำดับการทำงาน (Sequence)'**
+  String get tplSeqLabel;
+
+  /// No description provided for @tplUser.
+  ///
+  /// In th, this message translates to:
+  /// **'ผู้ใช้'**
+  String get tplUser;
+
+  /// No description provided for @tplSystem.
+  ///
+  /// In th, this message translates to:
+  /// **'ระบบ'**
+  String get tplSystem;
+
+  /// No description provided for @tplRequest.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งคำขอ'**
+  String get tplRequest;
+
+  /// No description provided for @tplReply.
+  ///
+  /// In th, this message translates to:
+  /// **'ตอบกลับ'**
+  String get tplReply;
+
+  /// No description provided for @tplClassLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'คลาส (Class)'**
+  String get tplClassLabel;
+
+  /// No description provided for @tplHas.
+  ///
+  /// In th, this message translates to:
+  /// **'มี'**
+  String get tplHas;
+
+  /// No description provided for @mmdOnlyMmd.
+  ///
+  /// In th, this message translates to:
+  /// **'รองรับเฉพาะไฟล์ .mmd หรือ .mermaid'**
+  String get mmdOnlyMmd;
+
+  /// No description provided for @mmdNotUtf8.
+  ///
+  /// In th, this message translates to:
+  /// **'อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8'**
+  String get mmdNotUtf8;
+
+  /// No description provided for @mmdEmpty.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม'**
+  String get mmdEmpty;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกโค้ด'**
+  String get copyCode;
+
+  /// No description provided for @viewCode.
+  ///
+  /// In th, this message translates to:
+  /// **'ดูโค้ด'**
+  String get viewCode;
+
+  /// No description provided for @codeCopied.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกแล้ว วางในโน้ตได้เลย'**
+  String get codeCopied;
+
+  /// No description provided for @diagramEmpty.
+  ///
+  /// In th, this message translates to:
+  /// **'ไดอะแกรมว่าง'**
+  String get diagramEmpty;
+
+  /// No description provided for @diagramUnsupported.
+  ///
+  /// In th, this message translates to:
+  /// **'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม'**
+  String get diagramUnsupported;
+
+  /// No description provided for @diagramFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'แสดงไดอะแกรมไม่ได้'**
+  String get diagramFailed;
+
+  /// No description provided for @diagramTimeout.
+  ///
+  /// In th, this message translates to:
+  /// **'หมดเวลาในการแสดงไดอะแกรม'**
+  String get diagramTimeout;
+
+  /// No description provided for @docNotUtf8.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ'**
+  String get docNotUtf8;
+
+  /// No description provided for @fileActionFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง'**
+  String get fileActionFailed;
+
+  /// No description provided for @inkSaveDialogTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกหมึกแยกจาก Markdown'**
+  String get inkSaveDialogTitle;
+
+  /// No description provided for @mmdTooBig.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)'**
+  String mmdTooBig(int kb);
+
+  /// No description provided for @docListFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถดึงรายการเอกสารได้: {error}'**
+  String docListFailed(String error);
 }
 
 class _AppLocalizationsDelegate

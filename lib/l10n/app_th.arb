@@ -685,5 +685,48 @@
       }
     }
   },
-  "redo": "ทำซ้ำ"
+  "redo": "ทำซ้ำ",
+  "tplFlowLabel": "ผังงาน (Flowchart)",
+  "tplFlowStart": "เริ่มต้น",
+  "tplFlowStep": "ขั้นตอน",
+  "tplFlowCond": "เงื่อนไข?",
+  "tplYes": "ใช่",
+  "tplEnd": "จบ",
+  "tplNo": "ไม่ใช่",
+  "tplSeqLabel": "ลำดับการทำงาน (Sequence)",
+  "tplUser": "ผู้ใช้",
+  "tplSystem": "ระบบ",
+  "tplRequest": "ส่งคำขอ",
+  "tplReply": "ตอบกลับ",
+  "tplClassLabel": "คลาส (Class)",
+  "tplHas": "มี",
+  "mmdOnlyMmd": "รองรับเฉพาะไฟล์ .mmd หรือ .mermaid",
+  "mmdNotUtf8": "อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8",
+  "mmdEmpty": "ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม",
+  "copyCode": "คัดลอกโค้ด",
+  "viewCode": "ดูโค้ด",
+  "codeCopied": "คัดลอกแล้ว วางในโน้ตได้เลย",
+  "diagramEmpty": "ไดอะแกรมว่าง",
+  "diagramUnsupported": "แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม",
+  "diagramFailed": "แสดงไดอะแกรมไม่ได้",
+  "diagramTimeout": "หมดเวลาในการแสดงไดอะแกรม",
+  "docNotUtf8": "ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ",
+  "fileActionFailed": "ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง",
+  "inkSaveDialogTitle": "บันทึกหมึกแยกจาก Markdown",
+  "mmdTooBig": "ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)",
+  "@mmdTooBig": {
+    "placeholders": {
+      "kb": {
+        "type": "int"
+      }
+    }
+  },
+  "docListFailed": "ไม่สามารถดึงรายการเอกสารได้: {error}",
+  "@docListFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

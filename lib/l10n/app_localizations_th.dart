@@ -1198,4 +1198,96 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get redo => 'ทำซ้ำ';
+
+  @override
+  String get tplFlowLabel => 'ผังงาน (Flowchart)';
+
+  @override
+  String get tplFlowStart => 'เริ่มต้น';
+
+  @override
+  String get tplFlowStep => 'ขั้นตอน';
+
+  @override
+  String get tplFlowCond => 'เงื่อนไข?';
+
+  @override
+  String get tplYes => 'ใช่';
+
+  @override
+  String get tplEnd => 'จบ';
+
+  @override
+  String get tplNo => 'ไม่ใช่';
+
+  @override
+  String get tplSeqLabel => 'ลำดับการทำงาน (Sequence)';
+
+  @override
+  String get tplUser => 'ผู้ใช้';
+
+  @override
+  String get tplSystem => 'ระบบ';
+
+  @override
+  String get tplRequest => 'ส่งคำขอ';
+
+  @override
+  String get tplReply => 'ตอบกลับ';
+
+  @override
+  String get tplClassLabel => 'คลาส (Class)';
+
+  @override
+  String get tplHas => 'มี';
+
+  @override
+  String get mmdOnlyMmd => 'รองรับเฉพาะไฟล์ .mmd หรือ .mermaid';
+
+  @override
+  String get mmdNotUtf8 => 'อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8';
+
+  @override
+  String get mmdEmpty => 'ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม';
+
+  @override
+  String get copyCode => 'คัดลอกโค้ด';
+
+  @override
+  String get viewCode => 'ดูโค้ด';
+
+  @override
+  String get codeCopied => 'คัดลอกแล้ว วางในโน้ตได้เลย';
+
+  @override
+  String get diagramEmpty => 'ไดอะแกรมว่าง';
+
+  @override
+  String get diagramUnsupported => 'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม';
+
+  @override
+  String get diagramFailed => 'แสดงไดอะแกรมไม่ได้';
+
+  @override
+  String get diagramTimeout => 'หมดเวลาในการแสดงไดอะแกรม';
+
+  @override
+  String get docNotUtf8 => 'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ';
+
+  @override
+  String get fileActionFailed =>
+      'ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง';
+
+  @override
+  String get inkSaveDialogTitle => 'บันทึกหมึกแยกจาก Markdown';
+
+  @override
+  String mmdTooBig(int kb) {
+    return 'ไฟล์ใหญ่เกินไป (สูงสุด $kb KB)';
+  }
+
+  @override
+  String docListFailed(String error) {
+    return 'ไม่สามารถดึงรายการเอกสารได้: $error';
+  }
 }

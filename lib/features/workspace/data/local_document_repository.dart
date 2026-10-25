@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -29,9 +30,7 @@ class LocalDocumentRepository implements DocumentRepository {
 
       return doc;
     } on FormatException {
-      throw const DocumentReadException(
-        'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ',
-      );
+      throw DocumentReadException(LanguagePreferences.current().docNotUtf8);
     }
   }
 
@@ -144,7 +143,9 @@ class LocalDocumentRepository implements DocumentRepository {
 
       return documents;
     } catch (e) {
-      throw DocumentReadException('ไม่สามารถดึงรายการเอกสารได้: $e');
+      throw DocumentReadException(
+        LanguagePreferences.current().docListFailed('$e'),
+      );
     }
   }
 

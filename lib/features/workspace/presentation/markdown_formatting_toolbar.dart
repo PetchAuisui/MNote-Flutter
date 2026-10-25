@@ -270,7 +270,9 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                         },
                         items: [
                           if (onDiagramTemplate != null)
-                            for (final template in mermaidTemplates)
+                            for (final template in mermaidTemplatesFor(
+                              context.l10n,
+                            ))
                               PopupMenuItem(
                                 key: Key('toolbar-diagram-${template.id}'),
                                 value: _InsertDiagramTemplate(template),

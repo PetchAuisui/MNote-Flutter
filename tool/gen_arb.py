@@ -376,6 +376,35 @@ S = {
  'inkWidthTip': ('ความหนา {width} · แตะซ้ำหรือกดค้างเพื่อแก้ไข', 'Width {width} · tap again or long-press to edit', ['width']),
  'guideStep': ('ขั้นตอน {step} / 03', 'Step {step} / 03', ['step']),
  'redo': ('ทำซ้ำ', 'Redo'),
+ 'tplFlowLabel': ('ผังงาน (Flowchart)', 'Flowchart'),
+ 'tplFlowStart': ('เริ่มต้น', 'Start'),
+ 'tplFlowStep': ('ขั้นตอน', 'Step'),
+ 'tplFlowCond': ('เงื่อนไข?', 'Condition?'),
+ 'tplYes': ('ใช่', 'Yes'),
+ 'tplEnd': ('จบ', 'End'),
+ 'tplNo': ('ไม่ใช่', 'No'),
+ 'tplSeqLabel': ('ลำดับการทำงาน (Sequence)', 'Sequence'),
+ 'tplUser': ('ผู้ใช้', 'User'),
+ 'tplSystem': ('ระบบ', 'System'),
+ 'tplRequest': ('ส่งคำขอ', 'Send request'),
+ 'tplReply': ('ตอบกลับ', 'Reply'),
+ 'tplClassLabel': ('คลาส (Class)', 'Class'),
+ 'tplHas': ('มี', 'has'),
+ 'mmdOnlyMmd': ('รองรับเฉพาะไฟล์ .mmd หรือ .mermaid', 'Only .mmd or .mermaid files are supported'),
+ 'mmdNotUtf8': ('อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8', 'Cannot read the file. It must be UTF-8 text.'),
+ 'mmdEmpty': ('ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม', 'The file is empty and has no diagram code'),
+ 'copyCode': ('คัดลอกโค้ด', 'Copy code'),
+ 'viewCode': ('ดูโค้ด', 'View code'),
+ 'codeCopied': ('คัดลอกแล้ว วางในโน้ตได้เลย', 'Copied. You can paste it into your note.'),
+ 'diagramEmpty': ('ไดอะแกรมว่าง', 'Empty diagram'),
+ 'diagramUnsupported': ('แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม', 'This platform cannot display diagrams yet'),
+ 'diagramFailed': ('แสดงไดอะแกรมไม่ได้', 'Could not display the diagram'),
+ 'diagramTimeout': ('หมดเวลาในการแสดงไดอะแกรม', 'Timed out while displaying the diagram'),
+ 'docNotUtf8': ('ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ', 'This file is not UTF-8 text that Mnote supports'),
+ 'fileActionFailed': ('ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง', 'Could not do that with this file. Please try again.'),
+ 'inkSaveDialogTitle': ('บันทึกหมึกแยกจาก Markdown', 'Save ink separately from Markdown'),
+ 'mmdTooBig': ('ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)', 'The file is too large (max {kb} KB)', ['kb']),
+ 'docListFailed': ('ไม่สามารถดึงรายการเอกสารได้: {error}', 'Could not load the note list: {error}', ['error']),
 }
 
 out = pathlib.Path(__file__).resolve().parent.parent / 'lib' / 'l10n'
@@ -384,6 +413,6 @@ for idx, (lang, name) in enumerate([('th', 'app_th.arb'), ('en', 'app_en.arb')])
     for key, val in S.items():
         data[key] = val[idx]
         if idx == 0 and len(val) > 2:
-            data['@' + key] = {'placeholders': {p: {'type': 'int' if p in ('n', 'min', 'count', 'lines', 'chars') else 'String'} for p in val[2]}}
+            data['@' + key] = {'placeholders': {p: {'type': 'int' if p in ('n', 'min', 'count', 'lines', 'chars', 'kb') else 'String'} for p in val[2]}}
     (out / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(len(S), 'strings')

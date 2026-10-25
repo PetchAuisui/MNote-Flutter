@@ -1209,4 +1209,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get redo => 'Redo';
+
+  @override
+  String get tplFlowLabel => 'Flowchart';
+
+  @override
+  String get tplFlowStart => 'Start';
+
+  @override
+  String get tplFlowStep => 'Step';
+
+  @override
+  String get tplFlowCond => 'Condition?';
+
+  @override
+  String get tplYes => 'Yes';
+
+  @override
+  String get tplEnd => 'End';
+
+  @override
+  String get tplNo => 'No';
+
+  @override
+  String get tplSeqLabel => 'Sequence';
+
+  @override
+  String get tplUser => 'User';
+
+  @override
+  String get tplSystem => 'System';
+
+  @override
+  String get tplRequest => 'Send request';
+
+  @override
+  String get tplReply => 'Reply';
+
+  @override
+  String get tplClassLabel => 'Class';
+
+  @override
+  String get tplHas => 'has';
+
+  @override
+  String get mmdOnlyMmd => 'Only .mmd or .mermaid files are supported';
+
+  @override
+  String get mmdNotUtf8 => 'Cannot read the file. It must be UTF-8 text.';
+
+  @override
+  String get mmdEmpty => 'The file is empty and has no diagram code';
+
+  @override
+  String get copyCode => 'Copy code';
+
+  @override
+  String get viewCode => 'View code';
+
+  @override
+  String get codeCopied => 'Copied. You can paste it into your note.';
+
+  @override
+  String get diagramEmpty => 'Empty diagram';
+
+  @override
+  String get diagramUnsupported => 'This platform cannot display diagrams yet';
+
+  @override
+  String get diagramFailed => 'Could not display the diagram';
+
+  @override
+  String get diagramTimeout => 'Timed out while displaying the diagram';
+
+  @override
+  String get docNotUtf8 => 'This file is not UTF-8 text that Mnote supports';
+
+  @override
+  String get fileActionFailed =>
+      'Could not do that with this file. Please try again.';
+
+  @override
+  String get inkSaveDialogTitle => 'Save ink separately from Markdown';
+
+  @override
+  String mmdTooBig(int kb) {
+    return 'The file is too large (max $kb KB)';
+  }
+
+  @override
+  String docListFailed(String error) {
+    return 'Could not load the note list: $error';
+  }
 }

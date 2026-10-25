@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/l10n/app_localizations_en.dart';
 import 'package:mnote/l10n/app_localizations_th.dart';
@@ -34,12 +37,21 @@ abstract final class LanguagePreferences {
   /// The strings for the language in use right now, for code that has no
   /// [BuildContext]. Thai when the language is unsupported.
   static AppLocalizations current() {
-    final locale =
-        MnoteApp.languageNotifier.value.locale ??
-        PlatformDispatcher.instance.locale;
+    final locale = MnoteApp.languageNotifier.value.locale ?? _deviceLocale();
     return locale.languageCode == 'en'
         ? AppLocalizationsEn()
         : AppLocalizationsTh();
+  }
+
+  static Locale _deviceLocale() {
+    try {
+      // The binding's dispatcher is the one a test can override.
+      final locales = WidgetsBinding.instance.platformDispatcher.locales;
+      if (locales.isNotEmpty) return locales.first;
+    } catch (_) {
+      // No binding yet: fall back to the raw dispatcher below.
+    }
+    return PlatformDispatcher.instance.locale;
   }
 
   static AppLanguage fromName(String? name) {

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -26,7 +27,7 @@ class DeviceInkFileStorage implements InkFileStorage {
   @override
   Future<bool> save({required String name, required Uint8List bytes}) async {
     final uri = await FilePicker.saveFile(
-      dialogTitle: 'บันทึกหมึกแยกจาก Markdown',
+      dialogTitle: LanguagePreferences.current().inkSaveDialogTitle,
       fileName: name,
       bytes: bytes,
       mimeType: 'application/json',

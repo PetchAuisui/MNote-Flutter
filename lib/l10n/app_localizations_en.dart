@@ -737,4 +737,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get badgeOffTooBig =>
       'This note is larger than 900 KB, so it is not synced';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get aboutLicenses => 'Open-source licenses';
+
+  @override
+  String get aboutFeedback => 'Report a problem or send feedback';
+
+  @override
+  String get aboutFeedbackHint => 'Opens GitHub Issues in your browser';
+
+  @override
+  String get aboutSource => 'Source code on GitHub';
+
+  @override
+  String get aboutOpenFailed => 'Could not open the link';
 }

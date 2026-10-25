@@ -5,6 +5,7 @@ import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/widgets/account_avatar_button.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/l10n/l10n.dart';
+import 'package:mnote/screens/widgets/about_section.dart';
 import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/features/sync/domain/syncable_document_repository.dart';
 import 'package:mnote/features/workspace/presentation/editor_settings.dart';
@@ -221,26 +222,7 @@ class NoteListSettingsDialog extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'MNote v1.0.0 • Local-First Markdown Workspace',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const AboutSection(),
                 ],
               ),
             ),

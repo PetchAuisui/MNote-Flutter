@@ -1290,4 +1290,75 @@ class AppLocalizationsTh extends AppLocalizations {
   String docListFailed(String error) {
     return 'ไม่สามารถดึงรายการเอกสารได้: $error';
   }
+
+  @override
+  String get aiCloseLabel => 'ปิดผู้ช่วย AI';
+
+  @override
+  String get aiSuggest1 => 'อธิบาย Markdown แบบเข้าใจง่าย';
+
+  @override
+  String get aiSuggest2 => 'เขียน flowchart ขั้นตอนการสมัครสมาชิก';
+
+  @override
+  String get aiSuggest3 => 'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน';
+
+  @override
+  String get aiClearChat => 'ล้างบทสนทนา';
+
+  @override
+  String get aiPrivacyNote =>
+      'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ';
+
+  @override
+  String get aiHint => 'ถามอะไรก็ได้…';
+
+  @override
+  String get aiSend => 'ส่ง';
+
+  @override
+  String get aiStart => 'เริ่มคุยกับผู้ช่วย AI';
+
+  @override
+  String get aiThinking => 'กำลังคิด…';
+
+  @override
+  String get aiTabImage => 'ภาพ';
+
+  @override
+  String get aiCopied => 'คัดลอกแล้ว';
+
+  @override
+  String get aiNoAnswer => 'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
+
+  @override
+  String get aiFailed => 'AI ตอบไม่สำเร็จ กรุณาลองใหม่';
+
+  @override
+  String get aiQuota =>
+      'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้';
+
+  @override
+  String get aiUnavailable =>
+      'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง';
+
+  @override
+  String get aiAppCheck =>
+      'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้';
+
+  @override
+  String get aiConnect =>
+      'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+
+  @override
+  String aiTooLong(int max) {
+    return 'ข้อความยาวเกินไป (สูงสุด $max ตัวอักษร)';
+  }
+
+  @override
+  String get startWriting => 'เริ่มเขียน Markdown…';
+
+  @override
+  String get firebaseSetupError =>
+      'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md';
 }

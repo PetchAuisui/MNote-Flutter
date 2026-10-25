@@ -1301,4 +1301,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String docListFailed(String error) {
     return 'Could not load the note list: $error';
   }
+
+  @override
+  String get aiCloseLabel => 'Close the AI assistant';
+
+  @override
+  String get aiSuggest1 => 'Explain Markdown in simple terms';
+
+  @override
+  String get aiSuggest2 => 'Draw a flowchart of the sign-up steps';
+
+  @override
+  String get aiSuggest3 => 'Help me think of headings for lesson summary notes';
+
+  @override
+  String get aiClearChat => 'Clear conversation';
+
+  @override
+  String get aiPrivacyNote =>
+      'What you type is sent to Google Gemini for processing · The AI has not read the contents of your notes';
+
+  @override
+  String get aiHint => 'Ask anything…';
+
+  @override
+  String get aiSend => 'Send';
+
+  @override
+  String get aiStart => 'Start chatting with the AI assistant';
+
+  @override
+  String get aiThinking => 'Thinking…';
+
+  @override
+  String get aiTabImage => 'Diagram';
+
+  @override
+  String get aiCopied => 'Copied';
+
+  @override
+  String get aiNoAnswer =>
+      'The AI did not send an answer. Try asking again or rephrase your question.';
+
+  @override
+  String get aiFailed => 'The AI could not answer. Please try again.';
+
+  @override
+  String get aiQuota =>
+      'You have used up the AI assistant quota. Wait a moment and try again. If it still fails, today\'s quota is used up; try again tomorrow.';
+
+  @override
+  String get aiUnavailable =>
+      'The AI assistant is temporarily unavailable. Please try again later.';
+
+  @override
+  String get aiAppCheck =>
+      'App security verification failed, so the AI assistant cannot be used right now.';
+
+  @override
+  String get aiConnect =>
+      'Could not connect to the AI assistant. Check your internet connection and try again.';
+
+  @override
+  String aiTooLong(int max) {
+    return 'The message is too long (max $max characters)';
+  }
+
+  @override
+  String get startWriting => 'Start writing Markdown…';
+
+  @override
+  String get firebaseSetupError =>
+      'Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md';
 }

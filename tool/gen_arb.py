@@ -405,6 +405,27 @@ S = {
  'inkSaveDialogTitle': ('บันทึกหมึกแยกจาก Markdown', 'Save ink separately from Markdown'),
  'mmdTooBig': ('ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)', 'The file is too large (max {kb} KB)', ['kb']),
  'docListFailed': ('ไม่สามารถดึงรายการเอกสารได้: {error}', 'Could not load the note list: {error}', ['error']),
+ 'aiCloseLabel': ('ปิดผู้ช่วย AI', 'Close the AI assistant'),
+ 'aiSuggest1': ('อธิบาย Markdown แบบเข้าใจง่าย', 'Explain Markdown in simple terms'),
+ 'aiSuggest2': ('เขียน flowchart ขั้นตอนการสมัครสมาชิก', 'Draw a flowchart of the sign-up steps'),
+ 'aiSuggest3': ('ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน', 'Help me think of headings for lesson summary notes'),
+ 'aiClearChat': ('ล้างบทสนทนา', 'Clear conversation'),
+ 'aiPrivacyNote': ('ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ', 'What you type is sent to Google Gemini for processing · The AI has not read the contents of your notes'),
+ 'aiHint': ('ถามอะไรก็ได้…', 'Ask anything…'),
+ 'aiSend': ('ส่ง', 'Send'),
+ 'aiStart': ('เริ่มคุยกับผู้ช่วย AI', 'Start chatting with the AI assistant'),
+ 'aiThinking': ('กำลังคิด…', 'Thinking…'),
+ 'aiTabImage': ('ภาพ', 'Diagram'),
+ 'aiCopied': ('คัดลอกแล้ว', 'Copied'),
+ 'aiNoAnswer': ('AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม', 'The AI did not send an answer. Try asking again or rephrase your question.'),
+ 'aiFailed': ('AI ตอบไม่สำเร็จ กรุณาลองใหม่', 'The AI could not answer. Please try again.'),
+ 'aiQuota': ('ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้', 'You have used up the AI assistant quota. Wait a moment and try again. If it still fails, today\'s quota is used up; try again tomorrow.'),
+ 'aiUnavailable': ('ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง', 'The AI assistant is temporarily unavailable. Please try again later.'),
+ 'aiAppCheck': ('ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้', 'App security verification failed, so the AI assistant cannot be used right now.'),
+ 'aiConnect': ('เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', 'Could not connect to the AI assistant. Check your internet connection and try again.'),
+ 'aiTooLong': ('ข้อความยาวเกินไป (สูงสุด {max} ตัวอักษร)', 'The message is too long (max {max} characters)', ['max']),
+ 'startWriting': ('เริ่มเขียน Markdown…', 'Start writing Markdown…'),
+ 'firebaseSetupError': ('ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md', 'Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md'),
 }
 
 out = pathlib.Path(__file__).resolve().parent.parent / 'lib' / 'l10n'
@@ -413,6 +434,6 @@ for idx, (lang, name) in enumerate([('th', 'app_th.arb'), ('en', 'app_en.arb')])
     for key, val in S.items():
         data[key] = val[idx]
         if idx == 0 and len(val) > 2:
-            data['@' + key] = {'placeholders': {p: {'type': 'int' if p in ('n', 'min', 'count', 'lines', 'chars', 'kb') else 'String'} for p in val[2]}}
+            data['@' + key] = {'placeholders': {p: {'type': 'int' if p in ('n', 'min', 'count', 'lines', 'chars', 'kb', 'max') else 'String'} for p in val[2]}}
     (out / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print(len(S), 'strings')

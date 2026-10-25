@@ -2443,6 +2443,132 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ไม่สามารถดึงรายการเอกสารได้: {error}'**
   String docListFailed(String error);
+
+  /// No description provided for @aiCloseLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ปิดผู้ช่วย AI'**
+  String get aiCloseLabel;
+
+  /// No description provided for @aiSuggest1.
+  ///
+  /// In th, this message translates to:
+  /// **'อธิบาย Markdown แบบเข้าใจง่าย'**
+  String get aiSuggest1;
+
+  /// No description provided for @aiSuggest2.
+  ///
+  /// In th, this message translates to:
+  /// **'เขียน flowchart ขั้นตอนการสมัครสมาชิก'**
+  String get aiSuggest2;
+
+  /// No description provided for @aiSuggest3.
+  ///
+  /// In th, this message translates to:
+  /// **'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน'**
+  String get aiSuggest3;
+
+  /// No description provided for @aiClearChat.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างบทสนทนา'**
+  String get aiClearChat;
+
+  /// No description provided for @aiPrivacyNote.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ'**
+  String get aiPrivacyNote;
+
+  /// No description provided for @aiHint.
+  ///
+  /// In th, this message translates to:
+  /// **'ถามอะไรก็ได้…'**
+  String get aiHint;
+
+  /// No description provided for @aiSend.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่ง'**
+  String get aiSend;
+
+  /// No description provided for @aiStart.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มคุยกับผู้ช่วย AI'**
+  String get aiStart;
+
+  /// No description provided for @aiThinking.
+  ///
+  /// In th, this message translates to:
+  /// **'กำลังคิด…'**
+  String get aiThinking;
+
+  /// No description provided for @aiTabImage.
+  ///
+  /// In th, this message translates to:
+  /// **'ภาพ'**
+  String get aiTabImage;
+
+  /// No description provided for @aiCopied.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกแล้ว'**
+  String get aiCopied;
+
+  /// No description provided for @aiNoAnswer.
+  ///
+  /// In th, this message translates to:
+  /// **'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม'**
+  String get aiNoAnswer;
+
+  /// No description provided for @aiFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'AI ตอบไม่สำเร็จ กรุณาลองใหม่'**
+  String get aiFailed;
+
+  /// No description provided for @aiQuota.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้'**
+  String get aiQuota;
+
+  /// No description provided for @aiUnavailable.
+  ///
+  /// In th, this message translates to:
+  /// **'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง'**
+  String get aiUnavailable;
+
+  /// No description provided for @aiAppCheck.
+  ///
+  /// In th, this message translates to:
+  /// **'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้'**
+  String get aiAppCheck;
+
+  /// No description provided for @aiConnect.
+  ///
+  /// In th, this message translates to:
+  /// **'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'**
+  String get aiConnect;
+
+  /// No description provided for @aiTooLong.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความยาวเกินไป (สูงสุด {max} ตัวอักษร)'**
+  String aiTooLong(int max);
+
+  /// No description provided for @startWriting.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มเขียน Markdown…'**
+  String get startWriting;
+
+  /// No description provided for @firebaseSetupError.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md'**
+  String get firebaseSetupError;
 }
 
 class _AppLocalizationsDelegate

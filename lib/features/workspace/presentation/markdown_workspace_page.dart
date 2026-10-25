@@ -1,3 +1,5 @@
+import 'package:mnote/l10n/language_preferences.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show FileSystemException;
@@ -247,13 +249,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   Future<void> _openDocument() async {
+    final l = context.l10n;
     _autoSaveTimer?.cancel();
     if (_workspace.document.isDirty) {
       await _workspace.save();
     }
     final opened = await _runFileAction(
       _workspace.openDocument,
-      successMessage: 'เปิดเอกสารแล้ว',
+      successMessage: l.wsOpened,
     );
     if (opened) {
       _resetInk();
@@ -264,6 +267,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// Opens a `.mnote` export as a new note with both its Markdown and ink.
   Future<void> _openMnote() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final storage =
         InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
     final bytes = await widget.mnotePicker();
@@ -280,9 +284,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         }
       }
     } on FormatException {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.wsNotMnoteFile)));
       return;
     }
 
@@ -298,9 +300,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ..updateContent(bundle.markdown);
     final saved = await _workspace.save();
     if (!saved) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถบันทึกโน้ตที่เปิดได้')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.wsMnoteSaveFailed)));
       return;
     }
     final ink = bundle.ink;
@@ -314,7 +314,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _resetInk();
     _resetUndoHistory();
     messenger.showSnackBar(
-      SnackBar(content: Text('เปิดโน้ต ${documentDisplayName(name)} แล้ว')),
+      SnackBar(
+        content: Text(context.l10n.wsMnoteOpened(documentDisplayName(name))),
+      ),
     );
   }
 
@@ -331,7 +333,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _saveDocument({bool saveAs = false}) async {
     await _runFileAction(
       saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: 'บันทึกเอกสารแล้ว',
+      successMessage: context.l10n.wsSaved,
     );
   }
 
@@ -501,7 +503,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   void _applyHeading(int level) {
     _formatSelectedLines(
       prefixBuilder: (_) => '${'#' * level} ',
-      placeholder: 'หัวข้อ',
+      placeholder: context.l10n.phHeading,
       removePattern: RegExp(r'^#{1,6}\s+'),
       toggle: false,
     );
@@ -510,7 +512,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   void _formatOrderedList() {
     _formatSelectedLines(
       prefixBuilder: (index) => '${index + 1}. ',
-      placeholder: 'รายการ',
+      placeholder: context.l10n.phItem,
       removePattern: RegExp(r'^\d+\.\s+'),
     );
   }
@@ -579,14 +581,16 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: const Text('แทรกตาราง'),
+          title: Text(context.l10n.tableInsertTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
                 key: const Key('table-columns'),
                 initialValue: columns,
-                decoration: const InputDecoration(labelText: 'จำนวนคอลัมน์'),
+                decoration: InputDecoration(
+                  labelText: context.l10n.tableColumns,
+                ),
                 items: [
                   for (var count = 1; count <= 8; count++)
                     DropdownMenuItem(value: count, child: Text('$count')),
@@ -597,7 +601,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               DropdownButtonFormField<int>(
                 key: const Key('table-rows'),
                 initialValue: rows,
-                decoration: const InputDecoration(labelText: 'จำนวนแถวข้อมูล'),
+                decoration: InputDecoration(labelText: context.l10n.tableRows),
                 items: [
                   for (var count = 1; count <= 10; count++)
                     DropdownMenuItem(value: count, child: Text('$count')),
@@ -609,12 +613,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               key: const Key('insert-table-confirm'),
               onPressed: () => Navigator.pop(context, (rows, columns)),
-              child: const Text('แทรก'),
+              child: Text(context.l10n.insert),
             ),
           ],
         ),
@@ -627,10 +631,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         : TextSelection.collapsed(offset: value.text.length);
     String row(List<String> cells) => '| ${cells.join(' | ')} |';
     final table = [
-      row(List.generate(size.$2, (index) => 'หัวข้อ ${index + 1}')),
+      row(
+        List.generate(size.$2, (index) => context.l10n.phHeadingN(index + 1)),
+      ),
       row(List.filled(size.$2, '---')),
       for (var index = 0; index < size.$1; index++)
-        row(List.filled(size.$2, 'ข้อมูล')),
+        row(List.filled(size.$2, context.l10n.phData)),
     ].join('\n');
     final leading = selection.start > 0 ? '\n\n' : '';
     final replacement = '$leading$table\n\n';
@@ -685,9 +691,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.openFileFailed)));
       return;
     }
     if (picked == null || !mounted) return;
@@ -722,15 +728,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Future<void> _insertImage() async {
     final directory = _imageDirectory;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final MarkdownImageReference? image;
     try {
       image = await widget.imagePicker.pick(
         documentDirectory: directory == null ? null : Uri.parse(directory),
       );
     } on FileSystemException {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.imageSaveFailed)));
       return;
     }
     if (image == null || !mounted) return;
@@ -756,14 +761,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         control: control,
         meta: !control,
       ): _unlessTitleFocused(
-        () => _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+        () => _toggleInlineFormat('**', '**', placeholder: context.l10n.phBold),
       ),
       SingleActivator(
         LogicalKeyboardKey.keyI,
         control: control,
         meta: !control,
       ): _unlessTitleFocused(
-        () => _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+        () => _toggleInlineFormat('_', '_', placeholder: context.l10n.phItalic),
       ),
       SingleActivator(
         LogicalKeyboardKey.keyE,
@@ -777,7 +782,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         control: control,
         meta: !control,
       ): _unlessTitleFocused(
-        () => _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+        () => _replaceSelection(
+          '[',
+          '](https://)',
+          placeholder: context.l10n.phLinkName,
+        ),
       ),
       SingleActivator(
         LogicalKeyboardKey.keyX,
@@ -785,7 +794,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         meta: !control,
         shift: true,
       ): _unlessTitleFocused(
-        () => _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+        () =>
+            _toggleInlineFormat('~~', '~~', placeholder: context.l10n.phStrike),
       ),
     },
   };
@@ -837,7 +847,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('แทรกเนื้อหาจาก ${file.name} เรียบร้อยแล้ว')),
+        SnackBar(content: Text(context.l10n.insertedFrom(file.name))),
       );
     }
   }
@@ -867,19 +877,19 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-        title: const Text('ย้ายไปถังขยะ?'),
+        title: Text(context.l10n.trashQuestionTitle),
         content: Text(
-          'คุณต้องการย้าย "${_workspace.document.displayName}" ไปยังถังขยะหรือไม่?',
+          context.l10n.trashQuestionBody(_workspace.document.displayName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ย้ายไปถังขยะ'),
+            child: Text(context.l10n.moveToTrash),
           ),
         ],
       ),
@@ -907,9 +917,9 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.trashFailed)));
       }
     }
   }
@@ -920,7 +930,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถเปิดลิงก์นี้ได้')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.linkOpenFailed)));
     }
   }
 
@@ -996,8 +1006,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                 alignment: Alignment.centerRight,
                                 child: Text(
                                   _workspace.mode == WorkspaceMode.split
-                                      ? 'เขียนพร้อมแสดงผล · ${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร'
-                                      : '${document.content.split('\n').length} บรรทัด · ${document.content.characters.length} ตัวอักษร',
+                                      ? context.l10n.statsLive(
+                                          document.content.split('\n').length,
+                                          document.content.characters.length,
+                                        )
+                                      : context.l10n.statsPlain(
+                                          document.content.split('\n').length,
+                                          document.content.characters.length,
+                                        ),
                                   key: const Key('document-statistics'),
                                   maxLines: 1,
                                   textAlign: TextAlign.end,
@@ -1135,7 +1151,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             )
           else
             Tooltip(
-              message: 'แก้ไขชื่อเอกสาร',
+              message: context.l10n.editDocName,
               child: InkWell(
                 key: const Key('document-title'),
                 borderRadius: BorderRadius.circular(8),
@@ -1188,8 +1204,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         ButtonSegment(
           value: WorkspaceMode.ink,
           icon: const Icon(Icons.draw_outlined),
-          label: compact ? null : const Text('เขียน'),
-          tooltip: 'เขียน',
+          label: compact ? null : Text(context.l10n.tabWrite),
+          tooltip: context.l10n.tabWrite,
         ),
         ButtonSegment(
           value: WorkspaceMode.split,
@@ -1226,20 +1242,20 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             key: const Key('toolbar-assistant-button'),
             onPressed: _openAssistant,
             visualDensity: VisualDensity.compact,
-            tooltip: 'ผู้ช่วย AI',
+            tooltip: context.l10n.aiAssistant,
             icon: const Icon(Icons.auto_awesome),
           ),
         IconButton(
           key: const Key('toolbar-export-button'),
           onPressed: _workspace.isBusy ? null : _openExportSheet,
           visualDensity: VisualDensity.compact,
-          tooltip: 'ส่งออก',
-          icon: const Icon(Icons.upload_rounded),
+          tooltip: context.l10n.export,
+          icon: Icon(Icons.upload_rounded),
         ),
         PopupMenuButton<_DocumentAction>(
           iconSize: 24,
-          padding: const EdgeInsets.all(8),
-          tooltip: 'คำสั่งเพิ่มเติม',
+          padding: EdgeInsets.all(8),
+          tooltip: context.l10n.moreActions,
           onSelected: (action) {
             switch (action) {
               case _DocumentAction.newDocument:
@@ -1256,14 +1272,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 _moveToTrash();
             }
           },
-          itemBuilder: (context) => const [
+          itemBuilder: (context) => [
             PopupMenuItem(
               value: _DocumentAction.newDocument,
               child: Row(
                 children: [
                   Icon(Icons.note_add_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text('เอกสารใหม่')),
+                  Expanded(child: Text(context.l10n.newDocMenu)),
                 ],
               ),
             ),
@@ -1273,7 +1289,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 children: [
                   Icon(Icons.folder_open_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text('เปิดเอกสารอื่น')),
+                  Expanded(child: Text(context.l10n.openOtherDoc)),
                 ],
               ),
             ),
@@ -1284,7 +1300,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 children: [
                   Icon(Icons.draw_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text('เปิดโน้ต Mnote (.mnote)')),
+                  Expanded(child: Text(context.l10n.openMnote)),
                 ],
               ),
             ),
@@ -1295,7 +1311,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 children: [
                   Icon(Icons.post_add_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text('แทรกเนื้อหาจากไฟล์')),
+                  Expanded(child: Text(context.l10n.insertFromFile)),
                 ],
               ),
             ),
@@ -1305,7 +1321,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 children: [
                   Icon(Icons.save_as_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text('บันทึกเป็น')),
+                  Expanded(child: Text(context.l10n.saveAs)),
                 ],
               ),
             ),
@@ -1322,7 +1338,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'ย้ายไปถังขยะ',
+                      context.l10n.moveToTrash,
                       style: TextStyle(color: Colors.red),
                     ),
                   ),
@@ -1336,14 +1352,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   String get _statusLabel {
-    if (_workspace.isBusy) return 'กำลังดำเนินการ…';
-    if (_workspace.document.isDirty) return 'ยังไม่ได้บันทึก';
+    if (_workspace.isBusy) return context.l10n.statusBusy;
+    if (_workspace.document.isDirty) return context.l10n.statusUnsaved;
     if (_workspace.document.name == 'Welcome.md' &&
         _workspace.document.uri == null) {
-      return 'เอกสารตัวอย่าง · พร้อมแก้ไข';
+      return context.l10n.statusExample;
     }
-    if (_workspace.document.uri == null) return 'เอกสารใหม่';
-    return 'บันทึกแล้ว';
+    if (_workspace.document.uri == null) return context.l10n.newDocMenu;
+    return context.l10n.statusSaved;
   }
 
   Widget _buildFormattingToolbar() {
@@ -1354,27 +1370,27 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onRedo: history.canRedo ? _undoController.redo : null,
         onHeading: _applyHeading,
         onBold: () =>
-            _toggleInlineFormat('**', '**', placeholder: 'ข้อความตัวหนา'),
+            _toggleInlineFormat('**', '**', placeholder: context.l10n.phBold),
         onItalic: () =>
-            _toggleInlineFormat('_', '_', placeholder: 'ข้อความตัวเอียง'),
+            _toggleInlineFormat('_', '_', placeholder: context.l10n.phItalic),
         onStrikethrough: () =>
-            _toggleInlineFormat('~~', '~~', placeholder: 'ข้อความขีดฆ่า'),
+            _toggleInlineFormat('~~', '~~', placeholder: context.l10n.phStrike),
         onList: () => _formatSelectedLines(
           prefixBuilder: (_) => '- ',
-          placeholder: 'รายการ',
+          placeholder: context.l10n.phItem,
           removePattern: '- ',
         ),
         onOrderedList: _formatOrderedList,
         onTaskList: () => _formatSelectedLines(
           prefixBuilder: (_) => '- [ ] ',
-          placeholder: 'งานที่ต้องทำ',
+          placeholder: context.l10n.phTask,
           removePattern: RegExp(r'^- \[[ xX]\] '),
         ),
         onIndentList: () => _changeListIndent(increase: true),
         onOutdentList: () => _changeListIndent(increase: false),
         onQuote: () => _formatSelectedLines(
           prefixBuilder: (_) => '> ',
-          placeholder: 'ข้อความอ้างอิง',
+          placeholder: context.l10n.phQuote,
           removePattern: '> ',
         ),
         onLineBreak: _insertLineBreak,
@@ -1383,8 +1399,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onCodeBlock: _insertCodeBlock,
         onDiagramTemplate: _insertDiagramTemplate,
         onImportDiagram: _importDiagramFile,
-        onLink: () =>
-            _replaceSelection('[', '](https://)', placeholder: 'ชื่อลิงก์'),
+        onLink: () => _replaceSelection(
+          '[',
+          '](https://)',
+          placeholder: context.l10n.phLinkName,
+        ),
         onImage: _insertImage,
         onTable: _insertTable,
       ),
@@ -1462,16 +1481,16 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.delete_outline),
-        title: const Text('ล้างหมึกทั้งหมด?'),
-        content: const Text('สามารถกดย้อนกลับได้หลังจากล้าง'),
+        title: Text(context.l10n.clearInkTitle),
+        content: Text(context.l10n.clearInkBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('ล้างทั้งหมด'),
+            child: Text(context.l10n.clearAll),
           ),
         ],
       ),
@@ -1593,8 +1612,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                       ),
                       child: Semantics(
                         label: lineCount == 1
-                            ? 'เลขบรรทัด 1'
-                            : 'เลขบรรทัด 1 ถึง $lineCount',
+                            ? context.l10n.lineNumberOne
+                            : context.l10n.lineNumbers(lineCount),
                         child: CustomPaint(
                           key: const Key('line-number-gutter'),
                           painter: _LineNumberPainter(
@@ -1652,7 +1671,7 @@ enum _DocumentAction {
 
 Future<Uint8List?> pickMnoteFile() async {
   final file = await FilePicker.pickFile(
-    dialogTitle: 'เปิดโน้ต Mnote (.mnote)',
+    dialogTitle: LanguagePreferences.current().openMnote,
   );
   return file?.readAsBytes();
 }

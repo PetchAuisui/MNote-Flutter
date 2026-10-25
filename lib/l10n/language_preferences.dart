@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:mnote/app/mnote_app.dart';
+import 'package:mnote/l10n/app_localizations_en.dart';
+import 'package:mnote/l10n/app_localizations_th.dart';
 import 'package:mnote/l10n/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,6 +29,17 @@ abstract final class LanguagePreferences {
     } catch (e) {
       debugPrint('Could not save the language: $e');
     }
+  }
+
+  /// The strings for the language in use right now, for code that has no
+  /// [BuildContext]. Thai when the language is unsupported.
+  static AppLocalizations current() {
+    final locale =
+        MnoteApp.languageNotifier.value.locale ??
+        PlatformDispatcher.instance.locale;
+    return locale.languageCode == 'en'
+        ? AppLocalizationsEn()
+        : AppLocalizationsTh();
   }
 
   static AppLanguage fromName(String? name) {

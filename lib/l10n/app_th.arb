@@ -456,5 +456,234 @@
   "aboutFeedback": "แจ้งปัญหาหรือส่งความคิดเห็น",
   "aboutFeedbackHint": "เปิดหน้า GitHub Issues ในเบราว์เซอร์",
   "aboutSource": "ซอร์สโค้ดบน GitHub",
-  "aboutOpenFailed": "เปิดลิงก์ไม่สำเร็จ"
+  "aboutOpenFailed": "เปิดลิงก์ไม่สำเร็จ",
+  "wsOpened": "เปิดเอกสารแล้ว",
+  "wsNotMnoteFile": "ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้",
+  "wsMnoteSaveFailed": "ไม่สามารถบันทึกโน้ตที่เปิดได้",
+  "wsSaved": "บันทึกเอกสารแล้ว",
+  "phHeading": "หัวข้อ",
+  "phItem": "รายการ",
+  "phData": "ข้อมูล",
+  "phBold": "ข้อความตัวหนา",
+  "phItalic": "ข้อความตัวเอียง",
+  "phLinkName": "ชื่อลิงก์",
+  "phStrike": "ข้อความขีดฆ่า",
+  "phTask": "งานที่ต้องทำ",
+  "phQuote": "ข้อความอ้างอิง",
+  "tableInsertTitle": "แทรกตาราง",
+  "tableColumns": "จำนวนคอลัมน์",
+  "tableRows": "จำนวนแถวข้อมูล",
+  "insert": "แทรก",
+  "openFileFailed": "เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่",
+  "imageSaveFailed": "ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้",
+  "trashQuestionTitle": "ย้ายไปถังขยะ?",
+  "trashFailed": "ไม่สามารถย้ายเอกสารไปยังถังขยะได้",
+  "linkOpenFailed": "ไม่สามารถเปิดลิงก์นี้ได้",
+  "editDocName": "แก้ไขชื่อเอกสาร",
+  "aiAssistant": "ผู้ช่วย AI",
+  "moreActions": "คำสั่งเพิ่มเติม",
+  "newDocMenu": "เอกสารใหม่",
+  "openOtherDoc": "เปิดเอกสารอื่น",
+  "openMnote": "เปิดโน้ต Mnote (.mnote)",
+  "insertFromFile": "แทรกเนื้อหาจากไฟล์",
+  "saveAs": "บันทึกเป็น",
+  "statusBusy": "กำลังดำเนินการ…",
+  "statusUnsaved": "ยังไม่ได้บันทึก",
+  "statusExample": "เอกสารตัวอย่าง · พร้อมแก้ไข",
+  "statusSaved": "บันทึกแล้ว",
+  "clearInkTitle": "ล้างหมึกทั้งหมด?",
+  "clearInkBody": "สามารถกดย้อนกลับได้หลังจากล้าง",
+  "clearAll": "ล้างทั้งหมด",
+  "lineNumberOne": "เลขบรรทัด 1",
+  "wsMnoteOpened": "เปิดโน้ต {name} แล้ว",
+  "@wsMnoteOpened": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phHeadingN": "หัวข้อ {n}",
+  "@phHeadingN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "insertedFrom": "แทรกเนื้อหาจาก {name} เรียบร้อยแล้ว",
+  "@insertedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trashQuestionBody": "คุณต้องการย้าย \"{name}\" ไปยังถังขยะหรือไม่?",
+  "@trashQuestionBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "statsLive": "เขียนพร้อมแสดงผล · {lines} บรรทัด · {chars} ตัวอักษร",
+  "@statsLive": {
+    "placeholders": {
+      "lines": {
+        "type": "int"
+      },
+      "chars": {
+        "type": "int"
+      }
+    }
+  },
+  "statsPlain": "{lines} บรรทัด · {chars} ตัวอักษร",
+  "@statsPlain": {
+    "placeholders": {
+      "lines": {
+        "type": "int"
+      },
+      "chars": {
+        "type": "int"
+      }
+    }
+  },
+  "lineNumbers": "เลขบรรทัด 1 ถึง {count}",
+  "@lineNumbers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportSaveDialogTitle": "บันทึกไฟล์ส่งออก",
+  "fmtTxt": "ข้อความล้วน (.txt)",
+  "fmtPng": "รูปภาพ (.png)",
+  "fmtMnote": "โน้ต Mnote (.mnote)",
+  "fmtPdf": "เอกสาร PDF (.pdf)",
+  "back": "ย้อนกลับ",
+  "exportTitle": "ส่งออกเอกสาร",
+  "pdfSubtitle": "รวมเนื้อหา ข้อความ และลายเส้นหมึกวาด",
+  "mnoteSubtitle": "รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้",
+  "mdSubtitle": "ไฟล์ข้อความ Markdown ต้นฉบับ",
+  "txtSubtitle": "เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก",
+  "pngSubtitle": "ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง",
+  "mnoteInfo": "ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ",
+  "saveFile": "บันทึกไฟล์",
+  "shareFile": "แชร์ไฟล์",
+  "includeInkLayer": "รวมรอยหมึกปากกา (Layer หมึกวาด)",
+  "inkOnPdf": "เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF",
+  "pdfTextOnly": "ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)",
+  "pageSize": "ขนาดหน้าเอกสาร",
+  "pageContinuousDesc": "แบบต่อเนื่อง (Continuous / หน้าเดียวยาว)",
+  "pageA4": "ขนาดมาตรฐาน A4",
+  "continuous": "ต่อเนื่อง",
+  "savePdf": "บันทึกไฟล์ PDF",
+  "sharePdf": "แชร์ไฟล์ PDF",
+  "includeInk": "รวมรอยหมึกปากกา",
+  "snapshotWithInk": "สแนปช็อตรวมลายเส้นหมึกวาดทั้งหมด",
+  "textOnlyDoc": "เฉพาะข้อความเอกสาร",
+  "savePng": "บันทึกรูปภาพ (.png)",
+  "shareImage": "แชร์รูปภาพ",
+  "exportMdAll": "ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด",
+  "exportPlain": "ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา",
+  "needDocForImage": "กรุณาเปิดหน้าเอกสารเพื่อจับภาพส่งออกเป็นรูปภาพความละเอียดสูง",
+  "exportFailed": "เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่",
+  "exportShareText": "แชร์เอกสาร {name}",
+  "@exportShareText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exportAs": "ส่งออกเป็น {format}",
+  "@exportAs": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "exportDone": "ส่งออกไฟล์ {name} สำเร็จ",
+  "@exportDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tbBold": "ตัวหนา",
+  "tbItalic": "ตัวเอียง",
+  "tbStrike": "ขีดฆ่า",
+  "tbBullets": "รายการหัวข้อ",
+  "tbNumbered": "รายการตัวเลข",
+  "tbTasks": "รายการงาน",
+  "tbIndent": "ทำเป็นรายการย่อย",
+  "tbOutdent": "กลับสู่รายการหลัก",
+  "tbQuote": "อ้างอิง",
+  "tbLineBreak": "ขึ้นบรรทัด",
+  "tbLineBreakTip": "ขึ้นบรรทัดใหม่ด้วย <br>",
+  "tbRule": "เส้นคั่น",
+  "tbRuleTip": "แทรกเส้นคั่นแนวนอนด้วย ---",
+  "tbTable": "ตาราง",
+  "tbCode": "โค้ด",
+  "tbInlineCode": "โค้ดในบรรทัด",
+  "tbCodeBlock": "บล็อกโค้ด",
+  "tbDiagram": "ไดอะแกรม",
+  "tbImportMmd": "นำเข้าจากไฟล์ .mmd…",
+  "tbLink": "ลิงก์",
+  "tbImage": "รูปภาพ",
+  "tbMore": "เครื่องมือเพิ่มเติม",
+  "inkUndo": "ย้อนกลับหมึก",
+  "inkRedo": "ทำซ้ำหมึก",
+  "inkGroupDraw": "เครื่องมือวาด",
+  "inkPen": "ปากกา",
+  "inkHighlighter": "ปากกาไฮไลต์",
+  "inkEraser": "ยางลบทั้งเส้น",
+  "inkGroupStroke": "รูปแบบเส้น",
+  "inkChangeColor": "เปลี่ยนสีที่เลือกอยู่",
+  "inkGroupPage": "การควบคุมหน้า",
+  "inkFingerOn": "ใช้นิ้วเขียนอยู่",
+  "inkPencilOnly": "Apple Pencil เขียน · นิ้วเลื่อนหน้า",
+  "inkFitWidth": "พอดีความกว้าง",
+  "inkGroupManage": "จัดการหมึก",
+  "inkMore": "เพิ่มเติม",
+  "inkClearAll": "ล้างหมึกทั้งหมด",
+  "inkCustomColor": "กำหนดสีเอง",
+  "inkHue": "สี",
+  "inkSaturation": "ความเข้ม",
+  "inkBrightness": "ความสว่าง",
+  "ok": "ตกลง",
+  "inkCustomWidth": "กำหนดขนาดเส้น",
+  "inkColorTip": "แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้",
+  "guideTitle": "คู่มือการใช้ Mnote",
+  "guideSkip": "ข้าม",
+  "guidePrev": "หน้าก่อนหน้า",
+  "guideNext": "หน้าถัดไป",
+  "guideStart": "เข้าสู่ Mnote",
+  "guide1Title": "เขียนและจัดรูปแบบ Markdown",
+  "guide1Body": "เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที",
+  "guide2Title": "วาดเขียน & จดโน้ตด้วยปากกา",
+  "guide2Body": "ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน",
+  "guide3Title": "สร้างไดอะแกรม Mermaid ทันใจ",
+  "guide3Body": "แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน",
+  "inkWidthTip": "ความหนา {width} · แตะซ้ำหรือกดค้างเพื่อแก้ไข",
+  "@inkWidthTip": {
+    "placeholders": {
+      "width": {
+        "type": "String"
+      }
+    }
+  },
+  "guideStep": "ขั้นตอน {step} / 03",
+  "@guideStep": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "redo": "ทำซ้ำ"
 }

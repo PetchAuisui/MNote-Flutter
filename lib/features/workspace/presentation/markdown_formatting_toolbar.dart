@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
@@ -87,53 +88,65 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-undo'),
                       icon: Icons.undo_rounded,
-                      label: 'เลิกทำ',
+                      label: context.l10n.undo,
                       showLabel: false,
                       onPressed: widget.onUndo,
                     ),
                     _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-redo'),
+                      buttonKey: Key('toolbar-redo'),
                       icon: Icons.redo_rounded,
-                      label: 'ทำซ้ำ',
+                      label: context.l10n.redo,
                       showLabel: false,
                       onPressed: widget.onRedo,
                     ),
-                    const _ToolbarDivider(),
+                    _ToolbarDivider(),
                     _ToolbarMenuButton<int>(
-                      buttonKey: const Key('toolbar-heading'),
+                      buttonKey: Key('toolbar-heading'),
                       icon: Icons.title_rounded,
                       showIcon: false,
-                      label: 'หัวข้อ $_headingLevel',
+                      label: context.l10n.phHeadingN(_headingLevel),
                       showLabel: true,
                       onSelected: (level) {
                         setState(() => _headingLevel = level);
                         widget.onHeading(level);
                       },
-                      items: const [
-                        PopupMenuItem(value: 1, child: Text('หัวข้อ 1')),
-                        PopupMenuItem(value: 2, child: Text('หัวข้อ 2')),
-                        PopupMenuItem(value: 3, child: Text('หัวข้อ 3')),
-                        PopupMenuItem(value: 4, child: Text('หัวข้อ 4')),
+                      items: [
+                        PopupMenuItem(
+                          value: 1,
+                          child: Text(context.l10n.phHeadingN(1)),
+                        ),
+                        PopupMenuItem(
+                          value: 2,
+                          child: Text(context.l10n.phHeadingN(2)),
+                        ),
+                        PopupMenuItem(
+                          value: 3,
+                          child: Text(context.l10n.phHeadingN(3)),
+                        ),
+                        PopupMenuItem(
+                          value: 4,
+                          child: Text(context.l10n.phHeadingN(4)),
+                        ),
                       ],
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-bold'),
                       icon: Icons.format_bold_rounded,
-                      label: 'ตัวหนา',
+                      label: context.l10n.tbBold,
                       showLabel: showLabels,
                       onPressed: widget.onBold,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-italic'),
                       icon: Icons.format_italic_rounded,
-                      label: 'ตัวเอียง',
+                      label: context.l10n.tbItalic,
                       showLabel: showLabels,
                       onPressed: widget.onItalic,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-strikethrough'),
                       icon: Icons.format_strikethrough_rounded,
-                      label: 'ขีดฆ่า',
+                      label: context.l10n.tbStrike,
                       showLabel: showLabels,
                       onPressed: widget.onStrikethrough,
                     ),
@@ -141,74 +154,74 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-list'),
                       icon: Icons.format_list_bulleted_rounded,
-                      label: 'รายการหัวข้อ',
+                      label: context.l10n.tbBullets,
                       showLabel: showLabels,
                       onPressed: widget.onList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-ordered-list'),
                       icon: Icons.format_list_numbered_rounded,
-                      label: 'รายการตัวเลข',
+                      label: context.l10n.tbNumbered,
                       showLabel: showLabels,
                       onPressed: widget.onOrderedList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-task-list'),
                       icon: Icons.checklist_rounded,
-                      label: 'รายการงาน',
+                      label: context.l10n.tbTasks,
                       showLabel: showLabels,
                       onPressed: widget.onTaskList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-indent-list'),
                       icon: Icons.format_indent_increase_rounded,
-                      label: 'ทำเป็นรายการย่อย',
-                      tooltip: 'ทำเป็นรายการย่อย',
+                      label: context.l10n.tbIndent,
+                      tooltip: context.l10n.tbIndent,
                       showLabel: false,
                       onPressed: widget.onIndentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-outdent-list'),
                       icon: Icons.format_indent_decrease_rounded,
-                      label: 'กลับสู่รายการหลัก',
-                      tooltip: 'กลับสู่รายการหลัก',
+                      label: context.l10n.tbOutdent,
+                      tooltip: context.l10n.tbOutdent,
                       showLabel: false,
                       onPressed: widget.onOutdentList,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-quote'),
                       icon: Icons.format_quote_rounded,
-                      label: 'อ้างอิง',
+                      label: context.l10n.tbQuote,
                       showLabel: showLabels,
                       onPressed: widget.onQuote,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-line-break'),
                       icon: Icons.keyboard_return_rounded,
-                      label: 'ขึ้นบรรทัด',
-                      tooltip: 'ขึ้นบรรทัดใหม่ด้วย <br>',
+                      label: context.l10n.tbLineBreak,
+                      tooltip: context.l10n.tbLineBreakTip,
                       showLabel: showLabels,
                       onPressed: widget.onLineBreak,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-horizontal-rule'),
                       icon: Icons.horizontal_rule_rounded,
-                      label: 'เส้นคั่น',
-                      tooltip: 'แทรกเส้นคั่นแนวนอนด้วย ---',
+                      label: context.l10n.tbRule,
+                      tooltip: context.l10n.tbRuleTip,
                       showLabel: showLabels,
                       onPressed: widget.onHorizontalRule,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-table'),
                       icon: Icons.table_chart_outlined,
-                      label: 'ตาราง',
+                      label: context.l10n.tbTable,
                       showLabel: showLabels,
                       onPressed: widget.onTable,
                     ),
                     _ToolbarMenuButton<_CodeStyle>(
-                      buttonKey: const Key('toolbar-code'),
+                      buttonKey: Key('toolbar-code'),
                       icon: Icons.code_rounded,
-                      label: 'โค้ด',
+                      label: context.l10n.tbCode,
                       showLabel: showLabels,
                       onSelected: (style) {
                         switch (style) {
@@ -218,14 +231,14 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                             widget.onCodeBlock();
                         }
                       },
-                      items: const [
+                      items: [
                         PopupMenuItem(
                           value: _CodeStyle.inline,
                           child: Row(
                             children: [
                               Icon(Icons.code_rounded, size: 20),
                               SizedBox(width: 12),
-                              Expanded(child: Text('โค้ดในบรรทัด')),
+                              Expanded(child: Text(context.l10n.tbInlineCode)),
                             ],
                           ),
                         ),
@@ -235,7 +248,7 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                             children: [
                               Icon(Icons.data_object_rounded, size: 20),
                               SizedBox(width: 12),
-                              Expanded(child: Text('บล็อกโค้ด')),
+                              Expanded(child: Text(context.l10n.tbCodeBlock)),
                             ],
                           ),
                         ),
@@ -245,7 +258,7 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                       _ToolbarMenuButton<_DiagramMenuAction>(
                         buttonKey: const Key('toolbar-diagram'),
                         icon: Icons.account_tree_outlined,
-                        label: 'ไดอะแกรม',
+                        label: context.l10n.tbDiagram,
                         showLabel: showLabels,
                         onSelected: (action) {
                           switch (action) {
@@ -276,14 +289,16 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                               onImportDiagram != null)
                             const PopupMenuDivider(),
                           if (onImportDiagram != null)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               key: Key('toolbar-diagram-import'),
                               value: _ImportDiagramFile(),
                               child: Row(
                                 children: [
                                   Icon(Icons.file_open_outlined, size: 20),
                                   SizedBox(width: 12),
-                                  Expanded(child: Text('นำเข้าจากไฟล์ .mmd…')),
+                                  Expanded(
+                                    child: Text(context.l10n.tbImportMmd),
+                                  ),
                                 ],
                               ),
                             ),
@@ -293,14 +308,14 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-link'),
                       icon: Icons.link_rounded,
-                      label: 'ลิงก์',
+                      label: context.l10n.tbLink,
                       showLabel: showLabels,
                       onPressed: widget.onLink,
                     ),
                     _ToolbarActionButton(
                       buttonKey: const Key('toolbar-image'),
                       icon: Icons.image_outlined,
-                      label: 'รูปภาพ',
+                      label: context.l10n.tbImage,
                       showLabel: showLabels,
                       onPressed: widget.onImage,
                     ),
@@ -388,7 +403,7 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
         width: 48,
         child: PopupMenuButton<VoidCallback>(
           key: const Key('toolbar-more'),
-          tooltip: 'เครื่องมือเพิ่มเติม',
+          tooltip: context.l10n.tbMore,
           icon: const Icon(Icons.more_horiz_rounded),
           onSelected: (action) => action(),
           itemBuilder: (_) => entries,

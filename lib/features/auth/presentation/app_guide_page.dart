@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
@@ -24,12 +25,11 @@ class _AppGuidePageState extends State<AppGuidePage> {
   int _currentPage = 0;
   double _pageOffset = 0.0;
 
-  final List<_GuideItem> _guides = const [
+  List<_GuideItem> get _guides => [
     _GuideItem(
       step: '01',
-      title: 'เขียนและจัดรูปแบบ Markdown',
-      description:
-          'เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที',
+      title: context.l10n.guide1Title,
+      description: context.l10n.guide1Body,
       featureLabel: 'Markdown Editor',
       icon: Icons.edit_note_rounded,
       badgeColor: Color(0xFF4A89DC),
@@ -37,9 +37,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
     ),
     _GuideItem(
       step: '02',
-      title: 'วาดเขียน & จดโน้ตด้วยปากกา',
-      description:
-          'ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน',
+      title: context.l10n.guide2Title,
+      description: context.l10n.guide2Body,
       featureLabel: 'Ink & Stylus Drawing',
       icon: Icons.draw_rounded,
       badgeColor: Color(0xFF5C9BD1),
@@ -47,9 +46,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
     ),
     _GuideItem(
       step: '03',
-      title: 'สร้างไดอะแกรม Mermaid ทันใจ',
-      description:
-          'แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน',
+      title: context.l10n.guide3Title,
+      description: context.l10n.guide3Body,
       featureLabel: 'Mermaid & Live Preview',
       icon: Icons.account_tree_rounded,
       badgeColor: Color(0xFF388E3C),
@@ -133,7 +131,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                   // Center Title
                   Center(
                     child: Text(
-                      'คู่มือการใช้ Mnote',
+                      context.l10n.guideTitle,
                       key: Key('app-guide-title'),
                       style: TextStyle(
                         fontSize: 22,
@@ -169,7 +167,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                             ],
                           ),
                           child: Text(
-                            'ข้าม',
+                            context.l10n.guideSkip,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -269,7 +267,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                               : Colors.black26,
                         ),
                         splashRadius: 26,
-                        tooltip: 'หน้าก่อนหน้า',
+                        tooltip: context.l10n.guidePrev,
                       ),
 
                       const SizedBox(width: 12),
@@ -306,7 +304,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                             color: palette.mid,
                           ),
                           splashRadius: 26,
-                          tooltip: 'หน้าถัดไป',
+                          tooltip: context.l10n.guideNext,
                         ),
                       ] else ...[
                         // Last Page: "เข้าสู่ Mnote" Prominent Button
@@ -326,8 +324,8 @@ class _AppGuidePageState extends State<AppGuidePage> {
                             elevation: 4,
                             shadowColor: palette.primary.withValues(alpha: 0.4),
                           ),
-                          icon: const Text(
-                            'เข้าสู่ Mnote',
+                          icon: Text(
+                            context.l10n.guideStart,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -394,7 +392,7 @@ class _AppGuidePageState extends State<AppGuidePage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'ขั้นตอน ${item.step} / 03',
+                    context.l10n.guideStep(item.step),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

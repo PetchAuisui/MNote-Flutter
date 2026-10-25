@@ -760,4 +760,617 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutOpenFailed => 'Could not open the link';
+
+  @override
+  String get wsOpened => 'Note opened';
+
+  @override
+  String get wsNotMnoteFile =>
+      'This file is not a Mnote note that can be opened';
+
+  @override
+  String get wsMnoteSaveFailed => 'Could not save the opened note';
+
+  @override
+  String get wsSaved => 'Note saved';
+
+  @override
+  String get phHeading => 'Heading';
+
+  @override
+  String get phItem => 'Item';
+
+  @override
+  String get phData => 'Data';
+
+  @override
+  String get phBold => 'bold text';
+
+  @override
+  String get phItalic => 'italic text';
+
+  @override
+  String get phLinkName => 'link name';
+
+  @override
+  String get phStrike => 'strikethrough text';
+
+  @override
+  String get phTask => 'Task';
+
+  @override
+  String get phQuote => 'Quote';
+
+  @override
+  String get tableInsertTitle => 'Insert table';
+
+  @override
+  String get tableColumns => 'Number of columns';
+
+  @override
+  String get tableRows => 'Number of data rows';
+
+  @override
+  String get insert => 'Insert';
+
+  @override
+  String get openFileFailed => 'Could not open the file. Please try again.';
+
+  @override
+  String get imageSaveFailed => 'Could not save the image next to this note';
+
+  @override
+  String get trashQuestionTitle => 'Move to trash?';
+
+  @override
+  String get trashFailed => 'Could not move the note to the trash';
+
+  @override
+  String get linkOpenFailed => 'Could not open this link';
+
+  @override
+  String get editDocName => 'Edit note name';
+
+  @override
+  String get aiAssistant => 'AI assistant';
+
+  @override
+  String get moreActions => 'More actions';
+
+  @override
+  String get newDocMenu => 'New note';
+
+  @override
+  String get openOtherDoc => 'Open another note';
+
+  @override
+  String get openMnote => 'Open Mnote note (.mnote)';
+
+  @override
+  String get insertFromFile => 'Insert content from a file';
+
+  @override
+  String get saveAs => 'Save as';
+
+  @override
+  String get statusBusy => 'Working…';
+
+  @override
+  String get statusUnsaved => 'Not saved yet';
+
+  @override
+  String get statusExample => 'Sample note · ready to edit';
+
+  @override
+  String get statusSaved => 'Saved';
+
+  @override
+  String get clearInkTitle => 'Clear all ink?';
+
+  @override
+  String get clearInkBody => 'You can undo after clearing';
+
+  @override
+  String get clearAll => 'Clear all';
+
+  @override
+  String get lineNumberOne => 'Line number 1';
+
+  @override
+  String wsMnoteOpened(String name) {
+    return 'Opened note $name';
+  }
+
+  @override
+  String phHeadingN(int n) {
+    return 'Heading $n';
+  }
+
+  @override
+  String insertedFrom(String name) {
+    return 'Inserted content from $name';
+  }
+
+  @override
+  String trashQuestionBody(String name) {
+    return 'Move \"$name\" to the trash?';
+  }
+
+  @override
+  String statsLive(int lines, int chars) {
+    return 'Live preview · $lines lines · $chars characters';
+  }
+
+  @override
+  String statsPlain(int lines, int chars) {
+    return '$lines lines · $chars characters';
+  }
+
+  @override
+  String lineNumbers(int count) {
+    return 'Line numbers 1 to $count';
+  }
+
+  @override
+  String get exportSaveDialogTitle => 'Save exported file';
+
+  @override
+  String get fmtTxt => 'Plain text (.txt)';
+
+  @override
+  String get fmtPng => 'Image (.png)';
+
+  @override
+  String get fmtMnote => 'Mnote note (.mnote)';
+
+  @override
+  String get fmtPdf => 'PDF document (.pdf)';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get exportTitle => 'Export note';
+
+  @override
+  String get pdfSubtitle => 'Includes the content, text and ink strokes';
+
+  @override
+  String get mnoteSubtitle =>
+      'Markdown and ink in one file that you can open on another device';
+
+  @override
+  String get mdSubtitle => 'The original Markdown text file';
+
+  @override
+  String get txtSubtitle => 'Content only, without Markdown symbols';
+
+  @override
+  String get pngSubtitle => 'A high-resolution snapshot of the page and ink';
+
+  @override
+  String get mnoteInfo =>
+      'This file keeps both the Markdown text and the ink strokes. Opened with Mnote on another device, you get the complete note.';
+
+  @override
+  String get saveFile => 'Save file';
+
+  @override
+  String get shareFile => 'Share file';
+
+  @override
+  String get includeInkLayer => 'Include pen ink (ink layer)';
+
+  @override
+  String get inkOnPdf => 'Renders ink and highlights onto the PDF';
+
+  @override
+  String get pdfTextOnly => 'Exports plain text only (no ink strokes)';
+
+  @override
+  String get pageSize => 'Page size';
+
+  @override
+  String get pageContinuousDesc => 'Continuous (one long page)';
+
+  @override
+  String get pageA4 => 'Standard A4 size';
+
+  @override
+  String get continuous => 'Continuous';
+
+  @override
+  String get savePdf => 'Save PDF file';
+
+  @override
+  String get sharePdf => 'Share PDF file';
+
+  @override
+  String get includeInk => 'Include pen ink';
+
+  @override
+  String get snapshotWithInk => 'A snapshot that includes all ink strokes';
+
+  @override
+  String get textOnlyDoc => 'Document text only';
+
+  @override
+  String get savePng => 'Save image (.png)';
+
+  @override
+  String get shareImage => 'Share image';
+
+  @override
+  String get exportMdAll => 'Exports all of the original Markdown code';
+
+  @override
+  String get exportPlain => 'Strips Markdown symbols and leaves plain text';
+
+  @override
+  String get needDocForImage =>
+      'Open the note page to capture a high-resolution image';
+
+  @override
+  String get exportFailed => 'Could not export the file. Please try again.';
+
+  @override
+  String exportShareText(String name) {
+    return 'Sharing $name';
+  }
+
+  @override
+  String exportAs(String format) {
+    return 'Export as $format';
+  }
+
+  @override
+  String exportDone(String name) {
+    return 'Exported $name';
+  }
+
+  @override
+  String get tbBold => 'Bold';
+
+  @override
+  String get tbItalic => 'Italic';
+
+  @override
+  String get tbStrike => 'Strikethrough';
+
+  @override
+  String get tbBullets => 'Bulleted list';
+
+  @override
+  String get tbNumbered => 'Numbered list';
+
+  @override
+  String get tbTasks => 'Task list';
+
+  @override
+  String get tbIndent => 'Indent as sub-item';
+
+  @override
+  String get tbOutdent => 'Back to main list';
+
+  @override
+  String get tbQuote => 'Quote';
+
+  @override
+  String get tbLineBreak => 'Line break';
+
+  @override
+  String get tbLineBreakTip => 'Insert a new line with <br>';
+
+  @override
+  String get tbRule => 'Divider';
+
+  @override
+  String get tbRuleTip => 'Insert a horizontal rule with ---';
+
+  @override
+  String get tbTable => 'Table';
+
+  @override
+  String get tbCode => 'Code';
+
+  @override
+  String get tbInlineCode => 'Inline code';
+
+  @override
+  String get tbCodeBlock => 'Code block';
+
+  @override
+  String get tbDiagram => 'Diagram';
+
+  @override
+  String get tbImportMmd => 'Import from a .mmd file…';
+
+  @override
+  String get tbLink => 'Link';
+
+  @override
+  String get tbImage => 'Image';
+
+  @override
+  String get tbMore => 'More tools';
+
+  @override
+  String get inkUndo => 'Undo ink';
+
+  @override
+  String get inkRedo => 'Redo ink';
+
+  @override
+  String get inkGroupDraw => 'Drawing tools';
+
+  @override
+  String get inkPen => 'Pen';
+
+  @override
+  String get inkHighlighter => 'Highlighter';
+
+  @override
+  String get inkEraser => 'Stroke eraser';
+
+  @override
+  String get inkGroupStroke => 'Stroke style';
+
+  @override
+  String get inkChangeColor => 'Change the selected color';
+
+  @override
+  String get inkGroupPage => 'Page controls';
+
+  @override
+  String get inkFingerOn => 'Drawing with a finger';
+
+  @override
+  String get inkPencilOnly => 'Apple Pencil draws · finger scrolls';
+
+  @override
+  String get inkFitWidth => 'Fit to width';
+
+  @override
+  String get inkGroupManage => 'Ink actions';
+
+  @override
+  String get inkMore => 'More';
+
+  @override
+  String get inkClearAll => 'Clear all ink';
+
+  @override
+  String get inkCustomColor => 'Custom color';
+
+  @override
+  String get inkHue => 'Hue';
+
+  @override
+  String get inkSaturation => 'Saturation';
+
+  @override
+  String get inkBrightness => 'Brightness';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get inkCustomWidth => 'Custom stroke width';
+
+  @override
+  String get inkColorTip =>
+      'Tap to choose · tap again or long-press to change this color';
+
+  @override
+  String get guideTitle => 'Mnote guide';
+
+  @override
+  String get guideSkip => 'Skip';
+
+  @override
+  String get guidePrev => 'Previous page';
+
+  @override
+  String get guideNext => 'Next page';
+
+  @override
+  String get guideStart => 'Enter Mnote';
+
+  @override
+  String get guide1Title => 'Write and format Markdown';
+
+  @override
+  String get guide1Body =>
+      'Write notes quickly with Markdown syntax: headings, to-do lists, bold and italic, with a quick toolbar for instant formatting.';
+
+  @override
+  String get guide2Title => 'Draw and take notes with a pen';
+
+  @override
+  String get guide2Body =>
+      'Write, highlight text and sketch freely on your notes with an accurate digital ink system (Ink & Stylus), complete with an eraser and plenty of colors.';
+
+  @override
+  String get guide3Title => 'Create Mermaid diagrams fast';
+
+  @override
+  String get guide3Body =>
+      'Turn Mermaid code into flowcharts and clean diagrams, with a live preview alongside your writing.';
+
+  @override
+  String inkWidthTip(String width) {
+    return 'Width $width · tap again or long-press to edit';
+  }
+
+  @override
+  String guideStep(String step) {
+    return 'Step $step / 03';
+  }
+
+  @override
+  String get redo => 'Redo';
+
+  @override
+  String get tplFlowLabel => 'Flowchart';
+
+  @override
+  String get tplFlowStart => 'Start';
+
+  @override
+  String get tplFlowStep => 'Step';
+
+  @override
+  String get tplFlowCond => 'Condition?';
+
+  @override
+  String get tplYes => 'Yes';
+
+  @override
+  String get tplEnd => 'End';
+
+  @override
+  String get tplNo => 'No';
+
+  @override
+  String get tplSeqLabel => 'Sequence';
+
+  @override
+  String get tplUser => 'User';
+
+  @override
+  String get tplSystem => 'System';
+
+  @override
+  String get tplRequest => 'Send request';
+
+  @override
+  String get tplReply => 'Reply';
+
+  @override
+  String get tplClassLabel => 'Class';
+
+  @override
+  String get tplHas => 'has';
+
+  @override
+  String get mmdOnlyMmd => 'Only .mmd or .mermaid files are supported';
+
+  @override
+  String get mmdNotUtf8 => 'Cannot read the file. It must be UTF-8 text.';
+
+  @override
+  String get mmdEmpty => 'The file is empty and has no diagram code';
+
+  @override
+  String get copyCode => 'Copy code';
+
+  @override
+  String get viewCode => 'View code';
+
+  @override
+  String get codeCopied => 'Copied. You can paste it into your note.';
+
+  @override
+  String get diagramEmpty => 'Empty diagram';
+
+  @override
+  String get diagramUnsupported => 'This platform cannot display diagrams yet';
+
+  @override
+  String get diagramFailed => 'Could not display the diagram';
+
+  @override
+  String get diagramTimeout => 'Timed out while displaying the diagram';
+
+  @override
+  String get docNotUtf8 => 'This file is not UTF-8 text that Mnote supports';
+
+  @override
+  String get fileActionFailed =>
+      'Could not do that with this file. Please try again.';
+
+  @override
+  String get inkSaveDialogTitle => 'Save ink separately from Markdown';
+
+  @override
+  String mmdTooBig(int kb) {
+    return 'The file is too large (max $kb KB)';
+  }
+
+  @override
+  String docListFailed(String error) {
+    return 'Could not load the note list: $error';
+  }
+
+  @override
+  String get aiCloseLabel => 'Close the AI assistant';
+
+  @override
+  String get aiSuggest1 => 'Explain Markdown in simple terms';
+
+  @override
+  String get aiSuggest2 => 'Draw a flowchart of the sign-up steps';
+
+  @override
+  String get aiSuggest3 => 'Help me think of headings for lesson summary notes';
+
+  @override
+  String get aiClearChat => 'Clear conversation';
+
+  @override
+  String get aiPrivacyNote =>
+      'What you type is sent to Google Gemini for processing · The AI has not read the contents of your notes';
+
+  @override
+  String get aiHint => 'Ask anything…';
+
+  @override
+  String get aiSend => 'Send';
+
+  @override
+  String get aiStart => 'Start chatting with the AI assistant';
+
+  @override
+  String get aiThinking => 'Thinking…';
+
+  @override
+  String get aiTabImage => 'Diagram';
+
+  @override
+  String get aiCopied => 'Copied';
+
+  @override
+  String get aiNoAnswer =>
+      'The AI did not send an answer. Try asking again or rephrase your question.';
+
+  @override
+  String get aiFailed => 'The AI could not answer. Please try again.';
+
+  @override
+  String get aiQuota =>
+      'You have used up the AI assistant quota. Wait a moment and try again. If it still fails, today\'s quota is used up; try again tomorrow.';
+
+  @override
+  String get aiUnavailable =>
+      'The AI assistant is temporarily unavailable. Please try again later.';
+
+  @override
+  String get aiAppCheck =>
+      'App security verification failed, so the AI assistant cannot be used right now.';
+
+  @override
+  String get aiConnect =>
+      'Could not connect to the AI assistant. Check your internet connection and try again.';
+
+  @override
+  String aiTooLong(int max) {
+    return 'The message is too long (max $max characters)';
+  }
+
+  @override
+  String get startWriting => 'Start writing Markdown…';
+
+  @override
+  String get firebaseSetupError =>
+      'Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md';
 }

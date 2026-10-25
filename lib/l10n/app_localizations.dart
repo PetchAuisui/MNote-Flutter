@@ -1435,6 +1435,1140 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'เปิดลิงก์ไม่สำเร็จ'**
   String get aboutOpenFailed;
+
+  /// No description provided for @wsOpened.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดเอกสารแล้ว'**
+  String get wsOpened;
+
+  /// No description provided for @wsNotMnoteFile.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้'**
+  String get wsNotMnoteFile;
+
+  /// No description provided for @wsMnoteSaveFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถบันทึกโน้ตที่เปิดได้'**
+  String get wsMnoteSaveFailed;
+
+  /// No description provided for @wsSaved.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกเอกสารแล้ว'**
+  String get wsSaved;
+
+  /// No description provided for @phHeading.
+  ///
+  /// In th, this message translates to:
+  /// **'หัวข้อ'**
+  String get phHeading;
+
+  /// No description provided for @phItem.
+  ///
+  /// In th, this message translates to:
+  /// **'รายการ'**
+  String get phItem;
+
+  /// No description provided for @phData.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อมูล'**
+  String get phData;
+
+  /// No description provided for @phBold.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความตัวหนา'**
+  String get phBold;
+
+  /// No description provided for @phItalic.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความตัวเอียง'**
+  String get phItalic;
+
+  /// No description provided for @phLinkName.
+  ///
+  /// In th, this message translates to:
+  /// **'ชื่อลิงก์'**
+  String get phLinkName;
+
+  /// No description provided for @phStrike.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความขีดฆ่า'**
+  String get phStrike;
+
+  /// No description provided for @phTask.
+  ///
+  /// In th, this message translates to:
+  /// **'งานที่ต้องทำ'**
+  String get phTask;
+
+  /// No description provided for @phQuote.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความอ้างอิง'**
+  String get phQuote;
+
+  /// No description provided for @tableInsertTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'แทรกตาราง'**
+  String get tableInsertTitle;
+
+  /// No description provided for @tableColumns.
+  ///
+  /// In th, this message translates to:
+  /// **'จำนวนคอลัมน์'**
+  String get tableColumns;
+
+  /// No description provided for @tableRows.
+  ///
+  /// In th, this message translates to:
+  /// **'จำนวนแถวข้อมูล'**
+  String get tableRows;
+
+  /// No description provided for @insert.
+  ///
+  /// In th, this message translates to:
+  /// **'แทรก'**
+  String get insert;
+
+  /// No description provided for @openFileFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่'**
+  String get openFileFailed;
+
+  /// No description provided for @imageSaveFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้'**
+  String get imageSaveFailed;
+
+  /// No description provided for @trashQuestionTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้ายไปถังขยะ?'**
+  String get trashQuestionTitle;
+
+  /// No description provided for @trashFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถย้ายเอกสารไปยังถังขยะได้'**
+  String get trashFailed;
+
+  /// No description provided for @linkOpenFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถเปิดลิงก์นี้ได้'**
+  String get linkOpenFailed;
+
+  /// No description provided for @editDocName.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้ไขชื่อเอกสาร'**
+  String get editDocName;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In th, this message translates to:
+  /// **'ผู้ช่วย AI'**
+  String get aiAssistant;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In th, this message translates to:
+  /// **'คำสั่งเพิ่มเติม'**
+  String get moreActions;
+
+  /// No description provided for @newDocMenu.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสารใหม่'**
+  String get newDocMenu;
+
+  /// No description provided for @openOtherDoc.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดเอกสารอื่น'**
+  String get openOtherDoc;
+
+  /// No description provided for @openMnote.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดโน้ต Mnote (.mnote)'**
+  String get openMnote;
+
+  /// No description provided for @insertFromFile.
+  ///
+  /// In th, this message translates to:
+  /// **'แทรกเนื้อหาจากไฟล์'**
+  String get insertFromFile;
+
+  /// No description provided for @saveAs.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกเป็น'**
+  String get saveAs;
+
+  /// No description provided for @statusBusy.
+  ///
+  /// In th, this message translates to:
+  /// **'กำลังดำเนินการ…'**
+  String get statusBusy;
+
+  /// No description provided for @statusUnsaved.
+  ///
+  /// In th, this message translates to:
+  /// **'ยังไม่ได้บันทึก'**
+  String get statusUnsaved;
+
+  /// No description provided for @statusExample.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสารตัวอย่าง · พร้อมแก้ไข'**
+  String get statusExample;
+
+  /// No description provided for @statusSaved.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกแล้ว'**
+  String get statusSaved;
+
+  /// No description provided for @clearInkTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างหมึกทั้งหมด?'**
+  String get clearInkTitle;
+
+  /// No description provided for @clearInkBody.
+  ///
+  /// In th, this message translates to:
+  /// **'สามารถกดย้อนกลับได้หลังจากล้าง'**
+  String get clearInkBody;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างทั้งหมด'**
+  String get clearAll;
+
+  /// No description provided for @lineNumberOne.
+  ///
+  /// In th, this message translates to:
+  /// **'เลขบรรทัด 1'**
+  String get lineNumberOne;
+
+  /// No description provided for @wsMnoteOpened.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดโน้ต {name} แล้ว'**
+  String wsMnoteOpened(String name);
+
+  /// No description provided for @phHeadingN.
+  ///
+  /// In th, this message translates to:
+  /// **'หัวข้อ {n}'**
+  String phHeadingN(int n);
+
+  /// No description provided for @insertedFrom.
+  ///
+  /// In th, this message translates to:
+  /// **'แทรกเนื้อหาจาก {name} เรียบร้อยแล้ว'**
+  String insertedFrom(String name);
+
+  /// No description provided for @trashQuestionBody.
+  ///
+  /// In th, this message translates to:
+  /// **'คุณต้องการย้าย \"{name}\" ไปยังถังขยะหรือไม่?'**
+  String trashQuestionBody(String name);
+
+  /// No description provided for @statsLive.
+  ///
+  /// In th, this message translates to:
+  /// **'เขียนพร้อมแสดงผล · {lines} บรรทัด · {chars} ตัวอักษร'**
+  String statsLive(int lines, int chars);
+
+  /// No description provided for @statsPlain.
+  ///
+  /// In th, this message translates to:
+  /// **'{lines} บรรทัด · {chars} ตัวอักษร'**
+  String statsPlain(int lines, int chars);
+
+  /// No description provided for @lineNumbers.
+  ///
+  /// In th, this message translates to:
+  /// **'เลขบรรทัด 1 ถึง {count}'**
+  String lineNumbers(int count);
+
+  /// No description provided for @exportSaveDialogTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกไฟล์ส่งออก'**
+  String get exportSaveDialogTitle;
+
+  /// No description provided for @fmtTxt.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความล้วน (.txt)'**
+  String get fmtTxt;
+
+  /// No description provided for @fmtPng.
+  ///
+  /// In th, this message translates to:
+  /// **'รูปภาพ (.png)'**
+  String get fmtPng;
+
+  /// No description provided for @fmtMnote.
+  ///
+  /// In th, this message translates to:
+  /// **'โน้ต Mnote (.mnote)'**
+  String get fmtMnote;
+
+  /// No description provided for @fmtPdf.
+  ///
+  /// In th, this message translates to:
+  /// **'เอกสาร PDF (.pdf)'**
+  String get fmtPdf;
+
+  /// No description provided for @back.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้อนกลับ'**
+  String get back;
+
+  /// No description provided for @exportTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออกเอกสาร'**
+  String get exportTitle;
+
+  /// No description provided for @pdfSubtitle.
+  ///
+  /// In th, this message translates to:
+  /// **'รวมเนื้อหา ข้อความ และลายเส้นหมึกวาด'**
+  String get pdfSubtitle;
+
+  /// No description provided for @mnoteSubtitle.
+  ///
+  /// In th, this message translates to:
+  /// **'รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้'**
+  String get mnoteSubtitle;
+
+  /// No description provided for @mdSubtitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ข้อความ Markdown ต้นฉบับ'**
+  String get mdSubtitle;
+
+  /// No description provided for @txtSubtitle.
+  ///
+  /// In th, this message translates to:
+  /// **'เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก'**
+  String get txtSubtitle;
+
+  /// No description provided for @pngSubtitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง'**
+  String get pngSubtitle;
+
+  /// No description provided for @mnoteInfo.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ'**
+  String get mnoteInfo;
+
+  /// No description provided for @saveFile.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกไฟล์'**
+  String get saveFile;
+
+  /// No description provided for @shareFile.
+  ///
+  /// In th, this message translates to:
+  /// **'แชร์ไฟล์'**
+  String get shareFile;
+
+  /// No description provided for @includeInkLayer.
+  ///
+  /// In th, this message translates to:
+  /// **'รวมรอยหมึกปากกา (Layer หมึกวาด)'**
+  String get includeInkLayer;
+
+  /// No description provided for @inkOnPdf.
+  ///
+  /// In th, this message translates to:
+  /// **'เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF'**
+  String get inkOnPdf;
+
+  /// No description provided for @pdfTextOnly.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)'**
+  String get pdfTextOnly;
+
+  /// No description provided for @pageSize.
+  ///
+  /// In th, this message translates to:
+  /// **'ขนาดหน้าเอกสาร'**
+  String get pageSize;
+
+  /// No description provided for @pageContinuousDesc.
+  ///
+  /// In th, this message translates to:
+  /// **'แบบต่อเนื่อง (Continuous / หน้าเดียวยาว)'**
+  String get pageContinuousDesc;
+
+  /// No description provided for @pageA4.
+  ///
+  /// In th, this message translates to:
+  /// **'ขนาดมาตรฐาน A4'**
+  String get pageA4;
+
+  /// No description provided for @continuous.
+  ///
+  /// In th, this message translates to:
+  /// **'ต่อเนื่อง'**
+  String get continuous;
+
+  /// No description provided for @savePdf.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกไฟล์ PDF'**
+  String get savePdf;
+
+  /// No description provided for @sharePdf.
+  ///
+  /// In th, this message translates to:
+  /// **'แชร์ไฟล์ PDF'**
+  String get sharePdf;
+
+  /// No description provided for @includeInk.
+  ///
+  /// In th, this message translates to:
+  /// **'รวมรอยหมึกปากกา'**
+  String get includeInk;
+
+  /// No description provided for @snapshotWithInk.
+  ///
+  /// In th, this message translates to:
+  /// **'สแนปช็อตรวมลายเส้นหมึกวาดทั้งหมด'**
+  String get snapshotWithInk;
+
+  /// No description provided for @textOnlyDoc.
+  ///
+  /// In th, this message translates to:
+  /// **'เฉพาะข้อความเอกสาร'**
+  String get textOnlyDoc;
+
+  /// No description provided for @savePng.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกรูปภาพ (.png)'**
+  String get savePng;
+
+  /// No description provided for @shareImage.
+  ///
+  /// In th, this message translates to:
+  /// **'แชร์รูปภาพ'**
+  String get shareImage;
+
+  /// No description provided for @exportMdAll.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด'**
+  String get exportMdAll;
+
+  /// No description provided for @exportPlain.
+  ///
+  /// In th, this message translates to:
+  /// **'ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา'**
+  String get exportPlain;
+
+  /// No description provided for @needDocForImage.
+  ///
+  /// In th, this message translates to:
+  /// **'กรุณาเปิดหน้าเอกสารเพื่อจับภาพส่งออกเป็นรูปภาพความละเอียดสูง'**
+  String get needDocForImage;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่'**
+  String get exportFailed;
+
+  /// No description provided for @exportShareText.
+  ///
+  /// In th, this message translates to:
+  /// **'แชร์เอกสาร {name}'**
+  String exportShareText(String name);
+
+  /// No description provided for @exportAs.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออกเป็น {format}'**
+  String exportAs(String format);
+
+  /// No description provided for @exportDone.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งออกไฟล์ {name} สำเร็จ'**
+  String exportDone(String name);
+
+  /// No description provided for @tbBold.
+  ///
+  /// In th, this message translates to:
+  /// **'ตัวหนา'**
+  String get tbBold;
+
+  /// No description provided for @tbItalic.
+  ///
+  /// In th, this message translates to:
+  /// **'ตัวเอียง'**
+  String get tbItalic;
+
+  /// No description provided for @tbStrike.
+  ///
+  /// In th, this message translates to:
+  /// **'ขีดฆ่า'**
+  String get tbStrike;
+
+  /// No description provided for @tbBullets.
+  ///
+  /// In th, this message translates to:
+  /// **'รายการหัวข้อ'**
+  String get tbBullets;
+
+  /// No description provided for @tbNumbered.
+  ///
+  /// In th, this message translates to:
+  /// **'รายการตัวเลข'**
+  String get tbNumbered;
+
+  /// No description provided for @tbTasks.
+  ///
+  /// In th, this message translates to:
+  /// **'รายการงาน'**
+  String get tbTasks;
+
+  /// No description provided for @tbIndent.
+  ///
+  /// In th, this message translates to:
+  /// **'ทำเป็นรายการย่อย'**
+  String get tbIndent;
+
+  /// No description provided for @tbOutdent.
+  ///
+  /// In th, this message translates to:
+  /// **'กลับสู่รายการหลัก'**
+  String get tbOutdent;
+
+  /// No description provided for @tbQuote.
+  ///
+  /// In th, this message translates to:
+  /// **'อ้างอิง'**
+  String get tbQuote;
+
+  /// No description provided for @tbLineBreak.
+  ///
+  /// In th, this message translates to:
+  /// **'ขึ้นบรรทัด'**
+  String get tbLineBreak;
+
+  /// No description provided for @tbLineBreakTip.
+  ///
+  /// In th, this message translates to:
+  /// **'ขึ้นบรรทัดใหม่ด้วย <br>'**
+  String get tbLineBreakTip;
+
+  /// No description provided for @tbRule.
+  ///
+  /// In th, this message translates to:
+  /// **'เส้นคั่น'**
+  String get tbRule;
+
+  /// No description provided for @tbRuleTip.
+  ///
+  /// In th, this message translates to:
+  /// **'แทรกเส้นคั่นแนวนอนด้วย ---'**
+  String get tbRuleTip;
+
+  /// No description provided for @tbTable.
+  ///
+  /// In th, this message translates to:
+  /// **'ตาราง'**
+  String get tbTable;
+
+  /// No description provided for @tbCode.
+  ///
+  /// In th, this message translates to:
+  /// **'โค้ด'**
+  String get tbCode;
+
+  /// No description provided for @tbInlineCode.
+  ///
+  /// In th, this message translates to:
+  /// **'โค้ดในบรรทัด'**
+  String get tbInlineCode;
+
+  /// No description provided for @tbCodeBlock.
+  ///
+  /// In th, this message translates to:
+  /// **'บล็อกโค้ด'**
+  String get tbCodeBlock;
+
+  /// No description provided for @tbDiagram.
+  ///
+  /// In th, this message translates to:
+  /// **'ไดอะแกรม'**
+  String get tbDiagram;
+
+  /// No description provided for @tbImportMmd.
+  ///
+  /// In th, this message translates to:
+  /// **'นำเข้าจากไฟล์ .mmd…'**
+  String get tbImportMmd;
+
+  /// No description provided for @tbLink.
+  ///
+  /// In th, this message translates to:
+  /// **'ลิงก์'**
+  String get tbLink;
+
+  /// No description provided for @tbImage.
+  ///
+  /// In th, this message translates to:
+  /// **'รูปภาพ'**
+  String get tbImage;
+
+  /// No description provided for @tbMore.
+  ///
+  /// In th, this message translates to:
+  /// **'เครื่องมือเพิ่มเติม'**
+  String get tbMore;
+
+  /// No description provided for @inkUndo.
+  ///
+  /// In th, this message translates to:
+  /// **'ย้อนกลับหมึก'**
+  String get inkUndo;
+
+  /// No description provided for @inkRedo.
+  ///
+  /// In th, this message translates to:
+  /// **'ทำซ้ำหมึก'**
+  String get inkRedo;
+
+  /// No description provided for @inkGroupDraw.
+  ///
+  /// In th, this message translates to:
+  /// **'เครื่องมือวาด'**
+  String get inkGroupDraw;
+
+  /// No description provided for @inkPen.
+  ///
+  /// In th, this message translates to:
+  /// **'ปากกา'**
+  String get inkPen;
+
+  /// No description provided for @inkHighlighter.
+  ///
+  /// In th, this message translates to:
+  /// **'ปากกาไฮไลต์'**
+  String get inkHighlighter;
+
+  /// No description provided for @inkEraser.
+  ///
+  /// In th, this message translates to:
+  /// **'ยางลบทั้งเส้น'**
+  String get inkEraser;
+
+  /// No description provided for @inkGroupStroke.
+  ///
+  /// In th, this message translates to:
+  /// **'รูปแบบเส้น'**
+  String get inkGroupStroke;
+
+  /// No description provided for @inkChangeColor.
+  ///
+  /// In th, this message translates to:
+  /// **'เปลี่ยนสีที่เลือกอยู่'**
+  String get inkChangeColor;
+
+  /// No description provided for @inkGroupPage.
+  ///
+  /// In th, this message translates to:
+  /// **'การควบคุมหน้า'**
+  String get inkGroupPage;
+
+  /// No description provided for @inkFingerOn.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช้นิ้วเขียนอยู่'**
+  String get inkFingerOn;
+
+  /// No description provided for @inkPencilOnly.
+  ///
+  /// In th, this message translates to:
+  /// **'Apple Pencil เขียน · นิ้วเลื่อนหน้า'**
+  String get inkPencilOnly;
+
+  /// No description provided for @inkFitWidth.
+  ///
+  /// In th, this message translates to:
+  /// **'พอดีความกว้าง'**
+  String get inkFitWidth;
+
+  /// No description provided for @inkGroupManage.
+  ///
+  /// In th, this message translates to:
+  /// **'จัดการหมึก'**
+  String get inkGroupManage;
+
+  /// No description provided for @inkMore.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มเติม'**
+  String get inkMore;
+
+  /// No description provided for @inkClearAll.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างหมึกทั้งหมด'**
+  String get inkClearAll;
+
+  /// No description provided for @inkCustomColor.
+  ///
+  /// In th, this message translates to:
+  /// **'กำหนดสีเอง'**
+  String get inkCustomColor;
+
+  /// No description provided for @inkHue.
+  ///
+  /// In th, this message translates to:
+  /// **'สี'**
+  String get inkHue;
+
+  /// No description provided for @inkSaturation.
+  ///
+  /// In th, this message translates to:
+  /// **'ความเข้ม'**
+  String get inkSaturation;
+
+  /// No description provided for @inkBrightness.
+  ///
+  /// In th, this message translates to:
+  /// **'ความสว่าง'**
+  String get inkBrightness;
+
+  /// No description provided for @ok.
+  ///
+  /// In th, this message translates to:
+  /// **'ตกลง'**
+  String get ok;
+
+  /// No description provided for @inkCustomWidth.
+  ///
+  /// In th, this message translates to:
+  /// **'กำหนดขนาดเส้น'**
+  String get inkCustomWidth;
+
+  /// No description provided for @inkColorTip.
+  ///
+  /// In th, this message translates to:
+  /// **'แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้'**
+  String get inkColorTip;
+
+  /// No description provided for @guideTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'คู่มือการใช้ Mnote'**
+  String get guideTitle;
+
+  /// No description provided for @guideSkip.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้าม'**
+  String get guideSkip;
+
+  /// No description provided for @guidePrev.
+  ///
+  /// In th, this message translates to:
+  /// **'หน้าก่อนหน้า'**
+  String get guidePrev;
+
+  /// No description provided for @guideNext.
+  ///
+  /// In th, this message translates to:
+  /// **'หน้าถัดไป'**
+  String get guideNext;
+
+  /// No description provided for @guideStart.
+  ///
+  /// In th, this message translates to:
+  /// **'เข้าสู่ Mnote'**
+  String get guideStart;
+
+  /// No description provided for @guide1Title.
+  ///
+  /// In th, this message translates to:
+  /// **'เขียนและจัดรูปแบบ Markdown'**
+  String get guide1Title;
+
+  /// No description provided for @guide1Body.
+  ///
+  /// In th, this message translates to:
+  /// **'เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที'**
+  String get guide1Body;
+
+  /// No description provided for @guide2Title.
+  ///
+  /// In th, this message translates to:
+  /// **'วาดเขียน & จดโน้ตด้วยปากกา'**
+  String get guide2Title;
+
+  /// No description provided for @guide2Body.
+  ///
+  /// In th, this message translates to:
+  /// **'ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน'**
+  String get guide2Body;
+
+  /// No description provided for @guide3Title.
+  ///
+  /// In th, this message translates to:
+  /// **'สร้างไดอะแกรม Mermaid ทันใจ'**
+  String get guide3Title;
+
+  /// No description provided for @guide3Body.
+  ///
+  /// In th, this message translates to:
+  /// **'แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน'**
+  String get guide3Body;
+
+  /// No description provided for @inkWidthTip.
+  ///
+  /// In th, this message translates to:
+  /// **'ความหนา {width} · แตะซ้ำหรือกดค้างเพื่อแก้ไข'**
+  String inkWidthTip(String width);
+
+  /// No description provided for @guideStep.
+  ///
+  /// In th, this message translates to:
+  /// **'ขั้นตอน {step} / 03'**
+  String guideStep(String step);
+
+  /// No description provided for @redo.
+  ///
+  /// In th, this message translates to:
+  /// **'ทำซ้ำ'**
+  String get redo;
+
+  /// No description provided for @tplFlowLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ผังงาน (Flowchart)'**
+  String get tplFlowLabel;
+
+  /// No description provided for @tplFlowStart.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มต้น'**
+  String get tplFlowStart;
+
+  /// No description provided for @tplFlowStep.
+  ///
+  /// In th, this message translates to:
+  /// **'ขั้นตอน'**
+  String get tplFlowStep;
+
+  /// No description provided for @tplFlowCond.
+  ///
+  /// In th, this message translates to:
+  /// **'เงื่อนไข?'**
+  String get tplFlowCond;
+
+  /// No description provided for @tplYes.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช่'**
+  String get tplYes;
+
+  /// No description provided for @tplEnd.
+  ///
+  /// In th, this message translates to:
+  /// **'จบ'**
+  String get tplEnd;
+
+  /// No description provided for @tplNo.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่ใช่'**
+  String get tplNo;
+
+  /// No description provided for @tplSeqLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ลำดับการทำงาน (Sequence)'**
+  String get tplSeqLabel;
+
+  /// No description provided for @tplUser.
+  ///
+  /// In th, this message translates to:
+  /// **'ผู้ใช้'**
+  String get tplUser;
+
+  /// No description provided for @tplSystem.
+  ///
+  /// In th, this message translates to:
+  /// **'ระบบ'**
+  String get tplSystem;
+
+  /// No description provided for @tplRequest.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่งคำขอ'**
+  String get tplRequest;
+
+  /// No description provided for @tplReply.
+  ///
+  /// In th, this message translates to:
+  /// **'ตอบกลับ'**
+  String get tplReply;
+
+  /// No description provided for @tplClassLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'คลาส (Class)'**
+  String get tplClassLabel;
+
+  /// No description provided for @tplHas.
+  ///
+  /// In th, this message translates to:
+  /// **'มี'**
+  String get tplHas;
+
+  /// No description provided for @mmdOnlyMmd.
+  ///
+  /// In th, this message translates to:
+  /// **'รองรับเฉพาะไฟล์ .mmd หรือ .mermaid'**
+  String get mmdOnlyMmd;
+
+  /// No description provided for @mmdNotUtf8.
+  ///
+  /// In th, this message translates to:
+  /// **'อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8'**
+  String get mmdNotUtf8;
+
+  /// No description provided for @mmdEmpty.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม'**
+  String get mmdEmpty;
+
+  /// No description provided for @copyCode.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกโค้ด'**
+  String get copyCode;
+
+  /// No description provided for @viewCode.
+  ///
+  /// In th, this message translates to:
+  /// **'ดูโค้ด'**
+  String get viewCode;
+
+  /// No description provided for @codeCopied.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกแล้ว วางในโน้ตได้เลย'**
+  String get codeCopied;
+
+  /// No description provided for @diagramEmpty.
+  ///
+  /// In th, this message translates to:
+  /// **'ไดอะแกรมว่าง'**
+  String get diagramEmpty;
+
+  /// No description provided for @diagramUnsupported.
+  ///
+  /// In th, this message translates to:
+  /// **'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม'**
+  String get diagramUnsupported;
+
+  /// No description provided for @diagramFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'แสดงไดอะแกรมไม่ได้'**
+  String get diagramFailed;
+
+  /// No description provided for @diagramTimeout.
+  ///
+  /// In th, this message translates to:
+  /// **'หมดเวลาในการแสดงไดอะแกรม'**
+  String get diagramTimeout;
+
+  /// No description provided for @docNotUtf8.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ'**
+  String get docNotUtf8;
+
+  /// No description provided for @fileActionFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง'**
+  String get fileActionFailed;
+
+  /// No description provided for @inkSaveDialogTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'บันทึกหมึกแยกจาก Markdown'**
+  String get inkSaveDialogTitle;
+
+  /// No description provided for @mmdTooBig.
+  ///
+  /// In th, this message translates to:
+  /// **'ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)'**
+  String mmdTooBig(int kb);
+
+  /// No description provided for @docListFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถดึงรายการเอกสารได้: {error}'**
+  String docListFailed(String error);
+
+  /// No description provided for @aiCloseLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'ปิดผู้ช่วย AI'**
+  String get aiCloseLabel;
+
+  /// No description provided for @aiSuggest1.
+  ///
+  /// In th, this message translates to:
+  /// **'อธิบาย Markdown แบบเข้าใจง่าย'**
+  String get aiSuggest1;
+
+  /// No description provided for @aiSuggest2.
+  ///
+  /// In th, this message translates to:
+  /// **'เขียน flowchart ขั้นตอนการสมัครสมาชิก'**
+  String get aiSuggest2;
+
+  /// No description provided for @aiSuggest3.
+  ///
+  /// In th, this message translates to:
+  /// **'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน'**
+  String get aiSuggest3;
+
+  /// No description provided for @aiClearChat.
+  ///
+  /// In th, this message translates to:
+  /// **'ล้างบทสนทนา'**
+  String get aiClearChat;
+
+  /// No description provided for @aiPrivacyNote.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ'**
+  String get aiPrivacyNote;
+
+  /// No description provided for @aiHint.
+  ///
+  /// In th, this message translates to:
+  /// **'ถามอะไรก็ได้…'**
+  String get aiHint;
+
+  /// No description provided for @aiSend.
+  ///
+  /// In th, this message translates to:
+  /// **'ส่ง'**
+  String get aiSend;
+
+  /// No description provided for @aiStart.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มคุยกับผู้ช่วย AI'**
+  String get aiStart;
+
+  /// No description provided for @aiThinking.
+  ///
+  /// In th, this message translates to:
+  /// **'กำลังคิด…'**
+  String get aiThinking;
+
+  /// No description provided for @aiTabImage.
+  ///
+  /// In th, this message translates to:
+  /// **'ภาพ'**
+  String get aiTabImage;
+
+  /// No description provided for @aiCopied.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกแล้ว'**
+  String get aiCopied;
+
+  /// No description provided for @aiNoAnswer.
+  ///
+  /// In th, this message translates to:
+  /// **'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม'**
+  String get aiNoAnswer;
+
+  /// No description provided for @aiFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'AI ตอบไม่สำเร็จ กรุณาลองใหม่'**
+  String get aiFailed;
+
+  /// No description provided for @aiQuota.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้'**
+  String get aiQuota;
+
+  /// No description provided for @aiUnavailable.
+  ///
+  /// In th, this message translates to:
+  /// **'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง'**
+  String get aiUnavailable;
+
+  /// No description provided for @aiAppCheck.
+  ///
+  /// In th, this message translates to:
+  /// **'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้'**
+  String get aiAppCheck;
+
+  /// No description provided for @aiConnect.
+  ///
+  /// In th, this message translates to:
+  /// **'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'**
+  String get aiConnect;
+
+  /// No description provided for @aiTooLong.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความยาวเกินไป (สูงสุด {max} ตัวอักษร)'**
+  String aiTooLong(int max);
+
+  /// No description provided for @startWriting.
+  ///
+  /// In th, this message translates to:
+  /// **'เริ่มเขียน Markdown…'**
+  String get startWriting;
+
+  /// No description provided for @firebaseSetupError.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md'**
+  String get firebaseSetupError;
 }
 
 class _AppLocalizationsDelegate

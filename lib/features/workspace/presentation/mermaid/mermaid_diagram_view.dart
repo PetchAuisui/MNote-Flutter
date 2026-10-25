@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -100,7 +101,7 @@ class _MermaidDiagramViewState extends State<MermaidDiagramView> {
       if (mounted && _isLoading) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'หมดเวลาในการแสดงไดอะแกรม';
+          _errorMessage = context.l10n.diagramTimeout;
         });
       }
     });

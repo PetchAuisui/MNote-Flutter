@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 /// มุมมองแสดงสถานะไดอะแกรมว่างเปล่า
@@ -16,7 +17,7 @@ class MermaidDiagramEmptyView extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        'ไดอะแกรมว่าง',
+        context.l10n.diagramEmpty,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: Theme.of(context).colorScheme.outline,
         ),
@@ -51,7 +52,7 @@ class MermaidDiagramFallbackView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม',
+            context.l10n.diagramUnsupported,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -96,7 +97,7 @@ class MermaidDiagramErrorView extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'แสดงไดอะแกรมไม่ได้',
+                context.l10n.diagramFailed,
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: theme.colorScheme.error,
                   fontWeight: FontWeight.bold,

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/foundation.dart';
@@ -86,22 +87,13 @@ String describeAiError(Object error) => error is FirebaseException
 AiAssistantException aiErrorToException(Object error) {
   // QuotaExceeded เป็นลูกของ FirebaseAIException ต้องเช็กก่อน
   if (error is QuotaExceeded) {
-    return const AiAssistantException(
-      'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ '
-      'ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้',
-    );
+    return AiAssistantException(LanguagePreferences.current().aiQuota);
   }
   if (error is FirebaseAIException) {
-    return const AiAssistantException(
-      'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง',
-    );
+    return AiAssistantException(LanguagePreferences.current().aiUnavailable);
   }
   if (error is FirebaseException && error.plugin == 'firebase_app_check') {
-    return const AiAssistantException(
-      'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้',
-    );
+    return AiAssistantException(LanguagePreferences.current().aiAppCheck);
   }
-  return const AiAssistantException(
-    'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
-  );
+  return AiAssistantException(LanguagePreferences.current().aiConnect);
 }

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'editor_settings.dart';
@@ -266,9 +267,9 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
                 color: const Color(0xFF202124),
               ),
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              hintText: 'เริ่มเขียน Markdown…',
+              hintText: context.l10n.startWriting,
               isDense: true,
               contentPadding: EdgeInsets.symmetric(vertical: 4),
             ),
@@ -356,7 +357,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       children.add(
         TextButton(
           onPressed: () => _activate(0, 0),
-          child: const Text('เริ่มเขียน Markdown…'),
+          child: Text(context.l10n.startWriting),
         ),
       );
     }

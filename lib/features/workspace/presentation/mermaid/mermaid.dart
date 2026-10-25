@@ -8,7 +8,11 @@ export 'mermaid_block.dart' show isMermaidCodeClass, normalizeMermaidSource;
 export 'mermaid_diagram_view.dart' show MermaidDiagramView;
 export 'mermaid_element_builder.dart' show MermaidElementBuilder;
 export 'mermaid_templates.dart'
-    show MermaidTemplate, buildMermaidFencedBlock, mermaidTemplates;
+    show
+        MermaidTemplate,
+        buildMermaidFencedBlock,
+        mermaidTemplates,
+        mermaidTemplatesFor;
 export 'mermaid_file_import.dart'
     show
         MermaidImportFailure,

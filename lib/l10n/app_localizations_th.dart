@@ -750,4 +750,615 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get aboutOpenFailed => 'เปิดลิงก์ไม่สำเร็จ';
+
+  @override
+  String get wsOpened => 'เปิดเอกสารแล้ว';
+
+  @override
+  String get wsNotMnoteFile => 'ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้';
+
+  @override
+  String get wsMnoteSaveFailed => 'ไม่สามารถบันทึกโน้ตที่เปิดได้';
+
+  @override
+  String get wsSaved => 'บันทึกเอกสารแล้ว';
+
+  @override
+  String get phHeading => 'หัวข้อ';
+
+  @override
+  String get phItem => 'รายการ';
+
+  @override
+  String get phData => 'ข้อมูล';
+
+  @override
+  String get phBold => 'ข้อความตัวหนา';
+
+  @override
+  String get phItalic => 'ข้อความตัวเอียง';
+
+  @override
+  String get phLinkName => 'ชื่อลิงก์';
+
+  @override
+  String get phStrike => 'ข้อความขีดฆ่า';
+
+  @override
+  String get phTask => 'งานที่ต้องทำ';
+
+  @override
+  String get phQuote => 'ข้อความอ้างอิง';
+
+  @override
+  String get tableInsertTitle => 'แทรกตาราง';
+
+  @override
+  String get tableColumns => 'จำนวนคอลัมน์';
+
+  @override
+  String get tableRows => 'จำนวนแถวข้อมูล';
+
+  @override
+  String get insert => 'แทรก';
+
+  @override
+  String get openFileFailed => 'เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่';
+
+  @override
+  String get imageSaveFailed => 'ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้';
+
+  @override
+  String get trashQuestionTitle => 'ย้ายไปถังขยะ?';
+
+  @override
+  String get trashFailed => 'ไม่สามารถย้ายเอกสารไปยังถังขยะได้';
+
+  @override
+  String get linkOpenFailed => 'ไม่สามารถเปิดลิงก์นี้ได้';
+
+  @override
+  String get editDocName => 'แก้ไขชื่อเอกสาร';
+
+  @override
+  String get aiAssistant => 'ผู้ช่วย AI';
+
+  @override
+  String get moreActions => 'คำสั่งเพิ่มเติม';
+
+  @override
+  String get newDocMenu => 'เอกสารใหม่';
+
+  @override
+  String get openOtherDoc => 'เปิดเอกสารอื่น';
+
+  @override
+  String get openMnote => 'เปิดโน้ต Mnote (.mnote)';
+
+  @override
+  String get insertFromFile => 'แทรกเนื้อหาจากไฟล์';
+
+  @override
+  String get saveAs => 'บันทึกเป็น';
+
+  @override
+  String get statusBusy => 'กำลังดำเนินการ…';
+
+  @override
+  String get statusUnsaved => 'ยังไม่ได้บันทึก';
+
+  @override
+  String get statusExample => 'เอกสารตัวอย่าง · พร้อมแก้ไข';
+
+  @override
+  String get statusSaved => 'บันทึกแล้ว';
+
+  @override
+  String get clearInkTitle => 'ล้างหมึกทั้งหมด?';
+
+  @override
+  String get clearInkBody => 'สามารถกดย้อนกลับได้หลังจากล้าง';
+
+  @override
+  String get clearAll => 'ล้างทั้งหมด';
+
+  @override
+  String get lineNumberOne => 'เลขบรรทัด 1';
+
+  @override
+  String wsMnoteOpened(String name) {
+    return 'เปิดโน้ต $name แล้ว';
+  }
+
+  @override
+  String phHeadingN(int n) {
+    return 'หัวข้อ $n';
+  }
+
+  @override
+  String insertedFrom(String name) {
+    return 'แทรกเนื้อหาจาก $name เรียบร้อยแล้ว';
+  }
+
+  @override
+  String trashQuestionBody(String name) {
+    return 'คุณต้องการย้าย \"$name\" ไปยังถังขยะหรือไม่?';
+  }
+
+  @override
+  String statsLive(int lines, int chars) {
+    return 'เขียนพร้อมแสดงผล · $lines บรรทัด · $chars ตัวอักษร';
+  }
+
+  @override
+  String statsPlain(int lines, int chars) {
+    return '$lines บรรทัด · $chars ตัวอักษร';
+  }
+
+  @override
+  String lineNumbers(int count) {
+    return 'เลขบรรทัด 1 ถึง $count';
+  }
+
+  @override
+  String get exportSaveDialogTitle => 'บันทึกไฟล์ส่งออก';
+
+  @override
+  String get fmtTxt => 'ข้อความล้วน (.txt)';
+
+  @override
+  String get fmtPng => 'รูปภาพ (.png)';
+
+  @override
+  String get fmtMnote => 'โน้ต Mnote (.mnote)';
+
+  @override
+  String get fmtPdf => 'เอกสาร PDF (.pdf)';
+
+  @override
+  String get back => 'ย้อนกลับ';
+
+  @override
+  String get exportTitle => 'ส่งออกเอกสาร';
+
+  @override
+  String get pdfSubtitle => 'รวมเนื้อหา ข้อความ และลายเส้นหมึกวาด';
+
+  @override
+  String get mnoteSubtitle =>
+      'รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้';
+
+  @override
+  String get mdSubtitle => 'ไฟล์ข้อความ Markdown ต้นฉบับ';
+
+  @override
+  String get txtSubtitle => 'เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก';
+
+  @override
+  String get pngSubtitle => 'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง';
+
+  @override
+  String get mnoteInfo =>
+      'ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ';
+
+  @override
+  String get saveFile => 'บันทึกไฟล์';
+
+  @override
+  String get shareFile => 'แชร์ไฟล์';
+
+  @override
+  String get includeInkLayer => 'รวมรอยหมึกปากกา (Layer หมึกวาด)';
+
+  @override
+  String get inkOnPdf => 'เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF';
+
+  @override
+  String get pdfTextOnly => 'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)';
+
+  @override
+  String get pageSize => 'ขนาดหน้าเอกสาร';
+
+  @override
+  String get pageContinuousDesc => 'แบบต่อเนื่อง (Continuous / หน้าเดียวยาว)';
+
+  @override
+  String get pageA4 => 'ขนาดมาตรฐาน A4';
+
+  @override
+  String get continuous => 'ต่อเนื่อง';
+
+  @override
+  String get savePdf => 'บันทึกไฟล์ PDF';
+
+  @override
+  String get sharePdf => 'แชร์ไฟล์ PDF';
+
+  @override
+  String get includeInk => 'รวมรอยหมึกปากกา';
+
+  @override
+  String get snapshotWithInk => 'สแนปช็อตรวมลายเส้นหมึกวาดทั้งหมด';
+
+  @override
+  String get textOnlyDoc => 'เฉพาะข้อความเอกสาร';
+
+  @override
+  String get savePng => 'บันทึกรูปภาพ (.png)';
+
+  @override
+  String get shareImage => 'แชร์รูปภาพ';
+
+  @override
+  String get exportMdAll => 'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด';
+
+  @override
+  String get exportPlain =>
+      'ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา';
+
+  @override
+  String get needDocForImage =>
+      'กรุณาเปิดหน้าเอกสารเพื่อจับภาพส่งออกเป็นรูปภาพความละเอียดสูง';
+
+  @override
+  String get exportFailed => 'เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่';
+
+  @override
+  String exportShareText(String name) {
+    return 'แชร์เอกสาร $name';
+  }
+
+  @override
+  String exportAs(String format) {
+    return 'ส่งออกเป็น $format';
+  }
+
+  @override
+  String exportDone(String name) {
+    return 'ส่งออกไฟล์ $name สำเร็จ';
+  }
+
+  @override
+  String get tbBold => 'ตัวหนา';
+
+  @override
+  String get tbItalic => 'ตัวเอียง';
+
+  @override
+  String get tbStrike => 'ขีดฆ่า';
+
+  @override
+  String get tbBullets => 'รายการหัวข้อ';
+
+  @override
+  String get tbNumbered => 'รายการตัวเลข';
+
+  @override
+  String get tbTasks => 'รายการงาน';
+
+  @override
+  String get tbIndent => 'ทำเป็นรายการย่อย';
+
+  @override
+  String get tbOutdent => 'กลับสู่รายการหลัก';
+
+  @override
+  String get tbQuote => 'อ้างอิง';
+
+  @override
+  String get tbLineBreak => 'ขึ้นบรรทัด';
+
+  @override
+  String get tbLineBreakTip => 'ขึ้นบรรทัดใหม่ด้วย <br>';
+
+  @override
+  String get tbRule => 'เส้นคั่น';
+
+  @override
+  String get tbRuleTip => 'แทรกเส้นคั่นแนวนอนด้วย ---';
+
+  @override
+  String get tbTable => 'ตาราง';
+
+  @override
+  String get tbCode => 'โค้ด';
+
+  @override
+  String get tbInlineCode => 'โค้ดในบรรทัด';
+
+  @override
+  String get tbCodeBlock => 'บล็อกโค้ด';
+
+  @override
+  String get tbDiagram => 'ไดอะแกรม';
+
+  @override
+  String get tbImportMmd => 'นำเข้าจากไฟล์ .mmd…';
+
+  @override
+  String get tbLink => 'ลิงก์';
+
+  @override
+  String get tbImage => 'รูปภาพ';
+
+  @override
+  String get tbMore => 'เครื่องมือเพิ่มเติม';
+
+  @override
+  String get inkUndo => 'ย้อนกลับหมึก';
+
+  @override
+  String get inkRedo => 'ทำซ้ำหมึก';
+
+  @override
+  String get inkGroupDraw => 'เครื่องมือวาด';
+
+  @override
+  String get inkPen => 'ปากกา';
+
+  @override
+  String get inkHighlighter => 'ปากกาไฮไลต์';
+
+  @override
+  String get inkEraser => 'ยางลบทั้งเส้น';
+
+  @override
+  String get inkGroupStroke => 'รูปแบบเส้น';
+
+  @override
+  String get inkChangeColor => 'เปลี่ยนสีที่เลือกอยู่';
+
+  @override
+  String get inkGroupPage => 'การควบคุมหน้า';
+
+  @override
+  String get inkFingerOn => 'ใช้นิ้วเขียนอยู่';
+
+  @override
+  String get inkPencilOnly => 'Apple Pencil เขียน · นิ้วเลื่อนหน้า';
+
+  @override
+  String get inkFitWidth => 'พอดีความกว้าง';
+
+  @override
+  String get inkGroupManage => 'จัดการหมึก';
+
+  @override
+  String get inkMore => 'เพิ่มเติม';
+
+  @override
+  String get inkClearAll => 'ล้างหมึกทั้งหมด';
+
+  @override
+  String get inkCustomColor => 'กำหนดสีเอง';
+
+  @override
+  String get inkHue => 'สี';
+
+  @override
+  String get inkSaturation => 'ความเข้ม';
+
+  @override
+  String get inkBrightness => 'ความสว่าง';
+
+  @override
+  String get ok => 'ตกลง';
+
+  @override
+  String get inkCustomWidth => 'กำหนดขนาดเส้น';
+
+  @override
+  String get inkColorTip => 'แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้';
+
+  @override
+  String get guideTitle => 'คู่มือการใช้ Mnote';
+
+  @override
+  String get guideSkip => 'ข้าม';
+
+  @override
+  String get guidePrev => 'หน้าก่อนหน้า';
+
+  @override
+  String get guideNext => 'หน้าถัดไป';
+
+  @override
+  String get guideStart => 'เข้าสู่ Mnote';
+
+  @override
+  String get guide1Title => 'เขียนและจัดรูปแบบ Markdown';
+
+  @override
+  String get guide1Body =>
+      'เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที';
+
+  @override
+  String get guide2Title => 'วาดเขียน & จดโน้ตด้วยปากกา';
+
+  @override
+  String get guide2Body =>
+      'ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน';
+
+  @override
+  String get guide3Title => 'สร้างไดอะแกรม Mermaid ทันใจ';
+
+  @override
+  String get guide3Body =>
+      'แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน';
+
+  @override
+  String inkWidthTip(String width) {
+    return 'ความหนา $width · แตะซ้ำหรือกดค้างเพื่อแก้ไข';
+  }
+
+  @override
+  String guideStep(String step) {
+    return 'ขั้นตอน $step / 03';
+  }
+
+  @override
+  String get redo => 'ทำซ้ำ';
+
+  @override
+  String get tplFlowLabel => 'ผังงาน (Flowchart)';
+
+  @override
+  String get tplFlowStart => 'เริ่มต้น';
+
+  @override
+  String get tplFlowStep => 'ขั้นตอน';
+
+  @override
+  String get tplFlowCond => 'เงื่อนไข?';
+
+  @override
+  String get tplYes => 'ใช่';
+
+  @override
+  String get tplEnd => 'จบ';
+
+  @override
+  String get tplNo => 'ไม่ใช่';
+
+  @override
+  String get tplSeqLabel => 'ลำดับการทำงาน (Sequence)';
+
+  @override
+  String get tplUser => 'ผู้ใช้';
+
+  @override
+  String get tplSystem => 'ระบบ';
+
+  @override
+  String get tplRequest => 'ส่งคำขอ';
+
+  @override
+  String get tplReply => 'ตอบกลับ';
+
+  @override
+  String get tplClassLabel => 'คลาส (Class)';
+
+  @override
+  String get tplHas => 'มี';
+
+  @override
+  String get mmdOnlyMmd => 'รองรับเฉพาะไฟล์ .mmd หรือ .mermaid';
+
+  @override
+  String get mmdNotUtf8 => 'อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8';
+
+  @override
+  String get mmdEmpty => 'ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม';
+
+  @override
+  String get copyCode => 'คัดลอกโค้ด';
+
+  @override
+  String get viewCode => 'ดูโค้ด';
+
+  @override
+  String get codeCopied => 'คัดลอกแล้ว วางในโน้ตได้เลย';
+
+  @override
+  String get diagramEmpty => 'ไดอะแกรมว่าง';
+
+  @override
+  String get diagramUnsupported => 'แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม';
+
+  @override
+  String get diagramFailed => 'แสดงไดอะแกรมไม่ได้';
+
+  @override
+  String get diagramTimeout => 'หมดเวลาในการแสดงไดอะแกรม';
+
+  @override
+  String get docNotUtf8 => 'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ';
+
+  @override
+  String get fileActionFailed =>
+      'ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง';
+
+  @override
+  String get inkSaveDialogTitle => 'บันทึกหมึกแยกจาก Markdown';
+
+  @override
+  String mmdTooBig(int kb) {
+    return 'ไฟล์ใหญ่เกินไป (สูงสุด $kb KB)';
+  }
+
+  @override
+  String docListFailed(String error) {
+    return 'ไม่สามารถดึงรายการเอกสารได้: $error';
+  }
+
+  @override
+  String get aiCloseLabel => 'ปิดผู้ช่วย AI';
+
+  @override
+  String get aiSuggest1 => 'อธิบาย Markdown แบบเข้าใจง่าย';
+
+  @override
+  String get aiSuggest2 => 'เขียน flowchart ขั้นตอนการสมัครสมาชิก';
+
+  @override
+  String get aiSuggest3 => 'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน';
+
+  @override
+  String get aiClearChat => 'ล้างบทสนทนา';
+
+  @override
+  String get aiPrivacyNote =>
+      'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ';
+
+  @override
+  String get aiHint => 'ถามอะไรก็ได้…';
+
+  @override
+  String get aiSend => 'ส่ง';
+
+  @override
+  String get aiStart => 'เริ่มคุยกับผู้ช่วย AI';
+
+  @override
+  String get aiThinking => 'กำลังคิด…';
+
+  @override
+  String get aiTabImage => 'ภาพ';
+
+  @override
+  String get aiCopied => 'คัดลอกแล้ว';
+
+  @override
+  String get aiNoAnswer => 'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
+
+  @override
+  String get aiFailed => 'AI ตอบไม่สำเร็จ กรุณาลองใหม่';
+
+  @override
+  String get aiQuota =>
+      'ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้';
+
+  @override
+  String get aiUnavailable =>
+      'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง';
+
+  @override
+  String get aiAppCheck =>
+      'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้';
+
+  @override
+  String get aiConnect =>
+      'เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+
+  @override
+  String aiTooLong(int max) {
+    return 'ข้อความยาวเกินไป (สูงสุด $max ตัวอักษร)';
+  }
+
+  @override
+  String get startWriting => 'เริ่มเขียน Markdown…';
+
+  @override
+  String get firebaseSetupError =>
+      'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md';
 }

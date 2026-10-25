@@ -78,15 +78,14 @@ class FirebaseSetupErrorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Center(
           child: Padding(
-            padding: EdgeInsets.all(32),
+            padding: const EdgeInsets.all(32),
             child: Text(
-              'ไม่สามารถเชื่อมต่อ Firebase ได้\n'
-              'กรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md',
+              LanguagePreferences.current().firebaseSetupError,
               textAlign: TextAlign.center,
             ),
           ),

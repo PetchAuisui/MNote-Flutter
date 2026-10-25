@@ -1,3 +1,5 @@
+import 'package:mnote/l10n/language_preferences.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -75,7 +77,7 @@ Future<Uri?> defaultExportSaver({
   required String extension,
 }) async {
   return FilePicker.saveFile(
-    dialogTitle: 'บันทึกไฟล์ส่งออก',
+    dialogTitle: LanguagePreferences.current().exportSaveDialogTitle,
     fileName: fileName,
     bytes: bytes,
     type: FileType.custom,
@@ -94,7 +96,7 @@ Future<void> defaultExportSharer({
   await SharePlus.instance.share(
     ShareParams(
       files: [XFile(tempFile.path, mimeType: mimeType)],
-      text: 'แชร์เอกสาร $fileName',
+      text: LanguagePreferences.current().exportShareText(fileName),
     ),
   );
 }
@@ -237,11 +239,11 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
       case ExportFormat.markdown:
         return 'Markdown (.md)';
       case ExportFormat.plainText:
-        return 'ข้อความล้วน (.txt)';
+        return context.l10n.fmtTxt;
       case ExportFormat.image:
-        return 'รูปภาพ (.png)';
+        return context.l10n.fmtPng;
       case ExportFormat.mnote:
-        return 'โน้ต Mnote (.mnote)';
+        return context.l10n.fmtMnote;
     }
   }
 
@@ -287,7 +289,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                     IconButton(
                       key: const Key('export-back-button'),
                       icon: const Icon(Icons.arrow_back_rounded),
-                      tooltip: 'ย้อนกลับ',
+                      tooltip: context.l10n.back,
                       onPressed: () => setState(() => _selectedFormat = null),
                     ),
                   Expanded(
@@ -296,8 +298,10 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                       children: [
                         Text(
                           _selectedFormat == null
-                              ? 'ส่งออกเอกสาร'
-                              : 'ส่งออกเป็น ${_getFormatTitle(_selectedFormat!)}',
+                              ? context.l10n.exportTitle
+                              : context.l10n.exportAs(
+                                  _getFormatTitle(_selectedFormat!),
+                                ),
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 19,
@@ -381,8 +385,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.picture_as_pdf_rounded,
           iconColor: const Color(0xFFE53935),
           iconBgColor: const Color(0xFFFFEBEE),
-          title: 'เอกสาร PDF (.pdf)',
-          subtitle: 'รวมเนื้อหา ข้อความ และลายเส้นหมึกวาด',
+          title: context.l10n.fmtPdf,
+          subtitle: context.l10n.pdfSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.pdf),
         ),
         _ExportOptionTile(
@@ -390,9 +394,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.draw_rounded,
           iconColor: const Color(0xFF7B4BA0),
           iconBgColor: const Color(0xFFF3E5F5),
-          title: 'โน้ต Mnote (.mnote)',
-          subtitle:
-              'รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้',
+          title: context.l10n.fmtMnote,
+          subtitle: context.l10n.mnoteSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.mnote),
         ),
         _ExportOptionTile(
@@ -401,7 +404,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           iconColor: const Color(0xFF1E88E5),
           iconBgColor: const Color(0xFFE3F2FD),
           title: 'Markdown (.md)',
-          subtitle: 'ไฟล์ข้อความ Markdown ต้นฉบับ',
+          subtitle: context.l10n.mdSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.markdown),
         ),
         _ExportOptionTile(
@@ -409,8 +412,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.text_snippet_rounded,
           iconColor: const Color(0xFFFB8C00),
           iconBgColor: const Color(0xFFFFF3E0),
-          title: 'ข้อความล้วน (.txt)',
-          subtitle: 'เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก',
+          title: context.l10n.fmtTxt,
+          subtitle: context.l10n.txtSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.plainText),
         ),
         _ExportOptionTile(
@@ -418,8 +421,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.image_rounded,
           iconColor: const Color(0xFF43A047),
           iconBgColor: const Color(0xFFE8F5E9),
-          title: 'รูปภาพ (.png)',
-          subtitle: 'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง',
+          title: context.l10n.fmtPng,
+          subtitle: context.l10n.pngSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.image),
         ),
         const SizedBox(height: 16),
@@ -436,12 +439,14 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก '
-            'เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ',
+            context.l10n.mnoteInfo,
             style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
-          _buildActionButtons(saveLabel: 'บันทึกไฟล์', shareLabel: 'แชร์ไฟล์'),
+          _buildActionButtons(
+            saveLabel: context.l10n.saveFile,
+            shareLabel: context.l10n.shareFile,
+          ),
           const SizedBox(height: 12),
         ],
       ),
@@ -492,8 +497,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                     horizontal: 16,
                     vertical: 4,
                   ),
-                  title: const Text(
-                    'รวมรอยหมึกปากกา (Layer หมึกวาด)',
+                  title: Text(
+                    context.l10n.includeInkLayer,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14.5,
@@ -501,8 +506,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                   ),
                   subtitle: Text(
                     _includeInk
-                        ? 'เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF'
-                        : 'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)',
+                        ? context.l10n.inkOnPdf
+                        : context.l10n.pdfTextOnly,
                     style: TextStyle(
                       fontSize: 12,
                       color: colorScheme.onSurfaceVariant,
@@ -523,8 +528,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                     horizontal: 16,
                     vertical: 6,
                   ),
-                  title: const Text(
-                    'ขนาดหน้าเอกสาร',
+                  title: Text(
+                    context.l10n.pageSize,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14.5,
@@ -532,8 +537,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                   ),
                   subtitle: Text(
                     _isContinuous
-                        ? 'แบบต่อเนื่อง (Continuous / หน้าเดียวยาว)'
-                        : 'ขนาดมาตรฐาน A4',
+                        ? context.l10n.pageContinuousDesc
+                        : context.l10n.pageA4,
                     style: TextStyle(
                       fontSize: 12,
                       color: colorScheme.onSurfaceVariant,
@@ -547,9 +552,12 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                   ),
                   trailing: SegmentedButton<bool>(
                     key: const Key('export-pdf-page-format'),
-                    segments: const [
+                    segments: [
                       ButtonSegment(value: false, label: Text('A4')),
-                      ButtonSegment(value: true, label: Text('ต่อเนื่อง')),
+                      ButtonSegment(
+                        value: true,
+                        label: Text(context.l10n.continuous),
+                      ),
                     ],
                     selected: {_isContinuous},
                     onSelectionChanged: (set) {
@@ -562,8 +570,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           ),
           const SizedBox(height: 20),
           _buildActionButtons(
-            saveLabel: 'บันทึกไฟล์ PDF',
-            shareLabel: 'แชร์ไฟล์ PDF',
+            saveLabel: context.l10n.savePdf,
+            shareLabel: context.l10n.sharePdf,
           ),
           const SizedBox(height: 12),
         ],
@@ -597,14 +605,14 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 horizontal: 16,
                 vertical: 4,
               ),
-              title: const Text(
-                'รวมรอยหมึกปากกา',
+              title: Text(
+                context.l10n.includeInk,
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
               ),
               subtitle: Text(
                 _includeInk
-                    ? 'สแนปช็อตรวมลายเส้นหมึกวาดทั้งหมด'
-                    : 'เฉพาะข้อความเอกสาร',
+                    ? context.l10n.snapshotWithInk
+                    : context.l10n.textOnlyDoc,
                 style: TextStyle(
                   fontSize: 12,
                   color: colorScheme.onSurfaceVariant,
@@ -620,8 +628,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           ),
           const SizedBox(height: 20),
           _buildActionButtons(
-            saveLabel: 'บันทึกรูปภาพ (.png)',
-            shareLabel: 'แชร์รูปภาพ',
+            saveLabel: context.l10n.savePng,
+            shareLabel: context.l10n.shareImage,
           ),
           const SizedBox(height: 12),
         ],
@@ -681,7 +689,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isMarkdown ? 'Markdown (.md)' : 'ข้อความล้วน (.txt)',
+                          isMarkdown ? 'Markdown (.md)' : context.l10n.fmtTxt,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14.5,
@@ -690,8 +698,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                         const SizedBox(height: 2),
                         Text(
                           isMarkdown
-                              ? 'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด'
-                              : 'ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา',
+                              ? context.l10n.exportMdAll
+                              : context.l10n.exportPlain,
                           style: TextStyle(
                             fontSize: 12,
                             color: colorScheme.onSurfaceVariant,
@@ -705,7 +713,10 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildActionButtons(saveLabel: 'บันทึกไฟล์', shareLabel: 'แชร์ไฟล์'),
+          _buildActionButtons(
+            saveLabel: context.l10n.saveFile,
+            shareLabel: context.l10n.shareFile,
+          ),
           const SizedBox(height: 12),
         ],
       ),
@@ -763,6 +774,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     final baseName = widget.document.displayName;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
 
     Uint8List bytes;
     String ext;
@@ -802,13 +814,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
               ? await captureSurfaceImage(widget.surfaceKey!)
               : null;
           if (imageBytes == null || imageBytes.isEmpty) {
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'กรุณาเปิดหน้าเอกสารเพื่อจับภาพส่งออกเป็นรูปภาพความละเอียดสูง',
-                ),
-              ),
-            );
+            messenger.showSnackBar(SnackBar(content: Text(l.needDocForImage)));
             setState(() => _isProcessing = false);
             return;
           }
@@ -851,7 +857,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         );
         if (result != null) {
           messenger.showSnackBar(
-            SnackBar(content: Text('ส่งออกไฟล์ $fileName สำเร็จ')),
+            SnackBar(content: Text(l.exportDone(fileName))),
           );
         }
       }
@@ -859,11 +865,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
       if (mounted) {
         setState(() => _isProcessing = false);
       }
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่'),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.exportFailed)));
     }
   }
 }

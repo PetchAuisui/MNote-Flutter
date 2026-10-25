@@ -1,3 +1,6 @@
+import 'package:mnote/l10n/app_localizations.dart';
+import 'package:mnote/l10n/app_localizations_th.dart';
+
 /// โครงไดอะแกรมสำเร็จรูปสำหรับปุ่มบน toolbar
 /// [source] คือโค้ด mermaid ที่ยังไม่มีรั้วครอบ
 final class MermaidTemplate {
@@ -15,28 +18,31 @@ final class MermaidTemplate {
 /// รายการ template ที่แสดงในเมนู
 /// ใช้รูปแบบเขียนดั้งเดิมเพื่อให้วาดได้กับ mermaid ทุกเวอร์ชัน
 /// และใช้ชื่อตัวระบุภาษาอังกฤษเพราะไดอะแกรมบางชนิดไม่รองรับภาษาไทยในชื่อ
-const List<MermaidTemplate> mermaidTemplates = [
+/// ข้อความในแผนภาพเปลี่ยนตามภาษาที่ใช้
+List<MermaidTemplate> mermaidTemplatesFor(AppLocalizations l) => [
   MermaidTemplate(
     id: 'flowchart',
-    label: 'ผังงาน (Flowchart)',
-    source: '''flowchart TD
-  start([เริ่มต้น]) --> step[ขั้นตอน]
-  step --> check{เงื่อนไข?}
-  check -->|ใช่| finish([จบ])
-  check -->|ไม่ใช่| step''',
+    label: l.tplFlowLabel,
+    source:
+        '''flowchart TD
+  start([${l.tplFlowStart}]) --> step[${l.tplFlowStep}]
+  step --> check{${l.tplFlowCond}}
+  check -->|${l.tplYes}| finish([${l.tplEnd}])
+  check -->|${l.tplNo}| step''',
   ),
   MermaidTemplate(
     id: 'sequence',
-    label: 'ลำดับการทำงาน (Sequence)',
-    source: '''sequenceDiagram
-  participant U as ผู้ใช้
-  participant S as ระบบ
-  U->>S: ส่งคำขอ
-  S-->>U: ตอบกลับ''',
+    label: l.tplSeqLabel,
+    source:
+        '''sequenceDiagram
+  participant U as ${l.tplUser}
+  participant S as ${l.tplSystem}
+  U->>S: ${l.tplRequest}
+  S-->>U: ${l.tplReply}''',
   ),
   MermaidTemplate(
     id: 'class',
-    label: 'คลาส (Class)',
+    label: l.tplClassLabel,
     source: '''classDiagram
   class Folder {
     +String name
@@ -45,9 +51,14 @@ const List<MermaidTemplate> mermaidTemplates = [
     +String title
     +save()
   }
-  Folder "1" --> "*" Note : มี''',
+  Folder "1" --> "*" Note : ${l.tplHas}''',
   ),
 ];
+
+/// รายการ template ภาษาไทย (ค่าเริ่มต้น)
+final List<MermaidTemplate> mermaidTemplates = mermaidTemplatesFor(
+  AppLocalizationsTh(),
+);
 
 /// ครอบโค้ดด้วยรั้ว mermaid โดยใช้รั้วยาวกว่า backtick ที่ยาวที่สุดในโค้ด
 /// เพื่อไม่ให้บล็อกปิดก่อนเวลา

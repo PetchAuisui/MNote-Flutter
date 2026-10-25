@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -79,7 +80,7 @@ class AssistantCodeCard extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  language ?? 'โค้ด',
+                  language ?? context.l10n.tbCode,
                   key: const Key('assistant-code-language'),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -155,15 +156,13 @@ class _AssistantMermaidCardState extends State<AssistantMermaidCard> {
               children: [
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  segments: const [
+                  style: ButtonStyle(visualDensity: VisualDensity.compact),
+                  segments: [
                     ButtonSegment(
                       value: false,
                       icon: Icon(Icons.image_outlined, size: 18),
                       label: Text(
-                        'ภาพ',
+                        context.l10n.aiTabImage,
                         key: Key('assistant-mermaid-show-diagram'),
                       ),
                     ),
@@ -171,7 +170,7 @@ class _AssistantMermaidCardState extends State<AssistantMermaidCard> {
                       value: true,
                       icon: Icon(Icons.code_rounded, size: 18),
                       label: Text(
-                        'โค้ด',
+                        context.l10n.tbCode,
                         key: Key('assistant-mermaid-show-code'),
                       ),
                     ),
@@ -248,7 +247,7 @@ class _CopyCodeButtonState extends State<_CopyCodeButton> {
   Widget build(BuildContext context) {
     return IconButton(
       key: widget.buttonKey,
-      tooltip: _copied ? 'คัดลอกแล้ว' : 'คัดลอกโค้ด',
+      tooltip: _copied ? context.l10n.aiCopied : context.l10n.copyCode,
       icon: Icon(
         _copied ? Icons.check_rounded : Icons.content_copy_rounded,
         size: 20,

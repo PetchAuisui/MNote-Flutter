@@ -112,6 +112,7 @@ void main() {
           name: 'โฟลเดอร์ทดสอบ',
           updatedAt: DateTime(2026, 1, 1),
           isStarred: true,
+          colorValue: 0xFF1E88E5,
         ),
       ],
       documents: [
@@ -135,6 +136,7 @@ void main() {
     expect(loaded?.folders.length, 1);
     expect(loaded?.folders.first.name, 'โฟลเดอร์ทดสอบ');
     expect(loaded?.folders.first.isStarred, isTrue);
+    expect(loaded?.folders.first.colorValue, 0xFF1E88E5);
     expect(loaded?.documents.length, 1);
     expect(loaded?.documents.first.name, 'test.md');
     expect(loaded?.documents.first.uri, Uri.file('/tmp/test.md'));
@@ -154,6 +156,101 @@ void main() {
       final result = await repo.save(doc);
 
       expect(result, isNull);
+    },
+  );
+
+  test('stale container paths are repaired and duplicates merged', () async {
+    final oldUri = Uri.file('/old-container/Documents/a.md');
+    final newUri = Uri.file('/new-container/Documents/a.md');
+    storage.relocations[oldUri] = newUri;
+    await repository.saveMetadata(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: oldUri.toString(),
+            name: 'a.md',
+            content: 'old',
+            updatedAt: DateTime(2026, 1, 1),
+            uri: oldUri,
+          ),
+          DocumentItem(
+            id: newUri.toString(),
+            name: 'a.md',
+            content: 'new',
+            updatedAt: DateTime(2026, 2, 1),
+            uri: newUri,
+          ),
+        ],
+      ),
+    );
+
+    final loaded = await repository.loadMetadata();
+
+    expect(loaded!.documents, hasLength(1));
+    expect(loaded.documents.single.uri, newUri);
+    expect(loaded.documents.single.content, 'new');
+    expect((await repository.loadMetadata())!.documents, hasLength(1));
+  });
+
+  test('a stale path alone is moved to the current location', () async {
+    final oldUri = Uri.file('/old-container/Documents/a.md');
+    final newUri = Uri.file('/new-container/Documents/a.md');
+    storage.relocations[oldUri] = newUri;
+    await repository.saveMetadata(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: oldUri.toString(),
+            name: 'a.md',
+            content: 'x',
+            updatedAt: DateTime(2026, 1, 1),
+            uri: oldUri,
+          ),
+        ],
+      ),
+    );
+
+    final doc = (await repository.loadMetadata())!.documents.single;
+
+    expect(doc.uri, newUri);
+    expect(doc.id, newUri.toString());
+  });
+
+  test(
+    'a file-less cloud placeholder is dropped once its file exists',
+    () async {
+      final uri = Uri.file('/docs/Me.md');
+      DocumentItem item(String id, Uri? uri) => DocumentItem(
+        id: id,
+        name: 'Me.md',
+        content: 'x',
+        updatedAt: DateTime(2026, 1, 1),
+        uri: uri,
+      );
+      await repository.saveMetadata(
+        LibraryMetadata(
+          documents: [
+            item('cloud_Me.md', null),
+            item(uri.toString(), uri),
+            DocumentItem(
+              id: 'welcome_initial_doc',
+              name: 'Welcome.md',
+              content: 'w',
+              updatedAt: DateTime(2026, 1, 1),
+            ),
+            DocumentItem(
+              id: 'cloud_Only.md',
+              name: 'Only.md',
+              content: 'o',
+              updatedAt: DateTime(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+
+      final ids = (await repository.loadMetadata())!.documents.map((d) => d.id);
+
+      expect(ids, [uri.toString(), 'welcome_initial_doc', 'cloud_Only.md']);
     },
   );
 }

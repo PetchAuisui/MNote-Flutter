@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:mnote/core/theme/brand_palette.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
@@ -61,7 +62,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _error = AuthValidators.messageFor(e);
+        _error = AuthValidators.messageFor(context.l10n, e);
       });
     }
   }
@@ -90,7 +91,7 @@ class _RegisterPageState extends State<RegisterPage> {
         // Cancelling the Google flow is not an error worth showing.
         _error = e.code == AuthErrorCode.cancelled
             ? null
-            : AuthValidators.messageFor(e);
+            : AuthValidators.messageFor(context.l10n, e);
       });
     }
   }
@@ -127,7 +128,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'สมัครสมาชิก',
+                      context.l10n.register,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 30,
@@ -138,41 +139,46 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 28),
                     AuthTextField(
                       controller: _name,
-                      label: 'ชื่อที่แสดง',
+                      label: context.l10n.displayNameLabel,
                       icon: Icons.person_outline,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.name],
-                      validator: AuthValidators.displayName,
+                      validator: (v) =>
+                          AuthValidators.displayName(context.l10n, v),
                     ),
                     const SizedBox(height: 16),
                     AuthTextField(
                       controller: _email,
-                      label: 'อีเมล',
+                      label: context.l10n.email,
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
-                      validator: AuthValidators.email,
+                      validator: (v) => AuthValidators.email(context.l10n, v),
                     ),
                     const SizedBox(height: 16),
                     AuthTextField(
                       controller: _password,
-                      label: 'รหัสผ่าน',
+                      label: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscure: true,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.newPassword],
-                      validator: AuthValidators.password,
+                      validator: (v) =>
+                          AuthValidators.password(context.l10n, v),
                     ),
                     const SizedBox(height: 16),
                     AuthTextField(
                       controller: _confirm,
-                      label: 'ยืนยันรหัสผ่าน',
+                      label: context.l10n.confirmPassword,
                       icon: Icons.lock_outline,
                       obscure: true,
                       textInputAction: TextInputAction.done,
-                      validator: (v) =>
-                          AuthValidators.confirmPassword(v, _password.text),
+                      validator: (v) => AuthValidators.confirmPassword(
+                        context.l10n,
+                        v,
+                        _password.text,
+                      ),
                       onSubmitted: (_) => _submit(),
                     ),
                     const SizedBox(height: 20),
@@ -186,18 +192,18 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(height: 12),
                     ],
                     AuthPrimaryButton(
-                      label: 'สมัครสมาชิก',
+                      label: context.l10n.register,
                       isLoading: _isLoading,
                       onPressed: _submit,
                     ),
                     const SizedBox(height: 20),
-                    const Row(
+                    Row(
                       children: [
                         Expanded(child: Divider(color: Color(0xFFB8CCDD))),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'หรือ',
+                            context.l10n.orDivider,
                             style: TextStyle(color: Color(0xFF5A6C80)),
                           ),
                         ),
@@ -206,14 +212,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 20),
                     GoogleSignInButton(
-                      label: 'สมัครด้วย Google',
+                      label: context.l10n.registerWithGoogle,
                       onPressed: _signInWithGoogle,
                       isLoading: _isLoading,
                     ),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: _isLoading ? null : _openLogin,
-                      child: const Text('มีบัญชีอยู่แล้ว? เข้าสู่ระบบ'),
+                      child: Text(context.l10n.haveAccountLogin),
                     ),
                   ],
                 ),

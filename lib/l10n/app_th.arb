@@ -1,0 +1,781 @@
+{
+  "@@locale": "th",
+  "cancel": "ยกเลิก",
+  "save": "บันทึก",
+  "close": "ปิด",
+  "done": "เสร็จสิ้น",
+  "reset": "คืนค่าเริ่มต้น",
+  "followDevice": "ตามเครื่อง",
+  "settingsTitle": "การตั้งค่า",
+  "accentTitle": "สีของแอป (Accent)",
+  "accentName": "สี{color}",
+  "@accentName": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "accentBlue": "ฟ้า",
+  "accentPurple": "ม่วง",
+  "accentGreen": "เขียว",
+  "accentRed": "แดง",
+  "accentYellow": "เหลือง",
+  "accentPink": "ชมพู",
+  "accentOrange": "ส้ม",
+  "themeTitle": "โหมดการแสดงผล (Theme)",
+  "themeSystem": "ตามเครื่อง",
+  "themeLight": "สว่าง",
+  "themeDark": "มืด",
+  "themeHintSystem": "ค่าเริ่มต้น: ปรับมืด/สว่างอัตโนมัติตามโหมดของเครื่อง",
+  "themeHintDark": "เปิดใช้งานโหมดมืด",
+  "themeHintLight": "เปิดใช้งานโหมดสว่าง",
+  "languageTitle": "ภาษา (Language)",
+  "languageSystem": "ตามภาษาเครื่อง",
+  "languageThai": "ไทย",
+  "languageEnglish": "English",
+  "languageHint": "ถ้าเครื่องใช้ภาษาที่แอปยังไม่รองรับ จะแสดงเป็นภาษาไทย",
+  "accountTitle": "บัญชี (Account)",
+  "noName": "ไม่ระบุชื่อ",
+  "signOut": "ออกจากระบบ",
+  "displayNameLabel": "ชื่อที่แสดง",
+  "editName": "แก้ไขชื่อ",
+  "memberSince": "สมาชิกตั้งแต่ {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "changePasswordByEmail": "เปลี่ยนรหัสผ่านทางอีเมล",
+  "deleteAccount": "ลบบัญชี",
+  "providerGoogle": "เข้าสู่ระบบด้วย Google",
+  "providerEmail": "เข้าสู่ระบบด้วยอีเมล",
+  "providerMnote": "บัญชี Mnote",
+  "nameSaved": "บันทึกชื่อแล้ว",
+  "resetLinkSentTo": "ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ {email} แล้ว",
+  "@resetLinkSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAccountBody": "บัญชี {email} และไฟล์ทั้งหมดบน cloud จะถูกลบถาวร ไฟล์ในเครื่องนี้จะถูกลบด้วย และกู้คืนไม่ได้",
+  "@deleteAccountBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteEnterPassword": "กรอกรหัสผ่านเพื่อยืนยัน",
+  "deleteGoogleReauth": "ระบบจะให้ยืนยันตัวตนด้วย Google อีกครั้ง",
+  "deleteForever": "ลบบัญชีถาวร",
+  "syncTitle": "ซิงก์กับบัญชี (Cloud sync)",
+  "syncFiles": "ซิงก์ไฟล์ขึ้นบัญชี",
+  "syncFilesOffHint": "ปิดแล้วเก็บในเครื่องนี้เท่านั้น",
+  "syncInk": "ซิงก์หมึกปากกา",
+  "syncWifiOnly": "ซิงก์เฉพาะ Wi-Fi",
+  "syncWifiOnlyHint": "ไม่ใช้เน็ตมือถือในการซิงก์",
+  "syncFailed": "ซิงก์ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
+  "syncNotYet": "ยังไม่ได้ซิงก์ในรอบนี้",
+  "syncJustNow": "เมื่อสักครู่",
+  "syncMinutesAgo": "{n} นาทีที่แล้ว",
+  "@syncMinutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncHoursAgo": "{n} ชั่วโมงที่แล้ว",
+  "@syncHoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncDaysAgo": "{n} วันที่แล้ว",
+  "@syncDaysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLast": "ซิงก์ล่าสุด: {ago}",
+  "@syncLast": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "syncOff": "ปิดการซิงก์อยู่",
+  "syncNow": "ซิงก์ตอนนี้",
+  "editorTitle": "ตัวแก้ไข (Editor)",
+  "editorOpenIn": "เปิดโน้ตด้วยโหมด",
+  "tabWrite": "เขียน",
+  "tabMarkdown": "Markdown",
+  "editorFont": "ฟอนต์ของข้อความ",
+  "fontApp": "ตามแอป",
+  "editorFontSize": "ขนาดตัวอักษร",
+  "editorLineHeight": "ระยะบรรทัด",
+  "editorSample": "ตัวอย่างข้อความ The quick brown fox",
+  "editorNote": "มีผลกับแท็บเขียนและ Markdown โน้ตที่วาดหมึกไว้แล้วจะคงขนาดเดิม เพื่อให้หมึกตรงกับตัวอักษรเสมอ",
+  "inkTitle": "ปากกา (Ink)",
+  "inkFinger": "วาดด้วยนิ้วได้",
+  "inkFingerHint": "ปิดไว้: วาดได้เฉพาะปากกา/Apple Pencil นิ้วใช้เลื่อนหน้า",
+  "login": "เข้าสู่ระบบ",
+  "register": "สมัครสมาชิก",
+  "registerNew": "สมัครสมาชิกใหม่",
+  "email": "อีเมล",
+  "password": "รหัสผ่าน",
+  "confirmPassword": "ยืนยันรหัสผ่าน",
+  "forgotPassword": "ลืมรหัสผ่าน?",
+  "noAccountRegister": "ยังไม่มีบัญชี? สมัครสมาชิก",
+  "haveAccountLogin": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ",
+  "registerWithGoogle": "สมัครด้วย Google",
+  "orDivider": "หรือ",
+  "enterEmailFirst": "กรอกอีเมลก่อนเพื่อรีเซ็ตรหัสผ่าน",
+  "resetLinkSent": "ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว",
+  "loginSuccess": "ล็อกอินสำเร็จ",
+  "showPassword": "แสดงรหัสผ่าน",
+  "hidePassword": "ซ่อนรหัสผ่าน",
+  "enterPassword": "กรุณากรอกรหัสผ่าน",
+  "enterEmail": "กรุณากรอกอีเมล",
+  "invalidEmail": "รูปแบบอีเมลไม่ถูกต้อง",
+  "passwordTooShort": "รหัสผ่านต้องมีอย่างน้อย {min} ตัวอักษร",
+  "@passwordTooShort": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "enterName": "กรุณากรอกชื่อ",
+  "enterConfirmPassword": "กรุณายืนยันรหัสผ่าน",
+  "passwordMismatch": "รหัสผ่านไม่ตรงกัน",
+  "errWrongCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "errUserDisabled": "บัญชีนี้ถูกระงับการใช้งาน",
+  "errEmailInUse": "อีเมลนี้ถูกใช้งานแล้ว",
+  "errWeakPassword": "รหัสผ่านง่ายเกินไป",
+  "errTooManyRequests": "ลองใหม่หลายครั้งเกินไป กรุณารอสักครู่",
+  "errNetwork": "เชื่อมต่ออินเทอร์เน็ตไม่ได้",
+  "errCancelled": "ยกเลิกการเข้าสู่ระบบ",
+  "errGoogleConfig": "เข้าสู่ระบบด้วย Google ไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง",
+  "errUnknown": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+  "noteImported": "ดึงไฟล์ \"{name}\" เข้ามาแล้ว",
+  "@noteImported": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noteImportFailed": "เกิดข้อผิดพลาดในการดึงไฟล์: {error}",
+  "@noteImportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultDocName": "เอกสาร_{n}",
+  "@defaultDocName": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTextName": "ข้อความ_{n}",
+  "@defaultTextName": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "newMarkdownTitle": "สร้างไฟล์ Markdown ใหม่",
+  "newTextTitle": "สร้างไฟล์ข้อความ (.txt) ใหม่",
+  "fileNameLabel": "ชื่อไฟล์",
+  "createFile": "สร้างไฟล์",
+  "newMarkdownBody": "# {name}\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...",
+  "@newMarkdownBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "newTextBody": "บันทึกข้อความ {name}\n\n",
+  "@newTextBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "newFolderTitle": "สร้างโฟลเดอร์ใหม่",
+  "folderNameLabel": "ชื่อโฟลเดอร์",
+  "folderNameHint": "เช่น วิชาสัมมนา, บันทึกย่อ",
+  "create": "สร้าง",
+  "folderCreated": "สร้างโฟลเดอร์ \"{name}\" เรียบร้อยแล้ว",
+  "@folderCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trashedDocTitle": "เอกสารอยู่ในถังขยะ",
+  "trashedDocBody": "คุณต้องการกู้คืน \"{name}\" เพื่อเปิดดูหรือไม่?",
+  "@trashedDocBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreAndOpen": "กู้คืนและเปิด",
+  "unsyncedTitle": "มีไฟล์ที่ไม่ได้ซิงก์",
+  "unsyncedBody": "ไฟล์ {count} ไฟล์ไม่ได้อยู่บน cloud การออกจากระบบจะลบไฟล์เหล่านี้ออกจากเครื่องนี้ถาวร",
+  "@unsyncedBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signOutAndDelete": "ออกจากระบบและลบ",
+  "syncModeAuto": "ซิงก์",
+  "syncModeNever": "ไม่ซิงก์",
+  "syncModeTitle": "การซิงก์ \"{name}\"",
+  "@syncModeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "syncModeAutoDesc": "อัปโหลดขึ้นบัญชีและรับการแก้ไขจากเครื่องอื่น",
+  "syncModeNeverDesc": "ไม่อัปโหลดและไม่รับการแก้ไขจากเครื่องอื่น",
+  "undo": "เลิกทำ",
+  "folderTrashed": "ย้ายโฟลเดอร์ \"{name}\" ไปยังถังขยะแล้ว",
+  "@folderTrashed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderRestored": "กู้คืนโฟลเดอร์ \"{name}\" เรียบร้อยแล้ว",
+  "@folderRestored": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFolderTitle": "ลบโฟลเดอร์ถาวร?",
+  "deleteFolderBody": "คุณต้องการลบโฟลเดอร์ \"{name}\" และเอกสารภายในทั้งหมดอย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้",
+  "@deleteFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteForeverBtn": "ลบถาวร",
+  "folderDeleted": "ลบโฟลเดอร์ \"{name}\" ถาวรแล้ว",
+  "@folderDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "renameDocTitle": "เปลี่ยนชื่อเอกสาร",
+  "docNameLabel": "ชื่อเอกสาร",
+  "docNameHint": "กรอกชื่อเอกสารใหม่",
+  "docNameRequired": "กรุณาระบุชื่อเอกสาร",
+  "docRenamed": "เปลี่ยนชื่อเอกสารเป็น \"{name}\" แล้ว",
+  "@docRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noFoldersToMove": "ยังไม่มีโฟลเดอร์สำหรับย้ายเอกสาร กรุณาสร้างโฟลเดอร์ก่อน",
+  "moveDocTitle": "ย้ายเอกสารไปที่...",
+  "moveToHome": "หน้าหลัก (นอกสุด)",
+  "homeName": "หน้าหลัก",
+  "folderFallback": "โฟลเดอร์",
+  "docMoved": "ย้าย \"{name}\" ไปที่ \"{dest}\" แล้ว",
+  "@docMoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "dest": {
+        "type": "String"
+      }
+    }
+  },
+  "renameFolderTitle": "เปลี่ยนชื่อโฟลเดอร์",
+  "folderNameNewHint": "กรอกชื่อโฟลเดอร์ใหม่",
+  "folderNameRequired": "กรุณาระบุชื่อโฟลเดอร์",
+  "folderRenamed": "เปลี่ยนชื่อโฟลเดอร์เป็น \"{name}\" แล้ว",
+  "@folderRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docTrashed": "ย้ายไฟล์ \"{name}\" ไปยังถังขยะแล้ว",
+  "@docTrashed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docRestored": "กู้คืนไฟล์ \"{name}\" เรียบร้อยแล้ว",
+  "@docRestored": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteDocTitle": "ลบไฟล์ถาวร?",
+  "deleteDocBody": "คุณต้องการลบ \"{name}\" อย่างถาวรหรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้",
+  "@deleteDocBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "docDeleted": "ลบไฟล์ \"{name}\" ถาวรแล้ว",
+  "@docDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyTrashTitle": "ล้างถังขยะ?",
+  "emptyTrashBody": "รายการทั้งหมดในถังขยะจะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้",
+  "emptyTrash": "ล้างถังขยะ",
+  "trashEmptied": "ล้างถังขยะเรียบร้อยแล้ว",
+  "trashedFolderTitle": "โฟลเดอร์อยู่ในถังขยะ",
+  "trashedFolderBody": "คุณต้องการกู้คืนโฟลเดอร์ \"{name}\" หรือไม่?",
+  "@trashedFolderBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "restore": "กู้คืน",
+  "searchHint": "ค้นหาไฟล์หรือโฟลเดอร์...",
+  "trash": "ถังขยะ",
+  "closeSearch": "ปิดการค้นหา",
+  "search": "ค้นหา",
+  "settingsTooltip": "การตั้งค่า (Settings)",
+  "filterAll": "ทั้งหมด",
+  "filterStarred": "ติดดาว (รายการโปรด)",
+  "filterStarredShort": "ติดดาว",
+  "filterFolders": "โฟลเดอร์",
+  "filterAllDocs": "เอกสารทั้งหมด",
+  "openFolder": "เปิดโฟลเดอร์",
+  "renameFolder": "เปลี่ยนชื่อโฟลเดอร์",
+  "folderColor": "เปลี่ยนสีโฟลเดอร์",
+  "unfavorite": "ยกเลิกรายการโปรด",
+  "favorite": "เพิ่มในรายการโปรด",
+  "moveToTrash": "ย้ายไปถังขยะ",
+  "openDoc": "เปิดเอกสาร",
+  "renameDoc": "เปลี่ยนชื่อไฟล์",
+  "moveToFolder": "ย้ายไปยังโฟลเดอร์",
+  "export": "ส่งออก",
+  "syncSettingsMenu": "ตั้งค่าการซิงก์",
+  "listView": "มุมมองรายการ",
+  "gridView": "มุมมองตาราง",
+  "sortBy": "จัดเรียงตาม",
+  "sortNewest": "แก้ไขล่าสุด",
+  "sortOldest": "เก่าที่สุด",
+  "sortNameAsc": "ชื่อ (ก - ฮ)",
+  "sortNameDesc": "ชื่อ (ฮ - ก)",
+  "createOrImport": "สร้างใหม่หรือดึงไฟล์",
+  "newMarkdownItem": "เอกสาร Markdown ใหม่ (.md)",
+  "newTextItem": "ไฟล์ข้อความใหม่ (.txt)",
+  "newFolderItem": "โฟลเดอร์ใหม่",
+  "importItem": "ดึงไฟล์จากเครื่อง (Import)",
+  "newButton": "ใหม่",
+  "fileCount": "{count} ไฟล์",
+  "@fileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "folderOptions": "ตัวเลือกโฟลเดอร์",
+  "docOptions": "ตัวเลือกเอกสาร",
+  "emptyDoc": "เอกสารว่าง",
+  "textTypeName": "ข้อความ TXT",
+  "trashEmptyTitle": "ถังขยะว่างเปล่า",
+  "trashEmptyBody": "ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ",
+  "emptyLibraryTitle": "ยังไม่มีไฟล์หรือโฟลเดอร์",
+  "emptyLibraryBody": "กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์",
+  "folderColorTitle": "เปลี่ยนสีโฟลเดอร์",
+  "defaultColor": "สีเริ่มต้น",
+  "folderColorLabel": "สีโฟลเดอร์",
+  "badgeSynced": "Sync แล้ว",
+  "badgePending": "รอ sync",
+  "badgeOffSyncOff": "ปิดการซิงก์อยู่",
+  "badgeOffNever": "ไฟล์นี้ตั้งเป็นไม่ซิงก์",
+  "badgeOffTooBig": "ไฟล์ใหญ่เกิน 900 KB จึงไม่ซิงก์",
+  "aboutTitle": "เกี่ยวกับ (About)",
+  "aboutVersion": "เวอร์ชัน {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutLicenses": "ใบอนุญาตโอเพนซอร์ส",
+  "aboutFeedback": "แจ้งปัญหาหรือส่งความคิดเห็น",
+  "aboutFeedbackHint": "เปิดหน้า GitHub Issues ในเบราว์เซอร์",
+  "aboutSource": "ซอร์สโค้ดบน GitHub",
+  "aboutOpenFailed": "เปิดลิงก์ไม่สำเร็จ",
+  "wsOpened": "เปิดเอกสารแล้ว",
+  "wsNotMnoteFile": "ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้",
+  "wsMnoteSaveFailed": "ไม่สามารถบันทึกโน้ตที่เปิดได้",
+  "wsSaved": "บันทึกเอกสารแล้ว",
+  "phHeading": "หัวข้อ",
+  "phItem": "รายการ",
+  "phData": "ข้อมูล",
+  "phBold": "ข้อความตัวหนา",
+  "phItalic": "ข้อความตัวเอียง",
+  "phLinkName": "ชื่อลิงก์",
+  "phStrike": "ข้อความขีดฆ่า",
+  "phTask": "งานที่ต้องทำ",
+  "phQuote": "ข้อความอ้างอิง",
+  "tableInsertTitle": "แทรกตาราง",
+  "tableColumns": "จำนวนคอลัมน์",
+  "tableRows": "จำนวนแถวข้อมูล",
+  "insert": "แทรก",
+  "openFileFailed": "เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่",
+  "imageSaveFailed": "ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้",
+  "trashQuestionTitle": "ย้ายไปถังขยะ?",
+  "trashFailed": "ไม่สามารถย้ายเอกสารไปยังถังขยะได้",
+  "linkOpenFailed": "ไม่สามารถเปิดลิงก์นี้ได้",
+  "editDocName": "แก้ไขชื่อเอกสาร",
+  "aiAssistant": "ผู้ช่วย AI",
+  "moreActions": "คำสั่งเพิ่มเติม",
+  "newDocMenu": "เอกสารใหม่",
+  "openOtherDoc": "เปิดเอกสารอื่น",
+  "openMnote": "เปิดโน้ต Mnote (.mnote)",
+  "insertFromFile": "แทรกเนื้อหาจากไฟล์",
+  "saveAs": "บันทึกเป็น",
+  "statusBusy": "กำลังดำเนินการ…",
+  "statusUnsaved": "ยังไม่ได้บันทึก",
+  "statusExample": "เอกสารตัวอย่าง · พร้อมแก้ไข",
+  "statusSaved": "บันทึกแล้ว",
+  "clearInkTitle": "ล้างหมึกทั้งหมด?",
+  "clearInkBody": "สามารถกดย้อนกลับได้หลังจากล้าง",
+  "clearAll": "ล้างทั้งหมด",
+  "lineNumberOne": "เลขบรรทัด 1",
+  "wsMnoteOpened": "เปิดโน้ต {name} แล้ว",
+  "@wsMnoteOpened": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "phHeadingN": "หัวข้อ {n}",
+  "@phHeadingN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "insertedFrom": "แทรกเนื้อหาจาก {name} เรียบร้อยแล้ว",
+  "@insertedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "trashQuestionBody": "คุณต้องการย้าย \"{name}\" ไปยังถังขยะหรือไม่?",
+  "@trashQuestionBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "statsLive": "เขียนพร้อมแสดงผล · {lines} บรรทัด · {chars} ตัวอักษร",
+  "@statsLive": {
+    "placeholders": {
+      "lines": {
+        "type": "int"
+      },
+      "chars": {
+        "type": "int"
+      }
+    }
+  },
+  "statsPlain": "{lines} บรรทัด · {chars} ตัวอักษร",
+  "@statsPlain": {
+    "placeholders": {
+      "lines": {
+        "type": "int"
+      },
+      "chars": {
+        "type": "int"
+      }
+    }
+  },
+  "lineNumbers": "เลขบรรทัด 1 ถึง {count}",
+  "@lineNumbers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportSaveDialogTitle": "บันทึกไฟล์ส่งออก",
+  "fmtTxt": "ข้อความล้วน (.txt)",
+  "fmtPng": "รูปภาพ (.png)",
+  "fmtMnote": "โน้ต Mnote (.mnote)",
+  "fmtPdf": "เอกสาร PDF (.pdf)",
+  "back": "ย้อนกลับ",
+  "exportTitle": "ส่งออกเอกสาร",
+  "pdfSubtitle": "รวมเนื้อหา ข้อความ และลายเส้นหมึกวาด",
+  "mnoteSubtitle": "รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้",
+  "mdSubtitle": "ไฟล์ข้อความ Markdown ต้นฉบับ",
+  "txtSubtitle": "เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก",
+  "pngSubtitle": "ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง",
+  "mnoteInfo": "ไฟล์นี้เก็บทั้งข้อความ Markdown และลายเส้นหมึก เมื่อเปิดบนเครื่องอื่นด้วย Mnote จะได้โน้ตครบเหมือนต้นฉบับ",
+  "saveFile": "บันทึกไฟล์",
+  "shareFile": "แชร์ไฟล์",
+  "includeInkLayer": "รวมรอยหมึกปากกา (Layer หมึกวาด)",
+  "inkOnPdf": "เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF",
+  "pdfTextOnly": "ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)",
+  "pageSize": "ขนาดหน้าเอกสาร",
+  "pageContinuousDesc": "แบบต่อเนื่อง (Continuous / หน้าเดียวยาว)",
+  "pageA4": "ขนาดมาตรฐาน A4",
+  "continuous": "ต่อเนื่อง",
+  "savePdf": "บันทึกไฟล์ PDF",
+  "sharePdf": "แชร์ไฟล์ PDF",
+  "includeInk": "รวมรอยหมึกปากกา",
+  "snapshotWithInk": "สแนปช็อตรวมลายเส้นหมึกวาดทั้งหมด",
+  "textOnlyDoc": "เฉพาะข้อความเอกสาร",
+  "savePng": "บันทึกรูปภาพ (.png)",
+  "shareImage": "แชร์รูปภาพ",
+  "exportMdAll": "ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด",
+  "exportPlain": "ตัดเครื่องหมาย Markdown ออก เหลือเฉพาะข้อความธรรมดา",
+  "needDocForImage": "กรุณาเปิดหน้าเอกสารเพื่อจับภาพส่งออกเป็นรูปภาพความละเอียดสูง",
+  "exportFailed": "เกิดข้อผิดพลาดในการส่งออกไฟล์ กรุณาลองใหม่",
+  "exportShareText": "แชร์เอกสาร {name}",
+  "@exportShareText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "exportAs": "ส่งออกเป็น {format}",
+  "@exportAs": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "exportDone": "ส่งออกไฟล์ {name} สำเร็จ",
+  "@exportDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tbBold": "ตัวหนา",
+  "tbItalic": "ตัวเอียง",
+  "tbStrike": "ขีดฆ่า",
+  "tbBullets": "รายการหัวข้อ",
+  "tbNumbered": "รายการตัวเลข",
+  "tbTasks": "รายการงาน",
+  "tbIndent": "ทำเป็นรายการย่อย",
+  "tbOutdent": "กลับสู่รายการหลัก",
+  "tbQuote": "อ้างอิง",
+  "tbLineBreak": "ขึ้นบรรทัด",
+  "tbLineBreakTip": "ขึ้นบรรทัดใหม่ด้วย <br>",
+  "tbRule": "เส้นคั่น",
+  "tbRuleTip": "แทรกเส้นคั่นแนวนอนด้วย ---",
+  "tbTable": "ตาราง",
+  "tbCode": "โค้ด",
+  "tbInlineCode": "โค้ดในบรรทัด",
+  "tbCodeBlock": "บล็อกโค้ด",
+  "tbDiagram": "ไดอะแกรม",
+  "tbImportMmd": "นำเข้าจากไฟล์ .mmd…",
+  "tbLink": "ลิงก์",
+  "tbImage": "รูปภาพ",
+  "tbMore": "เครื่องมือเพิ่มเติม",
+  "inkUndo": "ย้อนกลับหมึก",
+  "inkRedo": "ทำซ้ำหมึก",
+  "inkGroupDraw": "เครื่องมือวาด",
+  "inkPen": "ปากกา",
+  "inkHighlighter": "ปากกาไฮไลต์",
+  "inkEraser": "ยางลบทั้งเส้น",
+  "inkGroupStroke": "รูปแบบเส้น",
+  "inkChangeColor": "เปลี่ยนสีที่เลือกอยู่",
+  "inkGroupPage": "การควบคุมหน้า",
+  "inkFingerOn": "ใช้นิ้วเขียนอยู่",
+  "inkPencilOnly": "Apple Pencil เขียน · นิ้วเลื่อนหน้า",
+  "inkFitWidth": "พอดีความกว้าง",
+  "inkGroupManage": "จัดการหมึก",
+  "inkMore": "เพิ่มเติม",
+  "inkClearAll": "ล้างหมึกทั้งหมด",
+  "inkCustomColor": "กำหนดสีเอง",
+  "inkHue": "สี",
+  "inkSaturation": "ความเข้ม",
+  "inkBrightness": "ความสว่าง",
+  "ok": "ตกลง",
+  "inkCustomWidth": "กำหนดขนาดเส้น",
+  "inkColorTip": "แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้",
+  "guideTitle": "คู่มือการใช้ Mnote",
+  "guideSkip": "ข้าม",
+  "guidePrev": "หน้าก่อนหน้า",
+  "guideNext": "หน้าถัดไป",
+  "guideStart": "เข้าสู่ Mnote",
+  "guide1Title": "เขียนและจัดรูปแบบ Markdown",
+  "guide1Body": "เขียนโน้ตได้อย่างรวดเร็วด้วยไวยากรณ์ Markdown รองรับหัวข้อ Heading, To-do list, ตัวหนา, ตัวเอียง พร้อมแถบเครื่องมือด่วนที่ช่วยจัดรูปแบบได้ทันที",
+  "guide2Title": "วาดเขียน & จดโน้ตด้วยปากกา",
+  "guide2Body": "ขีดเขียน ไฮไลต์ข้อความ และวาดภาพประกอบลงบนเอกสารได้อย่างอิสระ ด้วยระบบหมึกดิจิทัล (Ink & Stylus) ที่ตอบสนองแม่นยำ พร้อมยางลบและตัวเลือกสีครบครัน",
+  "guide3Title": "สร้างไดอะแกรม Mermaid ทันใจ",
+  "guide3Body": "แปลงข้อความโค้ด Mermaid เป็นแผนผัง Flowchart และไดอะแกรมสวยงาม พร้อมระบบพรีวิวเอกสารแบบเรียลไทม์ควบคู่กับการเขียน",
+  "inkWidthTip": "ความหนา {width} · แตะซ้ำหรือกดค้างเพื่อแก้ไข",
+  "@inkWidthTip": {
+    "placeholders": {
+      "width": {
+        "type": "String"
+      }
+    }
+  },
+  "guideStep": "ขั้นตอน {step} / 03",
+  "@guideStep": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "redo": "ทำซ้ำ",
+  "tplFlowLabel": "ผังงาน (Flowchart)",
+  "tplFlowStart": "เริ่มต้น",
+  "tplFlowStep": "ขั้นตอน",
+  "tplFlowCond": "เงื่อนไข?",
+  "tplYes": "ใช่",
+  "tplEnd": "จบ",
+  "tplNo": "ไม่ใช่",
+  "tplSeqLabel": "ลำดับการทำงาน (Sequence)",
+  "tplUser": "ผู้ใช้",
+  "tplSystem": "ระบบ",
+  "tplRequest": "ส่งคำขอ",
+  "tplReply": "ตอบกลับ",
+  "tplClassLabel": "คลาส (Class)",
+  "tplHas": "มี",
+  "mmdOnlyMmd": "รองรับเฉพาะไฟล์ .mmd หรือ .mermaid",
+  "mmdNotUtf8": "อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8",
+  "mmdEmpty": "ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม",
+  "copyCode": "คัดลอกโค้ด",
+  "viewCode": "ดูโค้ด",
+  "codeCopied": "คัดลอกแล้ว วางในโน้ตได้เลย",
+  "diagramEmpty": "ไดอะแกรมว่าง",
+  "diagramUnsupported": "แพลตฟอร์มนี้ยังไม่รองรับการแสดงไดอะแกรม",
+  "diagramFailed": "แสดงไดอะแกรมไม่ได้",
+  "diagramTimeout": "หมดเวลาในการแสดงไดอะแกรม",
+  "docNotUtf8": "ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ",
+  "fileActionFailed": "ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง",
+  "inkSaveDialogTitle": "บันทึกหมึกแยกจาก Markdown",
+  "mmdTooBig": "ไฟล์ใหญ่เกินไป (สูงสุด {kb} KB)",
+  "@mmdTooBig": {
+    "placeholders": {
+      "kb": {
+        "type": "int"
+      }
+    }
+  },
+  "docListFailed": "ไม่สามารถดึงรายการเอกสารได้: {error}",
+  "@docListFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiCloseLabel": "ปิดผู้ช่วย AI",
+  "aiSuggest1": "อธิบาย Markdown แบบเข้าใจง่าย",
+  "aiSuggest2": "เขียน flowchart ขั้นตอนการสมัครสมาชิก",
+  "aiSuggest3": "ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน",
+  "aiClearChat": "ล้างบทสนทนา",
+  "aiPrivacyNote": "ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ",
+  "aiHint": "ถามอะไรก็ได้…",
+  "aiSend": "ส่ง",
+  "aiStart": "เริ่มคุยกับผู้ช่วย AI",
+  "aiThinking": "กำลังคิด…",
+  "aiTabImage": "ภาพ",
+  "aiCopied": "คัดลอกแล้ว",
+  "aiNoAnswer": "AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม",
+  "aiFailed": "AI ตอบไม่สำเร็จ กรุณาลองใหม่",
+  "aiQuota": "ใช้ผู้ช่วย AI ครบโควตาแล้ว รอสักครู่แล้วลองใหม่ ถ้ายังไม่ได้ แปลว่าโควตาของวันนี้หมด ใช้ได้อีกครั้งพรุ่งนี้",
+  "aiUnavailable": "ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง",
+  "aiAppCheck": "ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้",
+  "aiConnect": "เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
+  "aiTooLong": "ข้อความยาวเกินไป (สูงสุด {max} ตัวอักษร)",
+  "@aiTooLong": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "aiPrivacyWithNote": "ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini",
+  "aiNoteChip": "AI จะอ่าน: {title}",
+  "@aiNoteChip": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoteRemove": "ไม่แนบโน้ต",
+  "aiNoteAttach": "แนบโน้ตนี้",
+  "aiNoteLabel": "แนบ: {title}",
+  "@aiNoteLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoteTooLong": "โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ",
+  "aiDisclaimer": "Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ",
+  "startWriting": "เริ่มเขียน Markdown…",
+  "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md"
+}

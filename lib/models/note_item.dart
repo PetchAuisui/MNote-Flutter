@@ -1,3 +1,19 @@
+import 'package:mnote/features/workspace/domain/markdown_document.dart';
+
+/// Per-document cloud sync choice, kept on this device only.
+enum SyncMode {
+  /// Follow the global settings.
+  auto,
+
+  /// Never upload this document or apply cloud changes to it.
+  never;
+
+  static SyncMode fromName(String? name) => SyncMode.values.firstWhere(
+    (m) => m.name == name,
+    orElse: () => SyncMode.auto,
+  );
+}
+
 class LibraryMetadata {
   final List<FolderItem> folders;
   final List<DocumentItem> documents;
@@ -23,6 +39,7 @@ class LibraryMetadata {
             'updatedAt': f.updatedAt.toIso8601String(),
             'isStarred': f.isStarred,
             'isTrash': f.isTrash,
+            'color': f.colorValue,
           },
         )
         .toList(),
@@ -37,6 +54,7 @@ class LibraryMetadata {
             'isStarred': d.isStarred,
             'uri': d.uri?.toString(),
             'isTrash': d.isTrash,
+            'syncMode': d.syncMode.name,
           },
         )
         .toList(),
@@ -56,6 +74,7 @@ class LibraryMetadata {
               DateTime.now(),
           isStarred: map['isStarred'] as bool? ?? false,
           isTrash: map['isTrash'] as bool? ?? false,
+          colorValue: map['color'] as int?,
         );
       }).toList(),
       documents: docsList.map((d) {
@@ -71,6 +90,7 @@ class LibraryMetadata {
           isStarred: map['isStarred'] as bool? ?? false,
           uri: map['uri'] != null ? Uri.tryParse(map['uri'] as String) : null,
           isTrash: map['isTrash'] as bool? ?? false,
+          syncMode: SyncMode.fromName(map['syncMode'] as String?),
         );
       }).toList(),
     );
@@ -84,13 +104,27 @@ class FolderItem {
   final bool isStarred;
   final bool isTrash;
 
+  /// ARGB value of the folder's chosen color, or null for the theme color.
+  final int? colorValue;
+
   FolderItem({
     required this.id,
     required this.name,
     required this.updatedAt,
     this.isStarred = false,
     this.isTrash = false,
+    this.colorValue,
   });
+
+  /// Returns a copy with [colorValue] set to [color]; null clears it.
+  FolderItem withColor(int? color) => FolderItem(
+    id: id,
+    name: name,
+    updatedAt: DateTime.now(),
+    isStarred: isStarred,
+    isTrash: isTrash,
+    colorValue: color,
+  );
 
   FolderItem copyWith({
     String? id,
@@ -105,6 +139,7 @@ class FolderItem {
       updatedAt: updatedAt ?? this.updatedAt,
       isStarred: isStarred ?? this.isStarred,
       isTrash: isTrash ?? this.isTrash,
+      colorValue: colorValue,
     );
   }
 }
@@ -118,6 +153,7 @@ class DocumentItem {
   final bool isStarred;
   final Uri? uri;
   final bool isTrash;
+  final SyncMode syncMode;
 
   DocumentItem({
     required this.id,
@@ -128,6 +164,7 @@ class DocumentItem {
     this.isStarred = false,
     this.uri,
     this.isTrash = false,
+    this.syncMode = SyncMode.auto,
   });
 
   String get extension {
@@ -138,13 +175,7 @@ class DocumentItem {
   bool get isTxt => extension == 'txt';
   bool get isMarkdown => extension == 'md' || extension == 'markdown';
 
-  String get displayName {
-    final lastDot = name.lastIndexOf('.');
-    if (lastDot > 0) {
-      return name.substring(0, lastDot);
-    }
-    return name;
-  }
+  String get displayName => documentDisplayName(name);
 
   DocumentItem copyWith({
     String? id,
@@ -155,6 +186,7 @@ class DocumentItem {
     bool? isStarred,
     Uri? uri,
     bool? isTrash,
+    SyncMode? syncMode,
   }) {
     return DocumentItem(
       id: id ?? this.id,
@@ -165,6 +197,7 @@ class DocumentItem {
       isStarred: isStarred ?? this.isStarred,
       uri: uri ?? this.uri,
       isTrash: isTrash ?? this.isTrash,
+      syncMode: syncMode ?? this.syncMode,
     );
   }
 
@@ -178,6 +211,7 @@ class DocumentItem {
       isStarred: isStarred,
       uri: uri,
       isTrash: isTrash,
+      syncMode: syncMode,
     );
   }
 }

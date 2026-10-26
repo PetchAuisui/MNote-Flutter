@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
+import 'package:mnote/l10n/language_preferences.dart';
 import '../domain/ai_assistant.dart';
 import '../domain/chat_message.dart';
 
@@ -62,7 +63,7 @@ class AssistantChatController extends ChangeNotifier {
 
     // นับแบบเดียวกับ TextField (ตัวอักษรที่เห็น) สระไทยจะไม่ถูกนับซ้ำ
     if (trimmedText.characters.length > maxInputLength) {
-      _errorMessage = 'ข้อความยาวเกินไป (สูงสุด 2000 ตัวอักษร)';
+      _errorMessage = LanguagePreferences.current().aiTooLong(maxInputLength);
       _notifySafely();
       return false;
     }
@@ -70,7 +71,7 @@ class AssistantChatController extends ChangeNotifier {
     // อ่านโน้ตตอนกดส่ง จะได้เนื้อหาล่าสุด
     final document = _noteAttached ? _currentNote() : null;
     if (document != null && document.isTooLong) {
-      _errorMessage = AiDocumentContext.tooLongMessage;
+      _errorMessage = LanguagePreferences.current().aiNoteTooLong;
       _notifySafely();
       return false;
     }
@@ -125,8 +126,7 @@ class AssistantChatController extends ChangeNotifier {
           if (answer.trim().isNotEmpty) {
             succeeded = true;
           } else {
-            _errorMessage =
-                'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
+            _errorMessage = LanguagePreferences.current().aiNoAnswer;
           }
           if (!completer.isCompleted) completer.complete();
         },
@@ -152,7 +152,7 @@ class AssistantChatController extends ChangeNotifier {
   void _handleError(Object error) {
     _errorMessage = error is AiAssistantException
         ? error.message
-        : 'AI ตอบไม่สำเร็จ กรุณาลองใหม่';
+        : LanguagePreferences.current().aiFailed;
   }
 
   void clear() {

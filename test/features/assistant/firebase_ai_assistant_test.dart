@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/chat_message.dart';
+import 'package:mnote/l10n/language_preferences.dart';
 
 void main() {
   group('FirebaseAiAssistant & buildGeminiHistory Tests', () {
@@ -211,8 +212,11 @@ void main() {
 
     // 6j. ข้อความเมื่อโน้ตยาวเกินบอกวิธีแก้
     test('6j. too-long message tells the user how to continue', () {
-      expect(AiDocumentContext.tooLongMessage, contains('ยาวเกินไป'));
-      expect(AiDocumentContext.tooLongMessage, contains('กด x'));
+      expect(
+        LanguagePreferences.current().aiNoteTooLong,
+        contains('ยาวเกินไป'),
+      );
+      expect(LanguagePreferences.current().aiNoteTooLong, contains('กด x'));
     });
   });
 

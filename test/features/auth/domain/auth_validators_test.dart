@@ -3,38 +3,59 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
 import 'package:mnote/features/auth/domain/auth_exception.dart';
 import 'package:mnote/features/auth/domain/auth_validators.dart';
+import 'package:mnote/l10n/app_localizations_en.dart';
+import 'package:mnote/l10n/app_localizations_th.dart';
 
 void main() {
+  final th = AppLocalizationsTh();
+  final en = AppLocalizationsEn();
+
   group('AuthValidators', () {
     test('email', () {
-      expect(AuthValidators.email(''), isNotNull);
-      expect(AuthValidators.email('abc'), isNotNull);
-      expect(AuthValidators.email('a@b'), isNotNull);
-      expect(AuthValidators.email(' a@b.co '), isNull);
+      expect(AuthValidators.email(th, ''), isNotNull);
+      expect(AuthValidators.email(th, 'abc'), isNotNull);
+      expect(AuthValidators.email(th, 'a@b'), isNotNull);
+      expect(AuthValidators.email(th, ' a@b.co '), isNull);
     });
 
     test('password requires minimum length', () {
-      expect(AuthValidators.password(''), isNotNull);
-      expect(AuthValidators.password('12345'), isNotNull);
-      expect(AuthValidators.password('123456'), isNull);
+      expect(AuthValidators.password(th, ''), isNotNull);
+      expect(AuthValidators.password(th, '12345'), isNotNull);
+      expect(AuthValidators.password(th, '123456'), isNull);
     });
 
     test('displayName and confirmPassword', () {
-      expect(AuthValidators.displayName('  '), isNotNull);
-      expect(AuthValidators.displayName('Pet'), isNull);
-      expect(AuthValidators.confirmPassword('', 'abc123'), isNotNull);
-      expect(AuthValidators.confirmPassword('x', 'abc123'), isNotNull);
-      expect(AuthValidators.confirmPassword('abc123', 'abc123'), isNull);
+      expect(AuthValidators.displayName(th, '  '), isNotNull);
+      expect(AuthValidators.displayName(th, 'Pet'), isNull);
+      expect(AuthValidators.confirmPassword(th, '', 'abc123'), isNotNull);
+      expect(AuthValidators.confirmPassword(th, 'x', 'abc123'), isNotNull);
+      expect(AuthValidators.confirmPassword(th, 'abc123', 'abc123'), isNull);
     });
+  });
+
+  test('messages follow the language', () {
+    expect(AuthValidators.email(th, ''), 'กรุณากรอกอีเมล');
+    expect(AuthValidators.email(en, ''), 'Please enter your email');
+    expect(
+      AuthValidators.password(en, '123'),
+      'The password must be at least 6 characters',
+    );
+    expect(
+      AuthValidators.messageFor(en, const AuthException(AuthErrorCode.network)),
+      'Cannot connect to the internet',
+    );
   });
 
   test('configuration error has its own message', () {
     const e = AuthException(AuthErrorCode.configuration);
-    expect(AuthValidators.messageFor(e), contains('Google'));
+    expect(AuthValidators.messageFor(th, e), contains('Google'));
     expect(
-      AuthValidators.messageFor(e),
+      AuthValidators.messageFor(th, e),
       isNot(
-        AuthValidators.messageFor(const AuthException(AuthErrorCode.unknown)),
+        AuthValidators.messageFor(
+          th,
+          const AuthException(AuthErrorCode.unknown),
+        ),
       ),
     );
   });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../domain/chat_message.dart';
 import 'assistant_chat_controller.dart';
@@ -29,7 +30,7 @@ Future<void> showAssistantChat(
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'ปิดผู้ช่วย AI',
+      barrierLabel: context.l10n.aiCloseLabel,
       barrierColor: colorScheme.scrim.withValues(alpha: 0.32),
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (dialogContext, animation, secondaryAnimation) {
@@ -90,10 +91,10 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
   int _previousMessageCount = 0;
   int _previousLastMessageLength = 0;
 
-  static const List<String> _suggestions = [
-    'อธิบาย Markdown แบบเข้าใจง่าย',
-    'เขียน flowchart ขั้นตอนการสมัครสมาชิก',
-    'ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน',
+  List<String> get _suggestions => [
+    context.l10n.aiSuggest1,
+    context.l10n.aiSuggest2,
+    context.l10n.aiSuggest3,
   ];
 
   @override
@@ -218,7 +219,7 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'ผู้ช่วย AI',
+                          context.l10n.aiAssistant,
                           style: theme.textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -227,14 +228,14 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                       IconButton(
                         key: const Key('assistant-clear'),
                         icon: const Icon(Icons.delete_sweep_outlined),
-                        tooltip: 'ล้างบทสนทนา',
+                        tooltip: context.l10n.aiClearChat,
                         onPressed: canClear ? widget.controller.clear : null,
                       ),
                       if (widget.onClose != null)
                         IconButton(
                           key: const Key('assistant-close'),
                           icon: const Icon(Icons.close),
-                          tooltip: 'ปิด',
+                          tooltip: context.l10n.close,
                           onPressed: widget.onClose,
                         ),
                     ],
@@ -247,8 +248,8 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
                   hasAttached
-                      ? 'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini'
-                      : 'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ',
+                      ? context.l10n.aiPrivacyWithNote
+                      : context.l10n.aiPrivacyNote,
                   key: const Key('assistant-privacy-note'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -321,13 +322,15 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                           key: const Key('assistant-note-chip'),
                           avatar: const Icon(Icons.description_outlined),
                           label: Text(
-                            'AI จะอ่าน: ${widget.controller.attachedNoteTitle}',
+                            context.l10n.aiNoteChip(
+                              widget.controller.attachedNoteTitle ?? '',
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           onDeleted: () =>
                               widget.controller.setNoteAttached(false),
-                          deleteButtonTooltipMessage: 'ไม่แนบโน้ต',
+                          deleteButtonTooltipMessage: context.l10n.aiNoteRemove,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -337,7 +340,7 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                         child: ActionChip(
                           key: const Key('assistant-note-attach'),
                           avatar: const Icon(Icons.attach_file),
-                          label: const Text('แนบโน้ตนี้'),
+                          label: Text(context.l10n.aiNoteAttach),
                           onPressed: () =>
                               widget.controller.setNoteAttached(true),
                         ),
@@ -355,8 +358,8 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                             maxLines: 5,
                             maxLength: AssistantChatController.maxInputLength,
                             textInputAction: TextInputAction.send,
-                            decoration: const InputDecoration(
-                              hintText: 'ถามอะไรก็ได้…',
+                            decoration: InputDecoration(
+                              hintText: context.l10n.aiHint,
                               counterText: '',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.all(
@@ -377,14 +380,14 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
                         IconButton.filled(
                           key: const Key('assistant-send'),
                           icon: const Icon(Icons.arrow_upward_rounded),
-                          tooltip: 'ส่ง',
+                          tooltip: context.l10n.aiSend,
                           onPressed: canSend ? () => _sendMessage() : null,
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ',
+                      context.l10n.aiDisclaimer,
                       key: const Key('assistant-disclaimer'),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
@@ -413,7 +416,7 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
             Icon(Icons.auto_awesome, size: 40, color: colorScheme.primary),
             const SizedBox(height: 12),
             Text(
-              'เริ่มคุยกับผู้ช่วย AI',
+              context.l10n.aiStart,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.onSurface,
               ),
@@ -504,7 +507,9 @@ class _MessageBubble extends StatelessWidget {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                'แนบ: ${message.attachedNoteTitle}',
+                                context.l10n.aiNoteLabel(
+                                  message.attachedNoteTitle!,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.labelSmall?.copyWith(
@@ -567,7 +572,7 @@ class _TypingIndicator extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Text(
-          'กำลังคิด…',
+          context.l10n.aiThinking,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -33,12 +34,12 @@ MermaidImportResult parseMermaidImport({
 }) {
   final lowerName = name.toLowerCase();
   if (!lowerName.endsWith('.mmd') && !lowerName.endsWith('.mermaid')) {
-    return const MermaidImportFailure('รองรับเฉพาะไฟล์ .mmd หรือ .mermaid');
+    return MermaidImportFailure(LanguagePreferences.current().mmdOnlyMmd);
   }
 
   if (bytes.length > mermaidImportMaxBytes) {
     return MermaidImportFailure(
-      'ไฟล์ใหญ่เกินไป (สูงสุด ${mermaidImportMaxBytes ~/ 1024} KB)',
+      LanguagePreferences.current().mmdTooBig(mermaidImportMaxBytes ~/ 1024),
     );
   }
 
@@ -46,9 +47,7 @@ MermaidImportResult parseMermaidImport({
   try {
     content = utf8.decode(bytes);
   } on FormatException {
-    return const MermaidImportFailure(
-      'อ่านไฟล์ไม่ได้ ไฟล์ต้องเป็นข้อความแบบ UTF-8',
-    );
+    return MermaidImportFailure(LanguagePreferences.current().mmdNotUtf8);
   }
 
   if (content.startsWith('\uFEFF')) {
@@ -65,7 +64,7 @@ MermaidImportResult parseMermaidImport({
 
   final cleanedSource = normalizeMermaidSource(content);
   if (cleanedSource.isEmpty) {
-    return const MermaidImportFailure('ไฟล์ว่าง ไม่มีโค้ดไดอะแกรม');
+    return MermaidImportFailure(LanguagePreferences.current().mmdEmpty);
   }
 
   return MermaidImportSuccess(name: name, source: cleanedSource);

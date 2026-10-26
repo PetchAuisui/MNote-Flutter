@@ -187,6 +187,60 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() => _auth.signOut();
 
+  @override
+  Future<void> deleteAccount({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AuthException(AuthErrorCode.unknown);
+    try {
+      await _reauthenticate(user, password);
+      await _deleteCloudData(user.uid);
+      await user.delete();
+    } on fb.FirebaseAuthException catch (e) {
+      throw AuthException(mapErrorCode(e.code), e.message);
+    } on GoogleSignInException catch (e) {
+      throw AuthException(mapGoogleErrorCode(e.code), e.description);
+    } on FirebaseException catch (e) {
+      debugPrint('Account data delete failed: ${e.code} ${e.message}');
+      throw AuthException(AuthErrorCode.unknown, e.message);
+    }
+  }
+
+  Future<void> _reauthenticate(fb.User user, String? password) async {
+    final isGoogle = user.providerData.any((i) => i.providerId == 'google.com');
+    if (isGoogle) {
+      if (kIsWeb) {
+        await user.reauthenticateWithPopup(fb.GoogleAuthProvider());
+      } else {
+        await user.reauthenticateWithCredential(
+          await _nativeGoogleCredential(),
+        );
+      }
+      return;
+    }
+    await user.reauthenticateWithCredential(
+      fb.EmailAuthProvider.credential(
+        email: user.email ?? '',
+        password: password ?? '',
+      ),
+    );
+  }
+
+  /// Removes the profile and every synced collection beneath it.
+  Future<void> _deleteCloudData(String uid) async {
+    final profile = _users.doc(uid);
+    for (final name in const ['documents', 'folders', 'ink']) {
+      final snapshot = await profile.collection(name).get();
+      for (var i = 0; i < snapshot.docs.length; i += 400) {
+        final batch = _firestore.batch();
+        for (final doc in snapshot.docs.skip(i).take(400)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+    }
+    await profile.delete();
+  }
+
   static AuthUser? _map(fb.User? user) {
     if (user == null) return null;
     return AuthUser(

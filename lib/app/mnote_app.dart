@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
+import 'package:mnote/features/sync/data/firestore_library_store.dart';
+import 'package:mnote/features/sync/data/firestore_ink_store.dart';
+import 'package:mnote/features/sync/data/synced_document_repository.dart';
+import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
+import 'package:mnote/features/sync/domain/network_monitor.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class MnoteApp extends StatelessWidget {
+class MnoteApp extends StatefulWidget {
   const MnoteApp({
     super.key,
     this.documentRepository,
     this.skipAuth,
     this.home,
     this.authRepository,
+    this.syncSettings,
+    this.networkMonitor,
   });
 
   final DocumentRepository? documentRepository;
@@ -25,9 +37,19 @@ class MnoteApp extends StatelessWidget {
   /// When null, only the offline flow is available (no email login/register).
   final AuthRepository? authRepository;
 
+  /// Cloud sync choices; defaults are used when not provided.
+  final SyncSettings? syncSettings;
+
+  /// Lets sync hold back on mobile data; sync always runs when null.
+  final NetworkMonitor? networkMonitor;
+
   /// Global notifier to switch theme mode (Light / Dark / System)
   static final ValueNotifier<ThemeMode> themeModeNotifier =
       ValueNotifier<ThemeMode>(ThemeMode.system);
+
+  /// Global notifier for the language (follows the device by default)
+  static final ValueNotifier<AppLanguage> languageNotifier =
+      ValueNotifier<AppLanguage>(AppLanguage.system);
 
   /// Global notifier to switch app font family
   static final ValueNotifier<AppFontFamily> fontNotifier =
@@ -65,16 +87,56 @@ class MnoteApp extends StatelessWidget {
   }
 
   @override
+  State<MnoteApp> createState() => _MnoteAppState();
+}
+
+class _MnoteAppState extends State<MnoteApp> {
+  /// Local storage, mirrored to the account's cloud library when signed in
+  /// through Firebase.
+  DocumentRepository _defaultRepository(SyncedInkFileStorage? ink) {
+    const local = LocalDocumentRepository(DeviceDocumentStorage());
+    final auth = widget.authRepository;
+    if (auth == null) return local;
+    final repository = SyncedDocumentRepository(
+      inner: local,
+      store: FirestoreLibraryStore(),
+      uidProvider: () => auth.currentUser?.uid,
+      settings: _syncSettings,
+      companions: [?ink],
+      network: widget.networkMonitor,
+    );
+    ink?.policy = repository.allowsInk;
+    return repository;
+  }
+
+  SyncedInkFileStorage? _syncedInk() {
+    final auth = widget.authRepository;
+    if (auth == null || widget.documentRepository != null) return null;
+    return SyncedInkFileStorage(
+      inner: const DeviceInkFileStorage(),
+      store: FirestoreInkStore(),
+      uidProvider: () => auth.currentUser?.uid,
+    );
+  }
+
+  // Built once: they own Firestore listeners, so rebuilding the app widget
+  // must not create (and leak) new ones.
+  late final SyncSettings _syncSettings = widget.syncSettings ?? SyncSettings();
+  late final SyncedInkFileStorage? _ink = _syncedInk();
+  late final DocumentRepository _repository =
+      widget.documentRepository ?? _defaultRepository(_ink);
+
+  @override
   Widget build(BuildContext context) {
-    final effectiveRepository =
-        documentRepository ??
-        const LocalDocumentRepository(DeviceDocumentStorage());
+    final ink = _ink;
+    final effectiveRepository = _repository;
 
     final destination = NoteListScreen(
       repository: effectiveRepository,
-      authRepository: authRepository,
+      authRepository: widget.authRepository,
     );
-    final shouldSkipAuth = skipAuth ?? (documentRepository != null);
+    final shouldSkipAuth =
+        widget.skipAuth ?? (widget.documentRepository != null);
 
     final guidePage = AppGuidePage(
       repository: effectiveRepository,
@@ -86,34 +148,56 @@ class MnoteApp extends StatelessWidget {
         : SplashPage(
             repository: effectiveRepository,
             nextPage: guidePage,
-            authRepository: authRepository,
+            authRepository: widget.authRepository,
             signedInPage: destination,
           );
 
     return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeModeNotifier,
+      valueListenable: MnoteApp.themeModeNotifier,
       builder: (context, currentThemeMode, _) {
         return ValueListenableBuilder<AppFontFamily>(
-          valueListenable: fontNotifier,
+          valueListenable: MnoteApp.fontNotifier,
           builder: (context, currentFont, _) {
             return ValueListenableBuilder<AppAccent>(
-              valueListenable: accentNotifier,
+              valueListenable: MnoteApp.accentNotifier,
               builder: (context, currentAccent, _) {
-                return MaterialApp(
-                  title: 'Mnote',
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.theme(
-                    Brightness.light,
-                    font: currentFont,
-                    accent: currentAccent,
+                return ValueListenableBuilder<AppLanguage>(
+                  valueListenable: MnoteApp.languageNotifier,
+                  builder: (context, language, _) => MaterialApp(
+                    title: 'Mnote',
+                    locale: language.locale,
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    // Thai is the default: any other device language shows Thai.
+                    localeResolutionCallback: (locale, supported) {
+                      for (final s in supported) {
+                        if (s.languageCode == locale?.languageCode) return s;
+                      }
+                      return const Locale('th');
+                    },
+                    debugShowCheckedModeBanner: false,
+                    theme: AppTheme.theme(
+                      Brightness.light,
+                      font: currentFont,
+                      accent: currentAccent,
+                    ),
+                    darkTheme: AppTheme.theme(
+                      Brightness.dark,
+                      font: currentFont,
+                      accent: currentAccent,
+                    ),
+                    themeMode: currentThemeMode,
+                    builder: ink == null
+                        ? null
+                        : (context, child) =>
+                              InkStorageScope(storage: ink, child: child!),
+                    home: widget.home ?? defaultHome,
                   ),
-                  darkTheme: AppTheme.theme(
-                    Brightness.dark,
-                    font: currentFont,
-                    accent: currentAccent,
-                  ),
-                  themeMode: currentThemeMode,
-                  home: home ?? defaultHome,
                 );
               },
             );

@@ -27,6 +27,11 @@ abstract interface class DocumentStorage {
 
   Future<void> delete(Uri uri);
 
+  /// Maps a stored file URI to where that file lives now. iOS changes the
+  /// app container path between installs, which leaves saved absolute URIs
+  /// pointing nowhere. Returns [uri] unchanged when nothing better is found.
+  Future<Uri> relocate(Uri uri);
+
   Future<String?> readMetadata();
 
   Future<void> writeMetadata(String content);

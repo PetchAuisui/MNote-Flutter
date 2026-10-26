@@ -268,6 +268,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
     this.onTapLink,
     this.references = const {},
     this.orderedNumber,
+    this.textOptions = const DocumentTextOptions(),
   });
   final String markdown;
   final Map<String, md.LinkReference> references;
@@ -277,6 +278,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
   final Map<String, MarkdownElementBuilder> builders;
   final bool selectable;
   final void Function(String, String?, String?)? onTapLink;
+  final DocumentTextOptions textOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +287,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
     final list = RegExp(r'^( *)(?:[-*+]|\d+[.)])\s+').firstMatch(markdown);
     final indent = list?.group(1)?.length ?? 0;
     final depth = (indent / 2).ceil();
-    final sheet = MarkdownDocumentStyle.sheet(theme);
+    final sheet = MarkdownDocumentStyle.sheet(theme, textOptions);
     return Padding(
       padding: EdgeInsets.only(top: 8, bottom: 8, left: depth * 32.0),
       child: MarkdownBody(
@@ -310,9 +312,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
           }
           final diameter = depth == 0 ? 8.0 : 6.0;
           return SizedBox(
-            height:
-                MarkdownDocumentStyle.bodySize *
-                MarkdownDocumentStyle.lineHeight,
+            height: textOptions.bodySize * textOptions.lineHeight,
             child: Center(
               child: Container(
                 width: diameter,

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -28,7 +29,7 @@ Future<void> showMermaidImportDialog(
                 child: FilledButton.icon(
                   key: const Key('mermaid-import-copy'),
                   icon: const Icon(Icons.content_copy_rounded),
-                  label: const Text('คัดลอกโค้ด'),
+                  label: Text(context.l10n.copyCode),
                   onPressed: () => _copy(context, source),
                 ),
               ),
@@ -69,13 +70,13 @@ Future<void> showMermaidImportDialog(
                     TextButton(
                       key: const Key('mermaid-import-cancel'),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('ยกเลิก'),
+                      child: Text(context.l10n.cancel),
                     ),
                     const SizedBox(width: 8),
                     FilledButton.icon(
                       key: const Key('mermaid-import-copy'),
                       icon: const Icon(Icons.content_copy_rounded),
-                      label: const Text('คัดลอกโค้ด'),
+                      label: Text(context.l10n.copyCode),
                       onPressed: () => _copy(context, source),
                     ),
                   ],
@@ -117,7 +118,7 @@ class _ImportDialogContent extends StatelessWidget {
           const SizedBox(height: 12),
           ExpansionTile(
             key: const Key('mermaid-import-code-toggle'),
-            title: const Text('ดูโค้ด'),
+            title: Text(context.l10n.viewCode),
             tilePadding: EdgeInsets.zero,
             children: [
               Align(
@@ -143,9 +144,8 @@ class _ImportDialogContent extends StatelessWidget {
 Future<void> _copy(BuildContext context, String source) async {
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
+  final copied = context.l10n.codeCopied;
   await Clipboard.setData(ClipboardData(text: buildMermaidFencedBlock(source)));
   navigator.pop();
-  messenger.showSnackBar(
-    const SnackBar(content: Text('คัดลอกแล้ว วางในโน้ตได้เลย')),
-  );
+  messenger.showSnackBar(SnackBar(content: Text(copied)));
 }

@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -29,9 +30,7 @@ class LocalDocumentRepository implements DocumentRepository {
 
       return doc;
     } on FormatException {
-      throw const DocumentReadException(
-        'ไฟล์นี้ไม่ใช่ข้อความ UTF-8 ที่ Mnote รองรับ',
-      );
+      throw DocumentReadException(LanguagePreferences.current().docNotUtf8);
     }
   }
 
@@ -144,7 +143,9 @@ class LocalDocumentRepository implements DocumentRepository {
 
       return documents;
     } catch (e) {
-      throw DocumentReadException('ไม่สามารถดึงรายการเอกสารได้: $e');
+      throw DocumentReadException(
+        LanguagePreferences.current().docListFailed('$e'),
+      );
     }
   }
 
@@ -181,11 +182,87 @@ class LocalDocumentRepository implements DocumentRepository {
     try {
       final raw = await _storage.readMetadata();
       if (raw == null || raw.trim().isEmpty) return null;
-      return LibraryMetadata.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      final metadata = LibraryMetadata.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+      // Repaired in memory only; the next save persists it, which avoids a
+      // write racing with other read-modify-write updates.
+      return await _repairUris(metadata) ?? metadata;
     } catch (_) {
       return null;
     }
   }
+
+  /// Points entries at where their files live now and merges entries that
+  /// then refer to the same file under the same name. Returns null when nothing needed fixing.
+  Future<LibraryMetadata?> _repairUris(LibraryMetadata metadata) async {
+    var changed = false;
+    final byUri = <String, DocumentItem>{};
+    final documents = <DocumentItem>[];
+
+    for (final item in metadata.documents) {
+      var current = item;
+      final uri = item.uri;
+      if (uri != null) {
+        final moved = await _storage.relocate(uri);
+        if (moved != uri) {
+          changed = true;
+          current = DocumentItem(
+            id: item.id == uri.toString() ? moved.toString() : item.id,
+            name: item.name,
+            content: item.content,
+            updatedAt: item.updatedAt,
+            folderId: item.folderId,
+            isStarred: item.isStarred,
+            uri: moved,
+            isTrash: item.isTrash,
+            syncMode: item.syncMode,
+          );
+        }
+        // A renamed note keeps pointing at its old file, so the name is part
+        // of the identity.
+        final key = '${current.uri}\u0000${current.name}';
+        final existing = byUri[key];
+        if (existing != null) {
+          changed = true;
+          // Keep the most recently changed entry.
+          if (current.updatedAt.isAfter(existing.updatedAt)) {
+            documents[documents.indexOf(existing)] = current;
+            byUri[key] = current;
+          }
+          continue;
+        }
+        byUri[key] = current;
+      }
+      documents.add(current);
+    }
+
+    // Cloud sync adds a file-less placeholder when a remote note arrives
+    // before its file exists. Once the file is registered the placeholder is a
+    // duplicate of it (same name, the name being the cloud key).
+    final fileBacked = {
+      for (final d in documents)
+        if (d.uri != null) d.name,
+    };
+    final withoutPlaceholders = documents
+        .where(
+          (d) =>
+              d.uri != null ||
+              d.id == _welcomeId ||
+              !fileBacked.contains(d.name),
+        )
+        .toList();
+    if (withoutPlaceholders.length != documents.length) changed = true;
+
+    return changed
+        ? LibraryMetadata(
+            folders: metadata.folders,
+            documents: withoutPlaceholders,
+          )
+        : null;
+  }
+
+  static const _welcomeId = 'welcome_initial_doc';
 
   @override
   Future<void> saveMetadata(LibraryMetadata metadata) async {

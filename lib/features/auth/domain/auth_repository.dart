@@ -29,4 +29,9 @@ abstract class AuthRepository {
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();
+
+  /// Re-checks the user's identity (with [password] for email accounts, or the
+  /// Google flow), erases their cloud data and deletes the account. Throws
+  /// [AuthException]; nothing is deleted if re-authentication fails.
+  Future<void> deleteAccount({String? password});
 }

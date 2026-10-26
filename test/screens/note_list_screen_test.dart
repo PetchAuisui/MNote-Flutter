@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/workspace/presentation/editor_settings.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/models/note_item.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/fakes.dart';
 
@@ -84,9 +86,64 @@ void main() {
     ),
   ];
 
+  Future<void> pumpLibrary(
+    WidgetTester tester,
+    FakeDocumentRepository repo,
+  ) async {
+    rootBundle.evict('assets/examples/welcome.md');
+    rootBundle.evict('assets/examples/welcome_v1.md');
+    await tester.runAsync(() async {
+      await rootBundle.loadString('assets/examples/welcome.md');
+      await rootBundle.loadString('assets/examples/welcome_v1.md');
+    });
+    await tester.pumpWidget(
+      MaterialApp(home: NoteListScreen(repository: repo)),
+    );
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  LibraryMetadata libraryWithNote() => LibraryMetadata(
+    documents: [
+      DocumentItem(
+        id: 'n1',
+        name: 'Notes.md',
+        content: 'hi',
+        updatedAt: DateTime(2026),
+        uri: Uri.file('/tmp/Notes.md'),
+      ),
+    ],
+  );
+
+  testWidgets('adds Welcome to an existing synced library without one', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = FakeDocumentRepository()..storedMetadata = libraryWithNote();
+    await pumpLibrary(tester, repo);
+
+    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Notes'), findsOneWidget);
+  });
+
+  testWidgets('does not bring Welcome back after the user deleted it', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+    final repo = FakeDocumentRepository()..storedMetadata = libraryWithNote();
+    await pumpLibrary(tester, repo);
+
+    expect(find.text('Welcome'), findsNothing);
+    expect(find.text('Notes'), findsOneWidget);
+  });
+
   testWidgets(
     'seeds Welcome.md on initial launch when library is uninitialized',
     (tester) async {
+      SharedPreferences.setMockInitialValues({});
       rootBundle.evict('assets/examples/welcome.md');
       rootBundle.evict('assets/examples/welcome_v1.md');
       await tester.runAsync(() async {
@@ -818,6 +875,48 @@ void main() {
     },
   );
 
+  testWidgets('a folder can be given a color and reset to the default', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    final folder = FolderItem(
+      id: 'f_color',
+      name: 'โฟลเดอร์สี',
+      updatedAt: DateTime(2026, 10, 8),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(repository: repo, initialFolders: [folder]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Icon folderIcon() => tester
+        .widgetList<Icon>(find.byIcon(Icons.folder_rounded))
+        .firstWhere((icon) => icon.size == 128);
+    final defaultColor = folderIcon().color;
+
+    await tester.tap(find.byKey(const Key('folder-menu-f_color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-menu-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-color-ffe53935')));
+    await tester.pumpAndSettle();
+
+    expect(folderIcon().color, const Color(0xFFE53935));
+    expect(repo.storedMetadata!.folders.single.colorValue, 0xFFE53935);
+
+    await tester.longPress(find.text('โฟลเดอร์สี'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-change-color')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('folder-color-default')));
+    await tester.pumpAndSettle();
+
+    expect(folderIcon().color, defaultColor);
+    expect(repo.storedMetadata!.folders.single.colorValue, isNull);
+  });
+
   testWidgets('moves document to folder and back to root successfully', (
     tester,
   ) async {
@@ -987,5 +1086,103 @@ void main() {
       isTrue,
       reason: 'A_Note ควรอยู่ก่อน B_Note เมื่อเรียงชื่อ ก - ฮ',
     );
+  });
+
+  testWidgets('document cards use two columns and do not overflow on a phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(411, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+    final docs = [
+      for (var i = 0; i < 4; i++)
+        DocumentItem(
+          id: 'n$i',
+          name: 'Note$i.md',
+          content: '# Hello Everyone\nPersonal Information - Name : Siwapat',
+          updatedAt: DateTime(2026),
+        ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NoteListScreen(
+          repository: FakeDocumentRepository(),
+          initialDocuments: docs,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final first = tester.getTopLeft(find.text('Note0'));
+    final second = tester.getTopLeft(find.text('Note1'));
+    final third = tester.getTopLeft(find.text('Note2'));
+    expect(second.dx, greaterThan(first.dx));
+    expect(third.dx, first.dx, reason: 'third card wraps to a second row');
+    final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+    expect(card.width, 148);
+  });
+
+  for (final width in [320.0, 411.0, 600.0, 700.0, 834.0, 1200.0]) {
+    testWidgets('document cards are never squeezed at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({'mnote_welcome_removed': true});
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NoteListScreen(
+            repository: FakeDocumentRepository(),
+            initialDocuments: [
+              DocumentItem(
+                id: 'n0',
+                name: 'Note0.md',
+                content: '# Hello Everyone\nPersonal Information - Name',
+                updatedAt: DateTime(2026),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final card = tester.getSize(find.byKey(const ValueKey('doc-card-n0')));
+      // 320dp phones cannot fit two full cards; everything wider must.
+      if (width >= 360) expect(card.width, 148);
+    });
+  }
+
+  testWidgets('card previews use the editor font, live', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(EditorSettings.instance.resetLook);
+    final repo = FakeDocumentRepository()
+      ..storedMetadata = LibraryMetadata(
+        folders: [],
+        documents: [
+          DocumentItem(
+            id: 'a',
+            name: 'Alpha.md',
+            content: '# Alpha title\n\nbody words here',
+            updatedAt: DateTime(2026),
+          ),
+        ],
+      );
+    await tester.pumpWidget(
+      MaterialApp(home: NoteListScreen(repository: repo)),
+    );
+    await tester.pumpAndSettle();
+    String? family() =>
+        tester.widget<Text>(find.text('Alpha title')).style?.fontFamily;
+    final before = family();
+
+    EditorSettings.instance.font = EditorFont.sarabun;
+    await tester.pumpAndSettle();
+
+    expect(family(), isNot(before));
+    expect(family(), contains('Sarabun'));
   });
 }

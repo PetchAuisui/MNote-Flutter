@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -7,7 +8,9 @@ import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
 
+import 'editor_settings.dart';
 import 'ink_session.dart';
+import 'ink_storage_scope.dart';
 import 'markdown_document_canvas.dart';
 import 'mermaid/mermaid_element_builder.dart';
 
@@ -18,7 +21,7 @@ class InkPage extends StatefulWidget {
     required this.markdown,
     required this.name,
     this.imageDirectory,
-    this.fileStorage = const DeviceInkFileStorage(),
+    this.fileStorage,
     this.transformationController,
     this.showToolbar = true,
     this.onViewportWidthChanged,
@@ -27,7 +30,9 @@ class InkPage extends StatefulWidget {
   final String markdown;
   final String name;
   final String? imageDirectory;
-  final InkFileStorage fileStorage;
+
+  /// Defaults to the storage from [InkStorageScope], then the device.
+  final InkFileStorage? fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
   final ValueChanged<double>? onViewportWidthChanged;
@@ -47,13 +52,19 @@ class _InkPageState extends State<InkPage> {
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;
   Timer? _autoSaveInkTimer;
+  late InkFileStorage _storage;
 
   @override
   void initState() {
     super.initState();
+    _storage = widget.fileStorage ?? const DeviceInkFileStorage();
     widget.session.pen.addListener(_onPenChanged);
-    _autoLoadInkIfAvailable();
+    EditorSettings.instance.addListener(_onEditorSettingsChanged);
     _attachTransform();
+  }
+
+  void _onEditorSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onPenChanged() {
@@ -62,7 +73,7 @@ class _InkPageState extends State<InkPage> {
       _autoSaveInkTimer = Timer(const Duration(milliseconds: 600), () async {
         if (!mounted) return;
         final snapshot = widget.session.encode();
-        final saved = await widget.fileStorage.autoSave(
+        final saved = await _storage.autoSave(
           name: widget.name,
           bytes: Uint8List.fromList(utf8.encode(snapshot)),
         );
@@ -75,12 +86,25 @@ class _InkPageState extends State<InkPage> {
 
   Future<void> _autoLoadInkIfAvailable() async {
     if (widget.session.pen.currentSketch.lines.isEmpty) {
-      final bytes = await widget.fileStorage.autoLoad(name: widget.name);
+      final bytes = await _storage.autoLoad(name: widget.name);
       if (bytes != null && mounted) {
         try {
           widget.session.load(utf8.decode(bytes));
         } catch (_) {}
       }
+    }
+  }
+
+  bool _loadedInk = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _storage =
+        widget.fileStorage ?? InkStorageScope.maybeOf(context) ?? _storage;
+    if (!_loadedInk) {
+      _loadedInk = true;
+      _autoLoadInkIfAvailable();
     }
   }
 
@@ -111,7 +135,7 @@ class _InkPageState extends State<InkPage> {
     if (widget.session.isDirty) {
       final snapshot = widget.session.encode();
       final session = widget.session;
-      widget.fileStorage
+      _storage
           .autoSave(
             name: widget.name,
             bytes: Uint8List.fromList(utf8.encode(snapshot)),
@@ -123,6 +147,7 @@ class _InkPageState extends State<InkPage> {
           });
     }
     widget.session.pen.removeListener(_onPenChanged);
+    EditorSettings.instance.removeListener(_onEditorSettingsChanged);
     if (_ownsTransform) {
       _transform.dispose();
     }
@@ -210,16 +235,16 @@ class _InkPageState extends State<InkPage> {
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.delete_outline),
-        title: const Text('ล้างหมึกทั้งหมด?'),
-        content: const Text('สามารถกดย้อนกลับได้หลังจากล้าง'),
+        title: Text(context.l10n.clearInkTitle),
+        content: Text(context.l10n.clearInkBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('ล้างทั้งหมด'),
+            child: Text(context.l10n.clearAll),
           ),
         ],
       ),
@@ -269,6 +294,9 @@ class _InkPageState extends State<InkPage> {
                     markdown: widget.markdown,
                     height: widget.session.height,
                     selectable: false,
+                    textOptions: widget.session.layoutFor(
+                      EditorSettings.instance.textOptions,
+                    ),
                     imageDirectory: widget.imageDirectory,
                     builders: {'code': MermaidElementBuilder()},
                     // Highlighter strokes sit beneath the text, so the text
@@ -360,7 +388,7 @@ class _InkHistoryDock extends StatelessWidget {
         children: [
           IconButton(
             key: const Key('ink-undo'),
-            tooltip: 'ย้อนกลับหมึก',
+            tooltip: context.l10n.inkUndo,
             color: colors.onSurfaceVariant,
             disabledColor: colors.onSurfaceVariant.withValues(alpha: 0.38),
             onPressed: onUndo,
@@ -368,7 +396,7 @@ class _InkHistoryDock extends StatelessWidget {
           ),
           IconButton(
             key: const Key('ink-redo'),
-            tooltip: 'ทำซ้ำหมึก',
+            tooltip: context.l10n.inkRedo,
             color: colors.onSurfaceVariant,
             disabledColor: colors.onSurfaceVariant.withValues(alpha: 0.38),
             onPressed: onRedo,
@@ -453,14 +481,14 @@ class InkToolbar extends StatelessWidget {
                           children: [
                             _InkToolbarGroup(
                               key: const Key('ink-tools-group'),
-                              label: 'เครื่องมือวาด',
+                              label: context.l10n.inkGroupDraw,
                               color: colors.primaryContainer.withValues(
                                 alpha: 0.45,
                               ),
                               children: [
                                 _toolButton(
                                   key: const Key('ink-pen'),
-                                  tooltip: 'ปากกา',
+                                  tooltip: context.l10n.inkPen,
                                   icon: const Icon(Icons.edit_outlined),
                                   selectedIcon: const Icon(Icons.edit),
                                   selected: selectedTool == InkTool.pen,
@@ -468,7 +496,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                                 _toolButton(
                                   key: const Key('ink-highlighter'),
-                                  tooltip: 'ปากกาไฮไลต์',
+                                  tooltip: context.l10n.inkHighlighter,
                                   icon: const _HighlighterIcon(),
                                   selectedIcon: const _HighlighterIcon(),
                                   selected: selectedTool == InkTool.highlighter,
@@ -477,7 +505,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                                 _toolButton(
                                   key: const Key('ink-eraser'),
-                                  tooltip: 'ยางลบทั้งเส้น',
+                                  tooltip: context.l10n.inkEraser,
                                   icon: const _EraserIcon(),
                                   selectedIcon: const _EraserIcon(filled: true),
                                   selected: selectedTool == InkTool.eraser,
@@ -489,7 +517,7 @@ class InkToolbar extends StatelessWidget {
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-style-group'),
-                              label: 'รูปแบบเส้น',
+                              label: context.l10n.inkGroupStroke,
                               children: [
                                 for (var i = 0; i < colorPresets.length; i++)
                                   _ColorSwatchButton(
@@ -503,7 +531,7 @@ class InkToolbar extends StatelessWidget {
                                   ),
                                 IconButton(
                                   key: const Key('ink-color'),
-                                  tooltip: 'เปลี่ยนสีที่เลือกอยู่',
+                                  tooltip: context.l10n.inkChangeColor,
                                   icon: const Icon(Icons.palette_outlined),
                                   onPressed: () {
                                     final selected = colorPresets.indexOf(
@@ -535,13 +563,13 @@ class InkToolbar extends StatelessWidget {
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-page-group'),
-                              label: 'การควบคุมหน้า',
+                              label: context.l10n.inkGroupPage,
                               children: [
                                 _toolButton(
                                   key: const Key('ink-touch'),
                                   tooltip: touchEnabled
-                                      ? 'ใช้นิ้วเขียนอยู่'
-                                      : 'Apple Pencil เขียน · นิ้วเลื่อนหน้า',
+                                      ? context.l10n.inkFingerOn
+                                      : context.l10n.inkPencilOnly,
                                   icon: const Icon(Icons.touch_app_outlined),
                                   selectedIcon: const Icon(Icons.touch_app),
                                   selected: touchEnabled,
@@ -549,7 +577,7 @@ class InkToolbar extends StatelessWidget {
                                 ),
                                 IconButton(
                                   key: const Key('ink-fit'),
-                                  tooltip: 'พอดีความกว้าง',
+                                  tooltip: context.l10n.inkFitWidth,
                                   onPressed: onFit,
                                   icon: const Icon(Icons.fit_screen),
                                 ),
@@ -558,14 +586,14 @@ class InkToolbar extends StatelessWidget {
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-management-group'),
-                              label: 'จัดการหมึก',
+                              label: context.l10n.inkGroupManage,
                               color: colors.secondaryContainer.withValues(
                                 alpha: 0.55,
                               ),
                               children: [
                                 PopupMenuButton<bool>(
                                   key: const Key('ink-management-menu'),
-                                  tooltip: 'เพิ่มเติม',
+                                  tooltip: context.l10n.inkMore,
                                   onSelected: (_) => onClear?.call(),
                                   itemBuilder: (context) => [
                                     PopupMenuItem(
@@ -581,7 +609,7 @@ class InkToolbar extends StatelessWidget {
                                               : colors.error,
                                         ),
                                         title: Text(
-                                          'ล้างหมึกทั้งหมด',
+                                          context.l10n.inkClearAll,
                                           style: TextStyle(
                                             color: onClear == null
                                                 ? null
@@ -815,7 +843,7 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
   Widget build(BuildContext context) {
     final color = _hsv.toColor();
     return AlertDialog(
-      title: const Text('กำหนดสีเอง'),
+      title: Text(context.l10n.inkCustomColor),
       content: SizedBox(
         width: 320,
         child: Column(
@@ -834,7 +862,7 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
             ),
             const SizedBox(height: 12),
             _slider(
-              'สี',
+              context.l10n.inkHue,
               _hsv.hue,
               360,
               (v) => _hsv = _hsv.withHue(v),
@@ -842,14 +870,14 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
               activeColor: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
             ),
             _slider(
-              'ความเข้ม',
+              context.l10n.inkSaturation,
               _hsv.saturation,
               1,
               (v) => _hsv = _hsv.withSaturation(v),
               key: const Key('ink-color-saturation'),
             ),
             _slider(
-              'ความสว่าง',
+              context.l10n.inkBrightness,
               _hsv.value,
               1,
               (v) => _hsv = _hsv.withValue(v),
@@ -861,12 +889,12 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('ยกเลิก'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           key: const Key('ink-color-apply'),
           onPressed: () => Navigator.pop(context, color),
-          child: const Text('ตกลง'),
+          child: Text(context.l10n.ok),
         ),
       ],
     );
@@ -911,7 +939,7 @@ class _CustomWidthDialogState extends State<_CustomWidthDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('กำหนดขนาดเส้น'),
+      title: Text(context.l10n.inkCustomWidth),
       content: SizedBox(
         width: 320,
         child: Column(
@@ -950,12 +978,12 @@ class _CustomWidthDialogState extends State<_CustomWidthDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('ยกเลิก'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           key: const Key('ink-width-apply'),
           onPressed: () => Navigator.pop(context, _width.roundToDouble()),
-          child: const Text('ตกลง'),
+          child: Text(context.l10n.ok),
         ),
       ],
     );
@@ -984,8 +1012,7 @@ class _WidthPresetButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message:
-          'ความหนา ${width.toStringAsFixed(0)} · แตะซ้ำหรือกดค้างเพื่อแก้ไข',
+      message: context.l10n.inkWidthTip(width.toStringAsFixed(0)),
       child: InkResponse(
         onTap: onTap,
         onLongPress: onLongPress,
@@ -1038,7 +1065,7 @@ class _ColorSwatchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Tooltip(
-      message: 'แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้',
+      message: context.l10n.inkColorTip,
       child: InkResponse(
         onTap: onTap,
         onLongPress: onLongPress,

@@ -101,6 +101,19 @@ class DeviceDocumentStorage implements DocumentStorage {
   }
 
   @override
+  Future<Uri> relocate(Uri uri) async {
+    if (uri.scheme != 'file' || await File.fromUri(uri).exists()) return uri;
+    if (uri.pathSegments.isEmpty) return uri;
+    final appDir = await getApplicationDocumentsDirectory();
+    // pathSegments are percent-encoded; File wants the decoded name.
+    final moved = File(
+      '${appDir.path}/${Uri.decodeComponent(uri.pathSegments.last)}',
+    );
+    if (await moved.exists()) return moved.uri;
+    return uri;
+  }
+
+  @override
   Future<String?> readMetadata() async {
     final appDir = await getApplicationDocumentsDirectory();
     final file = File('${appDir.path}/.mnote_library.json');

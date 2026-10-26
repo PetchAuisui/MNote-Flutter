@@ -7,7 +7,12 @@ import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/core/theme/theme_preferences.dart';
 import 'package:mnote/firebase_options.dart';
 import 'package:mnote/features/auth/data/firebase_auth_repository.dart';
+import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
+import 'package:mnote/features/sync/data/connectivity_network_monitor.dart';
+import 'package:mnote/features/sync/domain/sync_settings.dart';
+import 'package:mnote/features/workspace/presentation/editor_settings.dart';
+import 'package:mnote/features/workspace/presentation/ink_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,14 +20,19 @@ Future<void> main() async {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   final AuthRepository authRepository;
+  final SyncSettings syncSettings;
   try {
     // Restore saved theme and initialize Firebase concurrently to speed up launch.
     await Future.wait([
       ThemePreferences.load(),
+      LanguagePreferences.load(),
+      EditorSettings.instance.restore(),
+      InkSettings.instance.restore(),
       Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     ]);
     await _activateAppCheck();
     authRepository = FirebaseAuthRepository();
+    syncSettings = await SyncSettings.load();
   } catch (e) {
     // Login is mandatory, so without Firebase the app cannot be used.
     debugPrint('Firebase initialization failed: $e');
@@ -30,7 +40,16 @@ Future<void> main() async {
     return;
   }
 
-  runApp(MnoteApp(authRepository: authRepository));
+  final networkMonitor = ConnectivityNetworkMonitor();
+  await networkMonitor.start();
+
+  runApp(
+    MnoteApp(
+      authRepository: authRepository,
+      syncSettings: syncSettings,
+      networkMonitor: networkMonitor,
+    ),
+  );
 }
 
 /// Debug builds use the Debug provider (token is printed in the native log and
@@ -59,15 +78,14 @@ class FirebaseSetupErrorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Center(
           child: Padding(
-            padding: EdgeInsets.all(32),
+            padding: const EdgeInsets.all(32),
             child: Text(
-              'ไม่สามารถเชื่อมต่อ Firebase ได้\n'
-              'กรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md',
+              LanguagePreferences.current().firebaseSetupError,
               textAlign: TextAlign.center,
             ),
           ),

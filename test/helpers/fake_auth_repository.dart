@@ -17,6 +17,8 @@ class FakeAuthRepository implements AuthRepository {
   String? lastDisplayName;
   String? resetEmail;
   String? updatedName;
+  String? deletePassword;
+  int deleteCalls = 0;
 
   @override
   Stream<AuthUser?> authStateChanges() => Stream.value(currentUser);
@@ -80,4 +82,12 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async => currentUser = null;
+
+  @override
+  Future<void> deleteAccount({String? password}) async {
+    deleteCalls += 1;
+    deletePassword = password;
+    if (error != null) throw error!;
+    currentUser = null;
+  }
 }

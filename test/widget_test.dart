@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/models/note_item.dart';
@@ -8,6 +10,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/markdown_live_editor.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
 import 'package:mnote/features/workspace/presentation/mermaid/mermaid_diagram_view.dart';
+import 'package:mnote/features/workspace/presentation/workspace_controller.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'helpers/fakes.dart';
@@ -59,7 +62,7 @@ void main() {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
     }
-    expect(find.text('Welcome.md'), findsOneWidget);
+    expect(find.text('Welcome'), findsOneWidget);
     expect(find.byKey(const Key('markdown-live-preview')), findsOneWidget);
     expect(find.byType(MermaidDiagramView), findsOneWidget);
     expect(find.byType(Table), findsOneWidget);
@@ -102,7 +105,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(_buildWorkspaceApp());
-    expect(find.text('Untitled.md'), findsOneWidget);
+    expect(find.text('Untitled'), findsOneWidget);
     expect(_editor, findsOneWidget);
     expect(find.byTooltip('Markdown'), findsOneWidget);
     expect(find.byTooltip('เขียน'), findsOneWidget);
@@ -223,7 +226,7 @@ void main() {
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
-    expect(find.text('Project notes.md'), findsOneWidget);
+    expect(find.text('Project notes'), findsOneWidget);
     expect(find.text('ยังไม่ได้บันทึก'), findsOneWidget);
     expect(find.byKey(const Key('document-title-field')), findsNothing);
   });
@@ -286,6 +289,67 @@ void main() {
     expect(find.byType(NoteListScreen), findsOneWidget);
   });
 
+  testWidgets('a failed image copy tells the user and leaves the note alone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = FakeDocumentRepository();
+    final imagePicker = FakeDeviceImagePicker(
+      null,
+      const FileSystemException('read-only'),
+    );
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          imagePicker: imagePicker,
+          initialDocument: MarkdownDocument.example('keep me'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('toolbar-image')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้'), findsOneWidget);
+    expect(find.textContaining('keep me'), findsWidgets);
+  });
+
+  testWidgets('importing a file from writing mode opens the Markdown tab', (
+    tester,
+  ) async {
+    MarkdownWorkspacePage.defaultMode = WorkspaceMode.ink;
+    addTearDown(() => MarkdownWorkspacePage.defaultMode = WorkspaceMode.split);
+    final repo = FakeDocumentRepository()
+      ..openResult = MarkdownDocument.untitled('imported');
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(repository: repo),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-add-file')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<SegmentedButton<WorkspaceMode>>(
+            find.byKey(const Key('workspace-mode-switcher')),
+          )
+          .selected,
+      {WorkspaceMode.split},
+    );
+  });
+
   testWidgets(
     'toolbar image button inserts image and more actions menu supports import file',
     (tester) async {
@@ -320,6 +384,16 @@ void main() {
 
       expect(imagePicker.pickCount, 1);
       expect(find.textContaining('![photo](photo.png)'), findsOneWidget);
+      // The Markdown tab stays selected rather than jumping to a mode that has
+      // no tab, so the inserted image is shown rendered.
+      expect(
+        tester
+            .widget<SegmentedButton<WorkspaceMode>>(
+              find.byKey(const Key('workspace-mode-switcher')),
+            )
+            .selected,
+        {WorkspaceMode.split},
+      );
 
       // Tap more actions menu and select import file
       await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));

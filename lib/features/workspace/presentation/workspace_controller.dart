@@ -1,3 +1,4 @@
+import 'package:mnote/l10n/language_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -5,12 +6,18 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 enum WorkspaceMode { edit, split, preview, ink }
 
 class WorkspaceController extends ChangeNotifier {
-  WorkspaceController(this._repository, {MarkdownDocument? initialDocument})
-    : _document = initialDocument ?? MarkdownDocument.untitled();
+  WorkspaceController(
+    this._repository, {
+    MarkdownDocument? initialDocument,
+    WorkspaceMode initialMode = WorkspaceMode.ink,
+  }) : _document = initialDocument ?? MarkdownDocument.untitled(),
+       _initialMode = initialMode,
+       _mode = initialMode;
 
   final DocumentRepository _repository;
   MarkdownDocument _document;
-  WorkspaceMode _mode = WorkspaceMode.split;
+  final WorkspaceMode _initialMode;
+  WorkspaceMode _mode;
   bool _isBusy = false;
   String? _errorMessage;
 
@@ -39,7 +46,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void newDocument() {
     _document = MarkdownDocument.untitled();
-    _mode = WorkspaceMode.split;
+    _mode = _initialMode;
     _errorMessage = null;
     notifyListeners();
   }
@@ -110,7 +117,7 @@ class WorkspaceController extends ChangeNotifier {
       _errorMessage = error.message;
       return false;
     } catch (_) {
-      _errorMessage = 'ไม่สามารถทำรายการกับไฟล์นี้ได้ กรุณาลองอีกครั้ง';
+      _errorMessage = LanguagePreferences.current().fileActionFailed;
       return false;
     } finally {
       _isBusy = false;

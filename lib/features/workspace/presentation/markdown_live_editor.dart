@@ -1,5 +1,7 @@
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'editor_settings.dart';
 import 'markdown_document_style.dart';
 import 'markdown_rendered_block.dart';
 
@@ -52,9 +54,16 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       (widget.history ?? _localHistory).future;
   bool _restoring = false;
 
+  DocumentTextOptions get _textOptions => EditorSettings.instance.textOptions;
+
+  void _onEditorSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    EditorSettings.instance.addListener(_onEditorSettingsChanged);
     _source = widget.controller.text;
     _updateHistory();
     if (widget.controller.text.isEmpty) _start = 0;
@@ -235,46 +244,36 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       child: Container(
         key: const Key('markdown-live-active-block'),
         margin: const EdgeInsets.symmetric(vertical: 4),
+        // A white, fully outlined box: a blockquote is a grey fill with a bar
+        // on the left, so the block being edited must not look like one.
         decoration: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: 0.08),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.25),
-            width: 1,
-          ),
+          border: Border.all(color: colorScheme.primary, width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 3.5,
-              child: ColoredBox(color: colorScheme.primary),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              child: TextField(
-                key: const Key('markdown-live-block-editor'),
-                controller: _blockController,
-                focusNode: _focus,
-                maxLines: null,
-                onTapOutside: (_) => _focus.unfocus(),
-                style: const TextStyle(
-                  fontSize: 17,
-                  height: MarkdownDocumentStyle.lineHeight,
-                  color: Color(0xFF202124),
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'เริ่มเขียน Markdown…',
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 4),
-                ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: TextField(
+            key: const Key('markdown-live-block-editor'),
+            controller: _blockController,
+            focusNode: _focus,
+            maxLines: null,
+            onTapOutside: (_) => _focus.unfocus(),
+            style: _textOptions.apply(
+              TextStyle(
+                fontSize: _textOptions.bodySize,
+                height: _textOptions.lineHeight,
+                color: const Color(0xFF202124),
               ),
             ),
-          ],
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: context.l10n.startWriting,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 4),
+            ),
+          ),
         ),
       ),
     );
@@ -309,6 +308,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
                 imageDirectory: widget.imageDirectory,
                 builders: widget.builders,
                 onTapLink: widget.onTapLink,
+                textOptions: _textOptions,
               ),
             ),
           ),
@@ -342,6 +342,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
               imageDirectory: widget.imageDirectory,
               builders: widget.builders,
               onTapLink: widget.onTapLink,
+              textOptions: _textOptions,
             ),
           ),
         ),
@@ -356,7 +357,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       children.add(
         TextButton(
           onPressed: () => _activate(0, 0),
-          child: const Text('เริ่มเขียน Markdown…'),
+          child: Text(context.l10n.startWriting),
         ),
       );
     }
@@ -393,6 +394,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
 
   @override
   void dispose() {
+    EditorSettings.instance.removeListener(_onEditorSettingsChanged);
     widget.controller.removeListener(_sync);
     widget.undoController?.onUndo.removeListener(_undo);
     widget.undoController?.onRedo.removeListener(_redo);

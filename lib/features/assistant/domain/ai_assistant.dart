@@ -16,10 +16,6 @@ final class AiDocumentContext {
   /// และประวัติแชทใต้ TPM 250K ของแผนฟรี
   static const int maxPromptTokens = 200000;
 
-  /// ข้อความเมื่อโน้ตยาวเกิน ใช้ทั้งตอนตรวจตัวอักษรและตอนนับ token
-  static const String tooLongMessage =
-      'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
-
   final String title;
   final String content;
 

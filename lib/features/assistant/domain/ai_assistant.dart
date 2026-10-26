@@ -9,6 +9,17 @@ final class AiDocumentContext {
   /// เกินนี้ Gemini ไม่รับอยู่แล้ว ตรวจไว้เพื่อแจ้งผู้ใช้ให้ชัดเจน
   static const int maxContentLength = 1000000;
 
+  /// จำนวน token สูงสุดของข้อความที่แนบโน้ต
+  ///
+  /// ภาษาไทยอาจใช้ token ต่อตัวอักษรมากกว่าภาษาอังกฤษ ลิมิตตัวอักษรอย่างเดียว
+  /// จึงไม่พอ โน้ตยาวจะถูกนับ token จริงก่อนส่ง เว้นที่ไว้ให้ system prompt
+  /// และประวัติแชทใต้ TPM 250K ของแผนฟรี
+  static const int maxPromptTokens = 200000;
+
+  /// ข้อความเมื่อโน้ตยาวเกิน ใช้ทั้งตอนตรวจตัวอักษรและตอนนับ token
+  static const String tooLongMessage =
+      'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
+
   final String title;
   final String content;
 

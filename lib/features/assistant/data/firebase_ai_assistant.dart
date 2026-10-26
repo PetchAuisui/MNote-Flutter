@@ -37,10 +37,7 @@ class FirebaseAiAssistant implements AiAssistant {
     AiDocumentContext? document,
   }) async* {
     if (document != null && document.isTooLong) {
-      throw const AiAssistantException(
-        'โน้ตยาวเกินไปสำหรับผู้ช่วย AI '
-        '(สูงสุด ${AiDocumentContext.maxContentLength} ตัวอักษร)',
-      );
+      throw const AiAssistantException(AiDocumentContext.tooLongMessage);
     }
     try {
       final model = FirebaseAI.googleAI().generativeModel(
@@ -49,12 +46,23 @@ class FirebaseAiAssistant implements AiAssistant {
           buildSystemPrompt(hasDocument: document != null),
         ),
       );
-      final chat = model.startChat(history: buildGeminiHistory(history));
       final prompt = Content.text(buildUserPrompt(text, document));
+      // โน้ตยาวพอที่อาจเกินเพดาน token: นับจริงก่อนส่ง (countTokens ฟรี
+      // ไม่ใช้โควตา Gemini) โน้ตทั่วไปสั้นกว่านี้ จึงไม่มีคำขอเพิ่ม
+      if (document != null && needsTokenCount(document.content.length)) {
+        final count = await model.countTokens([prompt]);
+        if (count.totalTokens > AiDocumentContext.maxPromptTokens) {
+          throw const AiAssistantException(AiDocumentContext.tooLongMessage);
+        }
+      }
+      final chat = model.startChat(history: buildGeminiHistory(history));
       await for (final chunk in chat.sendMessageStream(prompt)) {
         final part = chunk.text;
         if (part != null && part.isNotEmpty) yield part;
       }
+    } on AiAssistantException {
+      // ข้อความของเราเอง (เช่น โน้ตยาวเกิน) ส่งต่อตามเดิม ไม่แปลงเป็นข้อความเน็ตหลุด
+      rethrow;
     } on Exception catch (error) {
       debugPrint('AI request failed: ${describeAiError(error)}');
       throw aiErrorToException(error);
@@ -69,15 +77,27 @@ String buildSystemPrompt({required bool hasDocument}) =>
         ? FirebaseAiAssistant._withNotePrompt
         : FirebaseAiAssistant._noNotePrompt);
 
+/// ต้องนับ token จริงก่อนส่งไหม
+///
+/// 1 ตัวอักษร (UTF-16) ใช้ได้ไม่เกิน 4 token แม้ tokenizer จะแตกเป็นรายไบต์
+/// (UTF-8 ยาวสุด 4 ไบต์) โน้ตที่ยาวไม่เกิน maxPromptTokens / 4 จึงไม่มีทางเกิน
+@visibleForTesting
+bool needsTokenCount(int contentLength) =>
+    contentLength * 4 > AiDocumentContext.maxPromptTokens;
+
 final _closingNoteTag = RegExp(r'</\s*note\s*>', caseSensitive: false);
+final _lineBreaks = RegExp(r'[\r\n]+');
+
+/// กันข้อความในโน้ตปิดแท็ก `<note>` เอง แก้เฉพาะสำเนาที่ส่งให้ AI โน้ตจริงไม่เปลี่ยน
+String _escapeNoteTag(String s) => s.replaceAll(_closingNoteTag, '</ note_>');
 
 @visibleForTesting
 String buildUserPrompt(String text, AiDocumentContext? document) {
   if (document == null) return text;
-  final title = document.title.replaceAll(RegExp(r'[\r\n]+'), ' ');
-  final content = document.content.replaceAll(_closingNoteTag, '</ note_>');
+  final title = _escapeNoteTag(document.title.replaceAll(_lineBreaks, ' '));
+  final content = _escapeNoteTag(document.content);
   return '<note>\n'
-      'ชื่อโน้ต: ${title.replaceAll(_closingNoteTag, '</ note_>')}\n'
+      'ชื่อโน้ต: $title\n'
       '$content\n'
       '</note>\n\n'
       '$text';

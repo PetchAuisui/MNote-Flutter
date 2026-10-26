@@ -186,23 +186,34 @@ void main() {
       },
     );
 
-    // 6h. ความยาว 20,000 พอดี: isTooLong == false
-    test(
-      '6h. boundary check: content length 20,000 has isTooLong == false',
-      () {
-        final docExact = AiDocumentContext(
-          title: 'Exact Doc',
-          content: 'a' * AiDocumentContext.maxContentLength,
-        );
-        expect(docExact.isTooLong, isFalse);
+    // 6h. ความยาวเพดาน: isTooLong ทำงานถูกต้อง
+    test('6h. boundary check: content length ceiling behaves correctly', () {
+      final docExact = AiDocumentContext(
+        title: 'Exact Doc',
+        content: 'a' * AiDocumentContext.maxContentLength,
+      );
+      expect(docExact.isTooLong, isFalse);
 
-        final docExceeded = AiDocumentContext(
-          title: 'Exceeded Doc',
-          content: 'a' * (AiDocumentContext.maxContentLength + 1),
-        );
-        expect(docExceeded.isTooLong, isTrue);
-      },
-    );
+      final docExceeded = AiDocumentContext(
+        title: 'Exceeded Doc',
+        content: 'a' * (AiDocumentContext.maxContentLength + 1),
+      );
+      expect(docExceeded.isTooLong, isTrue);
+    });
+
+    // 6i. โน้ตยาวเท่าไหร่ถึงต้องนับ token จริงก่อนส่ง
+    test('6i. needsTokenCount only for notes that could exceed the budget', () {
+      const safeLength = AiDocumentContext.maxPromptTokens ~/ 4;
+      expect(needsTokenCount(0), isFalse);
+      expect(needsTokenCount(safeLength), isFalse);
+      expect(needsTokenCount(safeLength + 1), isTrue);
+    });
+
+    // 6j. ข้อความเมื่อโน้ตยาวเกินบอกวิธีแก้
+    test('6j. too-long message tells the user how to continue', () {
+      expect(AiDocumentContext.tooLongMessage, contains('ยาวเกินไป'));
+      expect(AiDocumentContext.tooLongMessage, contains('กด x'));
+    });
   });
 
   group('aiErrorToException', () {

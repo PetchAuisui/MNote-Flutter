@@ -28,10 +28,17 @@ class AssistantChatController extends ChangeNotifier {
   bool get isResponding => _isResponding;
   String? get errorMessage => _errorMessage;
 
+  /// มีตัวอักษรที่ไม่ใช่ช่องว่างอย่างน้อย 1 ตัว
+  static final _nonWhitespace = RegExp(r'\S');
+
   /// โน้ตที่แนบได้ตอนนี้ โน้ตว่างถือว่าไม่มี
+  ///
+  /// หน้าจอเรียกหลายครั้งทุกครั้งที่วาดใหม่ (รวมทุกชิ้นของคำตอบที่สตรีม)
+  /// จึงเช็กด้วย hasMatch ซึ่งหยุดที่ตัวอักษรแรกที่ไม่ใช่ช่องว่าง
+  /// ไม่ใช้ trim() ที่คัดลอกโน้ตทั้งก้อนทุกครั้ง
   AiDocumentContext? _currentNote() {
     final note = _documentProvider?.call();
-    if (note == null || note.content.trim().isEmpty) return null;
+    if (note == null || !_nonWhitespace.hasMatch(note.content)) return null;
     return note;
   }
 
@@ -63,10 +70,7 @@ class AssistantChatController extends ChangeNotifier {
     // อ่านโน้ตตอนกดส่ง จะได้เนื้อหาล่าสุด
     final document = _noteAttached ? _currentNote() : null;
     if (document != null && document.isTooLong) {
-      _errorMessage =
-          'โน้ตยาวเกินไปสำหรับผู้ช่วย AI '
-          '(สูงสุด ${AiDocumentContext.maxContentLength} ตัวอักษร) '
-          'กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
+      _errorMessage = AiDocumentContext.tooLongMessage;
       _notifySafely();
       return false;
     }

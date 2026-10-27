@@ -104,6 +104,26 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
   final _transform = TransformationController();
   double _viewportWidth = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _transform.addListener(_clampHorizontal);
+  }
+
+  /// Keeps the page horizontally centred (or edge-clamped when zoomed in).
+  void _clampHorizontal() {
+    if (_viewportWidth <= 0) return;
+    final value = _transform.value;
+    final scaledWidth = DocumentPageMetrics.width * value.getMaxScaleOnAxis();
+    final tx = value.getTranslation().x;
+    final target = scaledWidth <= _viewportWidth
+        ? (_viewportWidth - scaledWidth) / 2
+        : tx.clamp(_viewportWidth - scaledWidth, 0.0);
+    if ((target - tx).abs() < 0.01) return;
+    _transform.value = value.clone()
+      ..setTranslationRaw(target, value.getTranslation().y, 0);
+  }
+
   void _fit() {
     final scale = (_viewportWidth / DocumentPageMetrics.width).clamp(0.1, 1.0);
     final dx = _viewportWidth > DocumentPageMetrics.width
@@ -115,6 +135,7 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
 
   @override
   void dispose() {
+    _transform.removeListener(_clampHorizontal);
     _transform.dispose();
     super.dispose();
   }
@@ -133,6 +154,10 @@ class _MarkdownPreviewCanvasState extends State<MarkdownPreviewCanvas> {
           transformationController: _transform,
           constrained: false,
           alignment: Alignment.topLeft,
+          // Open the sides so the page can be zoomed out to the fitted state
+          // on a viewport wider than the page; _clampHorizontal keeps it
+          // centred or edge-clamped.
+          boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
           minScale: 0.1,
           maxScale: 4,
           child: SizedBox(

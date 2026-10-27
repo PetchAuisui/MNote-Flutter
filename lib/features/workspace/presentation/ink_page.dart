@@ -279,6 +279,11 @@ class _InkPageState extends State<InkPage> {
             transformationController: _transform,
             constrained: false,
             alignment: Alignment.topLeft,
+            // InteractiveViewer won't zoom out past the point where the page
+            // fills the viewport. On a viewport wider than the page that
+            // stops the zoom short of the fitted state, so leave the sides
+            // open; _clampHorizontal keeps the page centred or edge-clamped.
+            boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
             minScale: 0.1,
             maxScale: 4,
             panEnabled: !_touch,

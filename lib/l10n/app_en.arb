@@ -396,7 +396,7 @@
   "aiSuggest2": "Draw a flowchart of the sign-up steps",
   "aiSuggest3": "Help me think of headings for lesson summary notes",
   "aiClearChat": "Clear conversation",
-  "aiPrivacyNote": "What you type is sent to Google Gemini for processing · The AI has not read the contents of your notes",
+  "aiPrivacyNote": "What you type is sent to Google Gemini for processing · The AI has not read your note",
   "aiHint": "Ask anything…",
   "aiSend": "Send",
   "aiStart": "Start chatting with the AI assistant",
@@ -410,6 +410,13 @@
   "aiAppCheck": "App security verification failed, so the AI assistant cannot be used right now.",
   "aiConnect": "Could not connect to the AI assistant. Check your internet connection and try again.",
   "aiTooLong": "The message is too long (max {max} characters)",
+  "aiPrivacyWithNote": "What you type and the attached note are sent to Google Gemini for processing",
+  "aiNoteChip": "AI will read: {title}",
+  "aiNoteRemove": "Don't attach the note",
+  "aiNoteAttach": "Attach this note",
+  "aiNoteLabel": "Attached: {title}",
+  "aiNoteTooLong": "The note is too long for the AI assistant. Tap x on the note name to send without it.",
+  "aiDisclaimer": "Gemini is an AI and can make mistakes. Check important information.",
   "startWriting": "Start writing Markdown…",
   "firebaseSetupError": "Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md"
 }

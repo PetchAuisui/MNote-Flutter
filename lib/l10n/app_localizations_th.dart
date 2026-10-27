@@ -1308,7 +1308,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get aiPrivacyNote =>
-      'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ';
+      'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ';
 
   @override
   String get aiHint => 'ถามอะไรก็ได้…';
@@ -1354,6 +1354,34 @@ class AppLocalizationsTh extends AppLocalizations {
   String aiTooLong(int max) {
     return 'ข้อความยาวเกินไป (สูงสุด $max ตัวอักษร)';
   }
+
+  @override
+  String get aiPrivacyWithNote =>
+      'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini';
+
+  @override
+  String aiNoteChip(String title) {
+    return 'AI จะอ่าน: $title';
+  }
+
+  @override
+  String get aiNoteRemove => 'ไม่แนบโน้ต';
+
+  @override
+  String get aiNoteAttach => 'แนบโน้ตนี้';
+
+  @override
+  String aiNoteLabel(String title) {
+    return 'แนบ: $title';
+  }
+
+  @override
+  String get aiNoteTooLong =>
+      'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
+
+  @override
+  String get aiDisclaimer =>
+      'Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ';
 
   @override
   String get startWriting => 'เริ่มเขียน Markdown…';

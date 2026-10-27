@@ -1,5 +1,5 @@
-import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter/material.dart';
+import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../domain/chat_message.dart';
 import 'assistant_chat_controller.dart';
@@ -200,6 +200,9 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
         final canSend = _textController.text.trim().isNotEmpty && !isResponding;
         final canClear = messages.isNotEmpty && !isResponding;
 
+        final hasAttached = widget.controller.isNoteAttached;
+        final canAttach = widget.controller.canAttachNote;
+
         return Material(
           key: const Key('assistant-chat-panel'),
           type: MaterialType.transparency,
@@ -244,7 +247,9 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Text(
-                  context.l10n.aiPrivacyNote,
+                  hasAttached
+                      ? context.l10n.aiPrivacyWithNote
+                      : context.l10n.aiPrivacyNote,
                   key: const Key('assistant-privacy-note'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -304,42 +309,90 @@ class _AssistantChatPanelState extends State<AssistantChatPanel> {
 
               const Divider(height: 1),
 
-              // 5. ช่องพิมพ์ข้อความ
+              // 5. ช่องพิมพ์ข้อความ พร้อมแถบแนบโน้ต และคำเตือน Disclaimer
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('assistant-input'),
-                        controller: _textController,
-                        minLines: 1,
-                        maxLines: 5,
-                        maxLength: AssistantChatController.maxInputLength,
-                        textInputAction: TextInputAction.send,
-                        decoration: InputDecoration(
-                          hintText: context.l10n.aiHint,
-                          counterText: '',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                    if (hasAttached) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: InputChip(
+                          key: const Key('assistant-note-chip'),
+                          avatar: const Icon(Icons.description_outlined),
+                          label: Text(
+                            context.l10n.aiNoteChip(
+                              widget.controller.attachedNoteTitle ?? '',
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+                          onDeleted: () =>
+                              widget.controller.setNoteAttached(false),
+                          deleteButtonTooltipMessage: context.l10n.aiNoteRemove,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ] else if (canAttach) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ActionChip(
+                          key: const Key('assistant-note-attach'),
+                          avatar: const Icon(Icons.attach_file),
+                          label: Text(context.l10n.aiNoteAttach),
+                          onPressed: () =>
+                              widget.controller.setNoteAttached(true),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const Key('assistant-input'),
+                            controller: _textController,
+                            minLines: 1,
+                            maxLines: 5,
+                            maxLength: AssistantChatController.maxInputLength,
+                            textInputAction: TextInputAction.send,
+                            decoration: InputDecoration(
+                              hintText: context.l10n.aiHint,
+                              counterText: '',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(24),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                            ),
+                            onSubmitted: (_) {
+                              if (canSend) _sendMessage();
+                            },
                           ),
                         ),
-                        onSubmitted: (_) {
-                          if (canSend) _sendMessage();
-                        },
-                      ),
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          key: const Key('assistant-send'),
+                          icon: const Icon(Icons.arrow_upward_rounded),
+                          tooltip: context.l10n.aiSend,
+                          onPressed: canSend ? () => _sendMessage() : null,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      key: const Key('assistant-send'),
-                      icon: const Icon(Icons.arrow_upward_rounded),
-                      tooltip: context.l10n.aiSend,
-                      onPressed: canSend ? () => _sendMessage() : null,
+                    const SizedBox(height: 6),
+                    Text(
+                      context.l10n.aiDisclaimer,
+                      key: const Key('assistant-disclaimer'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -435,9 +488,45 @@ class _MessageBubble extends StatelessWidget {
           child: showTypingIndicator
               ? const _TypingIndicator()
               : isUser
-              ? SelectableText(
-                  message.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (message.attachedNoteTitle != null)
+                      Padding(
+                        key: const Key('assistant-message-note-label'),
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.description_outlined,
+                              size: 14,
+                              color: textColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                context.l10n.aiNoteLabel(
+                                  message.attachedNoteTitle!,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    SelectableText(
+                      message.text,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: textColor,
+                      ),
+                    ),
+                  ],
                 )
               : MarkdownBody(
                   // MarkdownBody แปลงใหม่เฉพาะตอน data เปลี่ยน

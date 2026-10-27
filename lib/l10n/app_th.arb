@@ -734,7 +734,7 @@
   "aiSuggest2": "เขียน flowchart ขั้นตอนการสมัครสมาชิก",
   "aiSuggest3": "ช่วยคิดหัวข้อสำหรับโน้ตสรุปบทเรียน",
   "aiClearChat": "ล้างบทสนทนา",
-  "aiPrivacyNote": "ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ",
+  "aiPrivacyNote": "ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ",
   "aiHint": "ถามอะไรก็ได้…",
   "aiSend": "ส่ง",
   "aiStart": "เริ่มคุยกับผู้ช่วย AI",
@@ -755,6 +755,27 @@
       }
     }
   },
+  "aiPrivacyWithNote": "ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini",
+  "aiNoteChip": "AI จะอ่าน: {title}",
+  "@aiNoteChip": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoteRemove": "ไม่แนบโน้ต",
+  "aiNoteAttach": "แนบโน้ตนี้",
+  "aiNoteLabel": "แนบ: {title}",
+  "@aiNoteLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNoteTooLong": "โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ",
+  "aiDisclaimer": "Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ",
   "startWriting": "เริ่มเขียน Markdown…",
   "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md"
 }

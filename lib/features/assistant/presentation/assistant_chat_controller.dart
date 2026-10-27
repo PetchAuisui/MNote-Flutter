@@ -1,15 +1,16 @@
-import 'package:mnote/l10n/language_preferences.dart';
-import 'dart:collection';
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
+import 'package:mnote/l10n/language_preferences.dart';
 import '../domain/ai_assistant.dart';
 import '../domain/chat_message.dart';
 
 class AssistantChatController extends ChangeNotifier {
   final AiAssistant _assistant;
+  final AiDocumentContext Function()? _documentProvider;
 
-  AssistantChatController(this._assistant);
+  AssistantChatController(this._assistant, {this._documentProvider});
 
   static const int maxInputLength = 2000;
   static const int maxHistoryMessages = 20;
@@ -21,9 +22,36 @@ class AssistantChatController extends ChangeNotifier {
   StreamSubscription<String>? _streamSubscription;
   Completer<void>? _responseDone;
 
+  /// ผู้ใช้ต้องการแนบโน้ตไหม เริ่มต้นแนบ กด x แล้วจำไว้จนกว่าจะกดแนบใหม่
+  bool _noteAttached = true;
+
   List<ChatMessage> get messages => UnmodifiableListView(_messages);
   bool get isResponding => _isResponding;
   String? get errorMessage => _errorMessage;
+
+  /// มีตัวอักษรที่ไม่ใช่ช่องว่างอย่างน้อย 1 ตัว
+  static final _nonWhitespace = RegExp(r'\S');
+
+  /// โน้ตที่แนบได้ตอนนี้ โน้ตว่างถือว่าไม่มี
+  ///
+  /// หน้าจอเรียกหลายครั้งทุกครั้งที่วาดใหม่ (รวมทุกชิ้นของคำตอบที่สตรีม)
+  /// จึงเช็กด้วย hasMatch ซึ่งหยุดที่ตัวอักษรแรกที่ไม่ใช่ช่องว่าง
+  /// ไม่ใช้ trim() ที่คัดลอกโน้ตทั้งก้อนทุกครั้ง
+  AiDocumentContext? _currentNote() {
+    final note = _documentProvider?.call();
+    if (note == null || !_nonWhitespace.hasMatch(note.content)) return null;
+    return note;
+  }
+
+  bool get canAttachNote => _currentNote() != null;
+  bool get isNoteAttached => _noteAttached && canAttachNote;
+  String? get attachedNoteTitle => _noteAttached ? _currentNote()?.title : null;
+
+  void setNoteAttached(bool value) {
+    if (_noteAttached == value) return;
+    _noteAttached = value;
+    _notifySafely();
+  }
 
   /// คืน true เมื่อ AI ตอบจบสำเร็จ
   /// ถ้าไม่สำเร็จ เอาคำถามและคำตอบที่ไม่จบออก ไม่ให้ถูกส่งเป็นประวัติรอบหน้า
@@ -40,13 +68,27 @@ class AssistantChatController extends ChangeNotifier {
       return false;
     }
 
+    // อ่านโน้ตตอนกดส่ง จะได้เนื้อหาล่าสุด
+    final document = _noteAttached ? _currentNote() : null;
+    if (document != null && document.isTooLong) {
+      _errorMessage = LanguagePreferences.current().aiNoteTooLong;
+      _notifySafely();
+      return false;
+    }
+
     final history = _messages.length > maxHistoryMessages
         ? _messages.sublist(_messages.length - maxHistoryMessages)
         : List<ChatMessage>.from(_messages);
 
     _errorMessage = null;
     final turnStart = _messages.length;
-    _messages.add(ChatMessage(role: ChatRole.user, text: trimmedText));
+    _messages.add(
+      ChatMessage(
+        role: ChatRole.user,
+        text: trimmedText,
+        attachedNoteTitle: document?.title,
+      ),
+    );
     _messages.add(const ChatMessage(role: ChatRole.assistant, text: ''));
     _isResponding = true;
     _notifySafely();
@@ -58,8 +100,7 @@ class AssistantChatController extends ChangeNotifier {
       final stream = _assistant.sendMessage(
         trimmedText,
         history: history,
-        // ยังไม่ส่งโน้ตให้ AI (ความเป็นส่วนตัว)
-        document: null,
+        document: document,
       );
 
       _streamSubscription = stream.listen(

@@ -2477,7 +2477,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPrivacyNote.
   ///
   /// In th, this message translates to:
-  /// **'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ยังไม่ได้อ่านเนื้อหาโน้ตของคุณ'**
+  /// **'ข้อความที่พิมพ์จะถูกส่งไปประมวลผลที่ Google Gemini · AI ไม่ได้อ่านโน้ตของคุณ'**
   String get aiPrivacyNote;
 
   /// No description provided for @aiHint.
@@ -2557,6 +2557,48 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ข้อความยาวเกินไป (สูงสุด {max} ตัวอักษร)'**
   String aiTooLong(int max);
+
+  /// No description provided for @aiPrivacyWithNote.
+  ///
+  /// In th, this message translates to:
+  /// **'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini'**
+  String get aiPrivacyWithNote;
+
+  /// No description provided for @aiNoteChip.
+  ///
+  /// In th, this message translates to:
+  /// **'AI จะอ่าน: {title}'**
+  String aiNoteChip(String title);
+
+  /// No description provided for @aiNoteRemove.
+  ///
+  /// In th, this message translates to:
+  /// **'ไม่แนบโน้ต'**
+  String get aiNoteRemove;
+
+  /// No description provided for @aiNoteAttach.
+  ///
+  /// In th, this message translates to:
+  /// **'แนบโน้ตนี้'**
+  String get aiNoteAttach;
+
+  /// No description provided for @aiNoteLabel.
+  ///
+  /// In th, this message translates to:
+  /// **'แนบ: {title}'**
+  String aiNoteLabel(String title);
+
+  /// No description provided for @aiNoteTooLong.
+  ///
+  /// In th, this message translates to:
+  /// **'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ'**
+  String get aiNoteTooLong;
+
+  /// No description provided for @aiDisclaimer.
+  ///
+  /// In th, this message translates to:
+  /// **'Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ'**
+  String get aiDisclaimer;
 
   /// No description provided for @startWriting.
   ///

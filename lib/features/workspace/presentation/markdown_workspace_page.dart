@@ -1229,7 +1229,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   void _openAssistant() {
     final assistant = widget.assistant;
     if (assistant == null) return;
-    final chat = _assistantChat ??= AssistantChatController(assistant);
+    final chat = _assistantChat ??= AssistantChatController(
+      assistant,
+      documentProvider: () => AiDocumentContext(
+        title: _workspace.document.name,
+        content: _workspace.document.content,
+      ),
+    );
     showAssistantChat(context, controller: chat);
   }
 

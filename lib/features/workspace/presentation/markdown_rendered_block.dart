@@ -104,6 +104,8 @@ class _DocumentImageState extends State<_DocumentImage> {
       // No documents folder on this platform; the note folder is all we have.
     }
     final relative = Uri.decodeFull(uri.path);
+    // A synced note must not point the viewer at files outside its folders.
+    if (relative.split(RegExp(r'[\\/]')).contains('..')) return null;
     for (final directory in candidates) {
       final file = File('${directory.path}/$relative');
       if (await file.exists()) return file;

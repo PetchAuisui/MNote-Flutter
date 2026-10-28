@@ -1047,12 +1047,18 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   /// Below this width Material 3 treats the window as compact, where the
-  /// outline opens as a bottom sheet instead of a side sheet.
+  /// outline opens as a bottom sheet instead of a docked side sheet.
   static const _compactWidth = 600.0;
 
-  void _openOutline() {
-    if (MediaQuery.sizeOf(context).width >= _compactWidth) {
-      setState(() => _outlineOpen = true);
+  bool get _hasOutline =>
+      _workspace.mode == WorkspaceMode.split ||
+      _workspace.mode == WorkspaceMode.ink;
+
+  bool get _isCompact => MediaQuery.sizeOf(context).width < _compactWidth;
+
+  void _toggleOutline() {
+    if (!_isCompact) {
+      setState(() => _outlineOpen = !_outlineOpen);
       return;
     }
     showModalBottomSheet<void>(
@@ -1075,52 +1081,35 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  /// Overlays the outline button and side sheet on a document view.
+  /// The outline toggle at the leading edge of the header, as in GoodNotes.
+  Widget? _buildOutlineButton() {
+    if (!_hasOutline) return null;
+    return IconButton(
+      key: const Key('toolbar-outline-button'),
+      onPressed: _toggleOutline,
+      visualDensity: VisualDensity.compact,
+      tooltip: context.l10n.outlineTitle,
+      isSelected: _outlineOpen && !_isCompact,
+      icon: const Icon(Icons.toc_rounded),
+    );
+  }
+
+  /// Docks the outline as a standard side sheet that shares the row with the
+  /// document instead of covering it.
   Widget _withOutline(Widget view) {
-    return Stack(
+    if (!_outlineOpen || _isCompact) return view;
+    return Row(
       children: [
-        Positioned.fill(child: view),
-        if (!_outlineOpen)
-          PositionedDirectional(
-            top: 8,
-            end: 8,
-            child: FloatingActionButton.small(
-              key: const Key('toolbar-outline-button'),
-              heroTag: null,
-              tooltip: context.l10n.outlineTitle,
-              onPressed: _openOutline,
-              child: const Icon(Icons.toc_rounded),
-            ),
+        SizedBox(
+          width: 280,
+          child: MarkdownOutlinePanel(
+            textController: _textController,
+            outline: _outline,
+            onClose: () => setState(() => _outlineOpen = false),
+            onSelected: (heading) => _outline.scrollToOffset(heading.offset),
           ),
-        if (_outlineOpen)
-          Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, constraints) => Align(
-                alignment: AlignmentDirectional.topEnd,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: (constraints.maxWidth - 24).clamp(0.0, 320.0),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: (constraints.maxHeight - 24).clamp(
-                          0.0,
-                          double.infinity,
-                        ),
-                      ),
-                      child: MarkdownOutlinePanel(
-                        textController: _textController,
-                        outline: _outline,
-                        onClose: () => setState(() => _outlineOpen = false),
-                        onSelected: (heading) =>
-                            _outline.scrollToOffset(heading.offset),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+        ),
+        Expanded(child: view),
       ],
     );
   }
@@ -1145,6 +1134,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 720;
           final title = _buildDocumentTitle(document);
+          final outlineButton = _buildOutlineButton();
           final modes = _buildModeSwitcher(compact: !wide);
           final actions = _buildDocumentActions();
           if (!wide) {
@@ -1160,6 +1150,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           BackButton(
                             onPressed: () => Navigator.maybePop(context),
                           ),
+                        ?outlineButton,
                         Expanded(child: title),
                         actions,
                       ],
@@ -1185,6 +1176,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                         BackButton(
                           onPressed: () => Navigator.maybePop(context),
                         ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (outlineButton != null) ...[
+                        outlineButton,
                         const SizedBox(width: 8),
                       ],
                       Expanded(

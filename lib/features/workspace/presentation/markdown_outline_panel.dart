@@ -94,14 +94,19 @@ class _MarkdownOutlinePanelState extends State<MarkdownOutlinePanel> {
       ],
     );
     if (widget.asSheet) return content;
-    // A standard Material 3 side sheet: container surface, large corners.
+    // A standard Material 3 side sheet: it sits beside the document on a
+    // container surface and is separated from it by a divider.
     return Material(
       key: const Key('outline-panel'),
       color: theme.colorScheme.surfaceContainerLow,
-      elevation: 3,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: content,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: BorderDirectional(
+            end: BorderSide(color: theme.colorScheme.outlineVariant),
+          ),
+        ),
+        child: SafeArea(top: false, right: false, child: content),
+      ),
     );
   }
 }

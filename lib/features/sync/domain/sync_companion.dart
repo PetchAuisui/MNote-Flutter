@@ -7,6 +7,9 @@ abstract interface class SyncCompanion {
   /// Re-evaluates what to upload after the sync settings changed.
   Future<void> refresh();
 
+  /// The notes changed locally or from the cloud.
+  Future<void> libraryChanged();
+
   /// Removes the local copy of the synced data.
   Future<void> clearLocal();
 }

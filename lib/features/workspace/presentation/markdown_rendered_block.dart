@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:path_provider/path_provider.dart';
 import 'markdown_document_style.dart';
 
 class _LineBreakSyntax extends md.InlineSyntax {
@@ -10,6 +13,181 @@ class _LineBreakSyntax extends md.InlineSyntax {
   bool onMatch(md.InlineParser parser, Match match) {
     parser.addNode(md.Element.empty('br'));
     return true;
+  }
+}
+
+/// Loads a picture referenced from a note. Relative paths resolve against the
+/// note's folder, then the app documents folder (where pictures land for a note
+/// without a file location). A missing file shows a placeholder, not a gap.
+class _DocumentImage extends StatefulWidget {
+  const _DocumentImage({
+    required this.uri,
+    this.directory,
+    this.alt,
+    this.width,
+    this.height,
+  });
+
+  final Uri uri;
+  final String? directory;
+  final String? alt;
+  final double? width;
+  final double? height;
+
+  @override
+  State<_DocumentImage> createState() => _DocumentImageState();
+}
+
+class _DocumentImageState extends State<_DocumentImage> {
+  // Looked up once, not on every rebuild, so the picture does not flicker.
+  late Future<File?> _file = _locate();
+
+  Uri get uri => widget.uri;
+  double? get width => widget.width;
+  double? get height => widget.height;
+
+  @override
+  void didUpdateWidget(_DocumentImage old) {
+    super.didUpdateWidget(old);
+    if (old.uri != widget.uri || old.directory != widget.directory) {
+      _file = _locate();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      return Image.network(
+        uri.toString(),
+        width: width,
+        height: height,
+        errorBuilder: _broken,
+      );
+    }
+    if (uri.scheme == 'data') {
+      final data = uri.data;
+      if (data == null) return _broken(context, 'invalid data uri', null);
+      return Image.memory(
+        data.contentAsBytes(),
+        width: width,
+        height: height,
+        errorBuilder: _broken,
+      );
+    }
+    return FutureBuilder<File?>(
+      future: _file,
+      builder: (context, snapshot) {
+        final file = snapshot.data;
+        if (file == null) {
+          return snapshot.connectionState == ConnectionState.done
+              ? _broken(context, 'not found: $uri', null)
+              : const SizedBox(height: 24);
+        }
+        return Image.file(
+          file,
+          width: width,
+          height: height,
+          errorBuilder: _broken,
+        );
+      },
+    );
+  }
+
+  Future<File?> _locate() async {
+    final candidates = <Directory>[];
+    final base = widget.directory;
+    if (base != null) candidates.add(Directory.fromUri(Uri.parse(base)));
+    try {
+      candidates.add(await getApplicationDocumentsDirectory());
+    } on Object {
+      // No documents folder on this platform; the note folder is all we have.
+    }
+    // A synced note must not point the viewer at files outside its folders.
+    if (uri.scheme == 'file') {
+      final path = File.fromUri(uri).absolute.path;
+      final inside = candidates.any((d) {
+        final root = d.absolute.path;
+        return path.startsWith(root.endsWith('/') ? root : '$root/');
+      });
+      if (!inside || path.split(RegExp(r'[\\/]')).contains('..')) return null;
+      return File(path);
+    }
+    final relative = Uri.decodeFull(uri.path);
+    if (relative.split(RegExp(r'[\\/]')).contains('..')) return null;
+    for (final directory in candidates) {
+      final file = File('${directory.path}/$relative');
+      if (await file.exists()) return file;
+    }
+    return null;
+  }
+
+  Widget _broken(BuildContext context, Object error, StackTrace? stack) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.broken_image_outlined, color: scheme.outline),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              widget.alt?.isNotEmpty == true ? widget.alt! : uri.toString(),
+              style: TextStyle(color: scheme.outline),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Draws `img` elements. Pictures stored next to the note go through
+/// [_DocumentImage], which also covers web and `data:` links. App assets
+/// (`resource:`) are drawn here. All honour the `#WIDTHxHEIGHT` size suffix.
+class _ImageElementBuilder extends MarkdownElementBuilder {
+  _ImageElementBuilder(this.directory);
+
+  final String? directory;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final parts = (element.attributes['src'] ?? '').split('#');
+    final uri = Uri.tryParse(parts.first);
+    if (uri == null) return const SizedBox();
+    double? width;
+    double? height;
+    if (parts.length == 2) {
+      final size = parts.last.split('x');
+      if (size.length == 2) {
+        width = double.tryParse(size[0]);
+        height = double.tryParse(size[1]);
+      }
+    }
+    if (uri.scheme == 'resource') {
+      return Image.asset(
+        uri.path,
+        width: width,
+        height: height,
+        errorBuilder: (_, _, _) => const SizedBox(),
+      );
+    }
+    return _DocumentImage(
+      uri: uri,
+      directory: directory,
+      alt: element.attributes['alt'],
+      width: width,
+      height: height,
+    );
   }
 }
 
@@ -296,8 +474,7 @@ class MarkdownRenderedBlock extends StatelessWidget {
           if (references.isNotEmpty) _ReferenceContextSyntax(references),
           _LineBreakSyntax(),
         ],
-        imageDirectory: imageDirectory,
-        builders: builders,
+        builders: {'img': _ImageElementBuilder(imageDirectory), ...builders},
         selectable: selectable,
         onTapLink: onTapLink,
         fitContent: false,

@@ -12,6 +12,8 @@ import 'editor_settings.dart';
 import 'ink_session.dart';
 import 'ink_storage_scope.dart';
 import 'markdown_document_canvas.dart';
+import 'markdown_live_editor.dart';
+import 'markdown_outline.dart';
 import 'mermaid/mermaid_element_builder.dart';
 
 class InkPage extends StatefulWidget {
@@ -25,6 +27,7 @@ class InkPage extends StatefulWidget {
     this.transformationController,
     this.showToolbar = true,
     this.onViewportWidthChanged,
+    this.outline,
   });
   final InkSession session;
   final String markdown;
@@ -37,14 +40,26 @@ class InkPage extends StatefulWidget {
   final bool showToolbar;
   final ValueChanged<double>? onViewportWidthChanged;
 
+  /// Lets the outline panel jump to headings and follow the visible one.
+  final MarkdownOutlineController? outline;
+
   @override
   State<InkPage> createState() => _InkPageState();
 }
 
-class _InkPageState extends State<InkPage> {
+class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   late TransformationController _transform;
   bool _ownsTransform = false;
   final _pageKey = GlobalKey();
+  final _blockKeys = <int, GlobalKey>{};
+  late final _scrollAnimation = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+  );
+  double _viewportHeight = 0;
+  bool _jumping = false;
+  String? _headingsSource;
+  List<MarkdownHeading> _headings = const [];
   InkTool _tool = InkTool.pen;
   Color _penColor = const Color(0xFF202124);
   double _penWidth = 3;
@@ -113,13 +128,20 @@ class _InkPageState extends State<InkPage> {
     _ownsTransform = external == null;
     _transform = external ?? TransformationController();
     _transform.addListener(_clampHorizontal);
+    _transform.addListener(_trackActiveHeading);
+    widget.outline?.attach(_scrollToOffset);
   }
 
   @override
   void didUpdateWidget(InkPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.outline != widget.outline) {
+      oldWidget.outline?.detach(_scrollToOffset);
+      widget.outline?.attach(_scrollToOffset);
+    }
     if (oldWidget.transformationController != widget.transformationController) {
       _transform.removeListener(_clampHorizontal);
+      _transform.removeListener(_trackActiveHeading);
       if (_ownsTransform) _transform.dispose();
       _attachTransform();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -131,6 +153,9 @@ class _InkPageState extends State<InkPage> {
   @override
   void dispose() {
     _transform.removeListener(_clampHorizontal);
+    _transform.removeListener(_trackActiveHeading);
+    widget.outline?.detach(_scrollToOffset);
+    _scrollAnimation.dispose();
     _autoSaveInkTimer?.cancel();
     if (widget.session.isDirty) {
       final snapshot = widget.session.encode();
@@ -152,6 +177,78 @@ class _InkPageState extends State<InkPage> {
       _transform.dispose();
     }
     super.dispose();
+  }
+
+  RenderBox? _blockBox(int offset) {
+    final box = _blockKeys[offset]?.currentContext?.findRenderObject();
+    return box is RenderBox && box.attached ? box : null;
+  }
+
+  /// Top of the heading's block in page coordinates, before any zoom.
+  double? _headingTop(int offset) {
+    final page = _pageKey.currentContext?.findRenderObject();
+    final box = _blockBox(offset);
+    if (page is! RenderBox || box == null) return null;
+    return box.localToGlobal(Offset.zero, ancestor: page).dy;
+  }
+
+  void _trackActiveHeading() {
+    final outline = widget.outline;
+    if (_jumping || outline == null) return;
+    if (_headingsSource != widget.markdown) {
+      _headings = parseMarkdownHeadings(widget.markdown);
+      _headingsSource = widget.markdown;
+    }
+    final value = _transform.value;
+    final scale = value.getMaxScaleOnAxis();
+    final ty = value.getTranslation().y;
+    int? active = _headings.isEmpty ? null : _headings.first.offset;
+    for (final heading in _headings) {
+      final top = _headingTop(heading.offset);
+      if (top == null) continue;
+      // A heading counts as reached once it is near the top of the view.
+      if (top * scale + ty > 48) break;
+      active = heading.offset;
+    }
+    outline.activeOffset.value = active;
+  }
+
+  Future<void> _scrollToOffset(int offset) async {
+    final top = _headingTop(offset);
+    final page = _pageKey.currentContext?.size;
+    if (top == null || page == null) return;
+    final value = _transform.value;
+    final scale = value.getMaxScaleOnAxis();
+    final from = value.getTranslation().y;
+    final lowest = (_viewportHeight - page.height * scale).clamp(
+      double.negativeInfinity,
+      0.0,
+    );
+    final to = (16 - top * scale).clamp(lowest, 0.0);
+    _jumping = true;
+    widget.outline?.activeOffset.value = offset;
+    final curve = CurvedAnimation(
+      parent: _scrollAnimation,
+      curve: Curves.easeInOutCubic,
+    );
+    void step() {
+      final current = _transform.value;
+      _transform.value = current.clone()
+        ..setTranslationRaw(
+          current.getTranslation().x,
+          from + (to - from) * curve.value,
+          0,
+        );
+    }
+
+    curve.addListener(step);
+    try {
+      await _scrollAnimation.forward(from: 0);
+    } finally {
+      curve.removeListener(step);
+      curve.dispose();
+      _jumping = false;
+    }
   }
 
   void _fit() {
@@ -259,6 +356,12 @@ class _InkPageState extends State<InkPage> {
       final pen = widget.session.pen;
       final canvas = LayoutBuilder(
         builder: (context, constraints) {
+          _viewportHeight = constraints.maxHeight;
+          if (widget.outline != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _trackActiveHeading();
+            });
+          }
           if (_viewportWidth != constraints.maxWidth) {
             _viewportWidth = constraints.maxWidth;
             widget.onViewportWidthChanged?.call(constraints.maxWidth);
@@ -299,6 +402,7 @@ class _InkPageState extends State<InkPage> {
                     markdown: widget.markdown,
                     height: widget.session.height,
                     selectable: false,
+                    blockKeys: widget.outline == null ? null : _blockKeys,
                     textOptions: widget.session.layoutFor(
                       EditorSettings.instance.textOptions,
                     ),

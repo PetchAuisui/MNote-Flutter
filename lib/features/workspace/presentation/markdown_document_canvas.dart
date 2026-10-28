@@ -18,8 +18,13 @@ class MarkdownDocumentSurface extends StatelessWidget {
     this.onTapLink,
     this.builders,
     this.underlay,
+    this.blockKeys,
     this.textOptions = const DocumentTextOptions(),
   });
+
+  /// When given, each block is keyed by its source offset so a caller can find
+  /// where a block was laid out (the outline uses this to jump to headings).
+  final Map<int, GlobalKey>? blockKeys;
 
   /// Painted on the white page but beneath the text (e.g. highlighter ink).
   final Widget? underlay;
@@ -31,10 +36,22 @@ class MarkdownDocumentSurface extends StatelessWidget {
   final Map<String, MarkdownElementBuilder>? builders;
   final DocumentTextOptions textOptions;
 
+  Widget _keyed(int start, Widget block) {
+    final keys = blockKeys;
+    if (keys == null) return block;
+    return KeyedSubtree(
+      key: keys.putIfAbsent(start, GlobalKey.new),
+      child: block,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final documentTheme = MarkdownDocumentStyle.theme(context);
     final ranges = markdownBlockRanges(markdown);
+    blockKeys?.removeWhere(
+      (start, _) => !ranges.any((range) => range.start == start),
+    );
     final blockContext = MarkdownBlockContext(markdown, ranges);
     final surface = ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),
@@ -55,17 +72,20 @@ class MarkdownDocumentSurface extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (final range in ranges)
-                        MarkdownRenderedBlock(
-                          markdown: range.textInside(markdown),
-                          references: blockContext.references,
-                          orderedNumber:
-                              blockContext.orderedNumbers[range.start],
-                          theme: documentTheme,
-                          imageDirectory: imageDirectory,
-                          selectable: selectable,
-                          onTapLink: onTapLink,
-                          builders: builders ?? const {},
-                          textOptions: textOptions,
+                        _keyed(
+                          range.start,
+                          MarkdownRenderedBlock(
+                            markdown: range.textInside(markdown),
+                            references: blockContext.references,
+                            orderedNumber:
+                                blockContext.orderedNumbers[range.start],
+                            theme: documentTheme,
+                            imageDirectory: imageDirectory,
+                            selectable: selectable,
+                            onTapLink: onTapLink,
+                            builders: builders ?? const {},
+                            textOptions: textOptions,
+                          ),
                         ),
                     ],
                   ),

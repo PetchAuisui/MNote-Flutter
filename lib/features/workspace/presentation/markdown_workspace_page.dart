@@ -28,6 +28,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'editor_settings.dart';
 import 'ink_settings.dart';
 import 'markdown_live_editor.dart';
+import 'markdown_outline_panel.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
@@ -81,6 +82,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final FocusNode _markdownFocusNode;
   late UndoHistoryController _undoController;
   final _markdownHistory = MarkdownEditHistory();
+  final _outline = MarkdownOutlineController();
+  bool _outlineOpen = false;
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
@@ -158,6 +161,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _markdownFocusNode
       ..removeListener(_onMarkdownFocusChanged)
       ..dispose();
+    _outline.dispose();
     _textController.dispose();
     _titleController.dispose();
     _editorScrollController.dispose();
@@ -982,18 +986,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               child: _workspace.mode == WorkspaceMode.edit
                                   ? _buildEditor()
                                   : _workspace.mode == WorkspaceMode.split
-                                  ? _buildSplitView()
+                                  ? _withOutline(_buildSplitView())
                                   : _workspace.mode == WorkspaceMode.ink
-                                  ? InkPage(
-                                      key: ObjectKey(_ink),
-                                      session: _ink,
-                                      markdown: document.content,
-                                      name: document.name,
-                                      imageDirectory: _imageDirectory,
-                                      transformationController: _inkTransform,
-                                      showToolbar: false,
-                                      onViewportWidthChanged: (w) =>
-                                          _inkViewportWidth = w,
+                                  ? _withOutline(
+                                      InkPage(
+                                        key: ObjectKey(_ink),
+                                        session: _ink,
+                                        markdown: document.content,
+                                        name: document.name,
+                                        imageDirectory: _imageDirectory,
+                                        transformationController: _inkTransform,
+                                        showToolbar: false,
+                                        onViewportWidthChanged: (w) =>
+                                            _inkViewportWidth = w,
+                                        outline: _outline,
+                                      ),
                                     )
                                   : _buildPreview(),
                             ),
@@ -1039,7 +1046,87 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  /// Below this width Material 3 treats the window as compact, where the
+  /// outline opens as a bottom sheet instead of a side sheet.
+  static const _compactWidth = 600.0;
+
+  void _openOutline() {
+    if (MediaQuery.sizeOf(context).width >= _compactWidth) {
+      setState(() => _outlineOpen = true);
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+      ),
+      builder: (sheetContext) => MarkdownOutlinePanel(
+        asSheet: true,
+        textController: _textController,
+        outline: _outline,
+        onClose: () => Navigator.pop(sheetContext),
+        onSelected: (heading) {
+          Navigator.pop(sheetContext);
+          _outline.scrollToOffset(heading.offset);
+        },
+      ),
+    );
+  }
+
+  /// Overlays the outline button and side sheet on a document view.
+  Widget _withOutline(Widget view) {
+    return Stack(
+      children: [
+        Positioned.fill(child: view),
+        if (!_outlineOpen)
+          PositionedDirectional(
+            top: 8,
+            end: 8,
+            child: FloatingActionButton.small(
+              key: const Key('toolbar-outline-button'),
+              heroTag: null,
+              tooltip: context.l10n.outlineTitle,
+              onPressed: _openOutline,
+              child: const Icon(Icons.toc_rounded),
+            ),
+          ),
+        if (_outlineOpen)
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) => Align(
+                alignment: AlignmentDirectional.topEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: (constraints.maxWidth - 24).clamp(0.0, 320.0),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: (constraints.maxHeight - 24).clamp(
+                          0.0,
+                          double.infinity,
+                        ),
+                      ),
+                      child: MarkdownOutlinePanel(
+                        textController: _textController,
+                        outline: _outline,
+                        onClose: () => setState(() => _outlineOpen = false),
+                        onSelected: (heading) =>
+                            _outline.scrollToOffset(heading.offset),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildSplitView() => MarkdownLiveEditor(
+    outline: _outline,
     history: _markdownHistory,
     onTapLink: (text, href, title) => _openLink(href),
     undoController: _undoController,

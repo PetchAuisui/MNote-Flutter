@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:mnote/features/workspace/data/image_shrinker.dart';
 import 'package:path_provider/path_provider.dart';
 
 class MarkdownImageReference {
@@ -48,11 +50,17 @@ class DeviceImagePicker {
   }) async {
     final dotIndex = fileName.lastIndexOf('.');
     final alt = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
-    final extension = dotIndex > 0 ? fileName.substring(dotIndex) : '';
+    var extension = dotIndex > 0 ? fileName.substring(dotIndex) : '';
+    var data = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    final shrunk = await ImageShrinker.shrink(data, extension);
+    if (shrunk != null) {
+      data = shrunk.bytes;
+      extension = shrunk.extension;
+    }
     final images = Directory('${directory.path}/$folder');
     await images.create(recursive: true);
     final name = _uniqueName(images, alt, extension);
-    await File('${images.path}/$name').writeAsBytes(bytes);
+    await File('${images.path}/$name').writeAsBytes(data);
     return MarkdownImageReference(
       alt: alt,
       uri: Uri(pathSegments: [folder, name]),

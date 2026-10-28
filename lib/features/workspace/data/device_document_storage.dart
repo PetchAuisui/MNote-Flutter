@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:mnote/features/workspace/data/database/library_database.dart';
+import 'package:mnote/features/workspace/data/database/library_database_native.dart';
 import 'package:mnote/features/workspace/data/document_storage.dart';
+import 'package:mnote/models/note_item.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DeviceDocumentStorage implements DocumentStorage {
@@ -33,8 +37,6 @@ class DeviceDocumentStorage implements DocumentStorage {
       fileName: name,
       bytes: bytes,
       mimeType: 'text/markdown',
-      type: FileType.custom,
-      allowedExtensions: _documentExtensions,
     );
   }
 
@@ -113,20 +115,50 @@ class DeviceDocumentStorage implements DocumentStorage {
     return uri;
   }
 
-  @override
-  Future<String?> readMetadata() async {
+  /// One connection per app run, shared by every storage instance.
+  static LibraryDatabase? _database;
+
+  static LibraryDatabase get _db => _database ??= openLibraryDatabase();
+
+  /// The legacy import, run at most once even when reads overlap.
+  static Future<void>? _migration;
+
+  /// The index from before the SQLite database existed.
+  Future<File> _legacyIndex() async {
     final appDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDir.path}/.mnote_library.json');
-    if (await file.exists()) {
-      return file.readAsString();
+    return File('${appDir.path}/.mnote_library.json');
+  }
+
+  Future<void> _importLegacyIndex() async {
+    if (await _db.isInitialized()) return;
+    final legacy = await _legacyIndex();
+    if (!await legacy.exists()) return;
+    try {
+      await _db.importLegacyJson(await legacy.readAsString());
+    } catch (_) {
+      // An unreadable old index is treated as no index, as before.
+      return;
     }
-    return null;
+    try {
+      // Only tidies up: the database is initialized now, so the old file is
+      // never imported again even if it cannot be set aside.
+      await legacy.rename('${legacy.path}.migrated');
+    } catch (_) {}
   }
 
   @override
-  Future<void> writeMetadata(String content) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDir.path}/.mnote_library.json');
-    await file.writeAsString(content, flush: true);
+  Future<String?> readMetadata() async {
+    await (_migration ??= _importLegacyIndex());
+    // Null means never saved. A library emptied by the user is still
+    // returned, so sync uploads its deletions and the list shows it empty.
+    if (!await _db.isInitialized()) return null;
+    return jsonEncode((await _db.loadLibrary()).toJson());
+  }
+
+  @override
+  Future<void> writeMetadata(String content) {
+    return _db.replaceLibrary(
+      LibraryMetadata.fromJson(jsonDecode(content) as Map<String, dynamic>),
+    );
   }
 }

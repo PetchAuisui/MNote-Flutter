@@ -22,9 +22,14 @@ class DocumentTextOptions {
   /// Headings and code scale with the body text.
   double get scale => bodySize / MarkdownDocumentStyle.bodySize;
 
+  /// Only upright faces are bundled, so an italic style loads the upright
+  /// face and keeps [FontStyle.italic] for the engine to slant it.
   TextStyle apply(TextStyle style) => fontFamily == null
       ? style
-      : GoogleFonts.getFont(fontFamily!, textStyle: style);
+      : GoogleFonts.getFont(
+          fontFamily!,
+          textStyle: style.copyWith(fontStyle: FontStyle.normal),
+        ).copyWith(fontStyle: style.fontStyle);
 
   @override
   bool operator ==(Object other) =>

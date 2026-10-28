@@ -80,8 +80,6 @@ Future<Uri?> defaultExportSaver({
     dialogTitle: LanguagePreferences.current().exportSaveDialogTitle,
     fileName: fileName,
     bytes: bytes,
-    type: FileType.custom,
-    allowedExtensions: [extension],
   );
 }
 

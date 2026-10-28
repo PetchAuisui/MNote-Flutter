@@ -96,12 +96,14 @@ class SyncedImageFiles implements SyncCompanion {
     // Passes triggered while one is waiting merge into that one.
     if (_queued) return _queue;
     _queued = true;
-    _queue = _queue.then((_) {
-      _queued = false;
-      return _pass();
-    }).catchError((Object e) {
-      debugPrint('Image sync pass failed: $e');
-    });
+    _queue = _queue
+        .then((_) {
+          _queued = false;
+          return _pass();
+        })
+        .catchError((Object e) {
+          debugPrint('Image sync pass failed: $e');
+        });
     return _queue;
   }
 
@@ -175,10 +177,7 @@ class SyncedImageFiles implements SyncCompanion {
         // Older, full-size pictures go up as a smaller copy; the original
         // stays on this device.
         final dot = name.lastIndexOf('.');
-        final shrunk = await ImageShrinker.shrink(
-          bytes,
-          name.substring(dot),
-        );
+        final shrunk = await ImageShrinker.shrink(bytes, name.substring(dot));
         if (shrunk == null || guard.isTooLarge(shrunk.bytes.length)) {
           debugPrint('Image sync: $name stays over the size limit, not synced');
           await guard.recordSkipped(name);

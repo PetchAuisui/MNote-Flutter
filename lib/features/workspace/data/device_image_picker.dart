@@ -41,7 +41,7 @@ class DeviceImagePicker {
     );
   }
 
-  /// Stores [bytes] as `images/<fileName>` under [directory], renaming on a
+  /// Stores [bytes] as `images/<name>-<fingerprint>.<ext>` under [directory], renaming on a
   /// clash so an existing picture is never overwritten.
   static Future<MarkdownImageReference> copyIntoDocument({
     required Directory directory,
@@ -59,12 +59,23 @@ class DeviceImagePicker {
     }
     final images = Directory('${directory.path}/$folder');
     await images.create(recursive: true);
-    final name = _uniqueName(images, alt, extension);
+    // The cloud keys pictures by file name, and two devices can both own an
+    // IMG_0001.jpg, so the name carries a fingerprint of the picture itself.
+    final name = _uniqueName(images, '$alt-${_fingerprint(data)}', extension);
     await File('${images.path}/$name').writeAsBytes(data);
     return MarkdownImageReference(
       alt: alt,
       uri: Uri(pathSegments: [folder, name]),
     );
+  }
+
+  /// FNV-1a over the bytes, as 8 hex digits.
+  static String _fingerprint(List<int> bytes) {
+    var hash = 0x811c9dc5;
+    for (final byte in bytes) {
+      hash = ((hash ^ byte) * 0x01000193) & 0xffffffff;
+    }
+    return hash.toRadixString(16).padLeft(8, '0');
   }
 
   static String _uniqueName(Directory directory, String stem, String ext) {

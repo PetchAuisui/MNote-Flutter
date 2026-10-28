@@ -19,7 +19,7 @@ class _LineBreakSyntax extends md.InlineSyntax {
 /// Loads a picture referenced from a note. Relative paths resolve against the
 /// note's folder, then the app documents folder (where pictures land for a note
 /// without a file location). A missing file shows a placeholder, not a gap.
-class _DocumentImage extends StatelessWidget {
+class _DocumentImage extends StatefulWidget {
   const _DocumentImage({
     required this.uri,
     this.directory,
@@ -33,6 +33,26 @@ class _DocumentImage extends StatelessWidget {
   final String? alt;
   final double? width;
   final double? height;
+
+  @override
+  State<_DocumentImage> createState() => _DocumentImageState();
+}
+
+class _DocumentImageState extends State<_DocumentImage> {
+  // Looked up once, not on every rebuild, so the picture does not flicker.
+  late Future<File?> _file = _locate();
+
+  Uri get uri => widget.uri;
+  double? get width => widget.width;
+  double? get height => widget.height;
+
+  @override
+  void didUpdateWidget(_DocumentImage old) {
+    super.didUpdateWidget(old);
+    if (old.uri != widget.uri || old.directory != widget.directory) {
+      _file = _locate();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +75,7 @@ class _DocumentImage extends StatelessWidget {
       );
     }
     return FutureBuilder<File?>(
-      future: _locate(),
+      future: _file,
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) {
@@ -76,7 +96,7 @@ class _DocumentImage extends StatelessWidget {
   Future<File?> _locate() async {
     if (uri.scheme == 'file') return File.fromUri(uri);
     final candidates = <Directory>[];
-    final base = directory;
+    final base = widget.directory;
     if (base != null) candidates.add(Directory.fromUri(Uri.parse(base)));
     try {
       candidates.add(await getApplicationDocumentsDirectory());
@@ -106,7 +126,7 @@ class _DocumentImage extends StatelessWidget {
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              alt?.isNotEmpty == true ? alt! : uri.toString(),
+              widget.alt?.isNotEmpty == true ? widget.alt! : uri.toString(),
               style: TextStyle(color: scheme.outline),
             ),
           ),

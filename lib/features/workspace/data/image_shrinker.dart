@@ -32,11 +32,13 @@ class ImageShrinker {
 
   static ShrunkImage _shrink((Uint8List, String) input) {
     final (bytes, extension) = input;
-    final decoded = img.decodeImage(bytes);
+    final source = img.decodeImage(bytes);
     // Animated pictures and unknown formats are left alone.
-    if (decoded == null || decoded.numFrames > 1) {
+    if (source == null || source.numFrames > 1) {
       return ShrunkImage(bytes, extension);
     }
+    // Re-encoding drops the EXIF tag, so apply the rotation to the pixels.
+    final decoded = img.bakeOrientation(source);
     final longest = decoded.width > decoded.height
         ? decoded.width
         : decoded.height;

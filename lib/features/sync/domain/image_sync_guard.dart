@@ -46,8 +46,10 @@ class ImageSyncLimits {
 
 /// Keeps picture sync inside [ImageSyncLimits], remembered across launches.
 class ImageSyncGuard {
-  ImageSyncGuard({this.limits = const ImageSyncLimits(), DateTime Function()? now})
-    : _now = now ?? DateTime.now;
+  ImageSyncGuard({
+    this.limits = const ImageSyncLimits(),
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
   static const stateKey = 'mnote_image_sync_guard';
 
@@ -74,7 +76,7 @@ class ImageSyncGuard {
   DateTime? _pausedUntil;
   Map<String, int> _uploaded = {};
   Map<String, DateTime> _missing = {};
-  bool _loaded = false;
+  Future<void>? _loading;
 
   /// Bytes this device has uploaded in total.
   int get totalUploaded => _uploaded.values.fold(0, (sum, size) => sum + size);
@@ -184,7 +186,7 @@ class ImageSyncGuard {
     _missing = {};
     _failures = 0;
     _pausedUntil = null;
-    _loaded = true;
+    _loading = Future.value();
     await _save();
   }
 
@@ -208,11 +210,12 @@ class ImageSyncGuard {
   }
 
   Future<void> _load() async {
-    if (_loaded) {
-      _rollDay();
-      return;
-    }
-    _loaded = true;
+    // Everyone waits for the first read, so no one counts on empty state.
+    await (_loading ??= _read());
+    _rollDay();
+  }
+
+  Future<void> _read() async {
     try {
       final raw = (await SharedPreferences.getInstance()).getString(stateKey);
       if (raw != null) {

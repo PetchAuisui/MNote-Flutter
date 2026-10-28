@@ -135,10 +135,9 @@ class DeviceDocumentStorage implements DocumentStorage {
     // the database as .migrated, where deleting notes or clearing local data
     // never reached it, so remove that copy wherever it is left.
     await _deleteQuietly(File('${legacy.path}.migrated'));
-    if (await _db.isInitialized()) {
-      await _deleteQuietly(legacy);
-      return;
-    }
+    // A JSON index beside a database already in use was written by an older
+    // build run in between, so it may hold newer changes: leave it alone.
+    if (await _db.isInitialized()) return;
     if (!await legacy.exists()) return;
     try {
       await _db.importLegacyJson(await legacy.readAsString());
@@ -154,7 +153,7 @@ class DeviceDocumentStorage implements DocumentStorage {
     try {
       if (await file.exists()) await file.delete();
     } catch (_) {
-      // Retried on the next app start.
+      // Left in place; a .migrated copy is tried again on the next start.
     }
   }
 

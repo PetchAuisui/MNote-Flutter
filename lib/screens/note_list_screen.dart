@@ -2263,6 +2263,32 @@ class _NoteListScreenState extends State<NoteListScreen> {
     );
   }
 
+  /// A name under a grid card. It always takes two lines of space, so a name
+  /// that wraps never makes its card shorter than the others in the row.
+  Widget _buildGridName(String name) {
+    const style = TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: 13.5,
+      letterSpacing: -0.1,
+      height: 1.35,
+    );
+    final lineHeight =
+        MediaQuery.textScalerOf(context).scale(style.fontSize!) * style.height!;
+    return SizedBox(
+      height: lineHeight * 2,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Text(
+          name,
+          style: style,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
   // Grid View ที่ปรับคอลัมน์อัตโนมัติ (Responsive)
   Widget _buildGridView(List<dynamic> items, int columns) {
     return GridView.builder(
@@ -2390,18 +2416,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       onTap: () => _handleFolderTap(folder),
                       onLongPress: () => _showFolderOptions(folder),
                       onSecondaryTap: () => _showFolderOptions(folder),
-                      child: Text(
-                        folder.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                          letterSpacing: -0.1,
-                          height: 1.35,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
+                      child: _buildGridName(folder.name),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -2653,18 +2668,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
                       onTap: () => _openDocument(doc),
                       onLongPress: () => _showDocumentOptions(doc),
                       onSecondaryTap: () => _showDocumentOptions(doc),
-                      child: Text(
-                        doc.displayName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                          letterSpacing: -0.1,
-                          height: 1.35,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
+                      child: _buildGridName(doc.displayName),
                     ),
                     const SizedBox(height: 2),
                     Text(

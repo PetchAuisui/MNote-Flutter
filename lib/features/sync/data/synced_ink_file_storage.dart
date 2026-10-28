@@ -64,6 +64,9 @@ class SyncedInkFileStorage implements InkFileStorage, SyncCompanion {
   Future<void> refresh() => _enqueue(() => _pushLocalInk(const {}));
 
   @override
+  Future<void> libraryChanged() async {}
+
+  @override
   Future<void> clearLocal() async {
     await _enqueue(() async {
       await inner.deleteAll();

@@ -268,7 +268,15 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
       final metadata = await _inner.loadMetadata();
       await _push(metadata);
       _refreshSynced(metadata);
+      _notifyCompanions();
     });
+  }
+
+  void _notifyCompanions() {
+    if (_uid == null || !_ready) return;
+    for (final companion in companions) {
+      unawaited(companion.libraryChanged());
+    }
   }
 
   /// Documents are keyed by name in the cloud, so a rename leaves the old
@@ -350,6 +358,7 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
     _refreshSynced(metadata);
     if (!snapshot.hasPendingWrites) _lastSyncedAt.value = DateTime.now();
     if (changed) _changes.add(null);
+    _notifyCompanions();
   }
 
   bool _isUntouchedWelcome(DocumentItem d) =>

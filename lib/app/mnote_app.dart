@@ -4,10 +4,13 @@ import 'package:mnote/core/theme/app_theme.dart';
 import 'package:mnote/features/auth/domain/auth_repository.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/features/auth/presentation/splash_page.dart';
+import 'package:mnote/features/sync/data/firebase_image_store.dart';
 import 'package:mnote/features/sync/data/firestore_library_store.dart';
 import 'package:mnote/features/sync/data/firestore_ink_store.dart';
 import 'package:mnote/features/sync/data/synced_document_repository.dart';
+import 'package:mnote/features/sync/data/synced_image_files.dart';
 import 'package:mnote/features/sync/data/synced_ink_file_storage.dart';
+import 'package:mnote/features/sync/domain/image_sync_guard.dart';
 import 'package:mnote/features/sync/domain/network_monitor.dart';
 import 'package:mnote/features/sync/domain/sync_settings.dart';
 import 'package:mnote/features/workspace/data/device_document_storage.dart';
@@ -16,6 +19,8 @@ import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/l10n/l10n.dart';
+import 'package:mnote/models/note_item.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:mnote/screens/note_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -93,7 +98,10 @@ class MnoteApp extends StatefulWidget {
 class _MnoteAppState extends State<MnoteApp> {
   /// Local storage, mirrored to the account's cloud library when signed in
   /// through Firebase.
-  DocumentRepository _defaultRepository(SyncedInkFileStorage? ink) {
+  DocumentRepository _defaultRepository(
+    SyncedInkFileStorage? ink,
+    SyncedImageFiles? images,
+  ) {
     const local = LocalDocumentRepository(DeviceDocumentStorage());
     final auth = widget.authRepository;
     if (auth == null) return local;
@@ -102,11 +110,27 @@ class _MnoteAppState extends State<MnoteApp> {
       store: FirestoreLibraryStore(),
       uidProvider: () => auth.currentUser?.uid,
       settings: _syncSettings,
-      companions: [?ink],
+      companions: [?ink, ?images],
       network: widget.networkMonitor,
     );
     ink?.policy = repository.allowsInk;
+    images?.notes = () async => [
+      for (final doc
+          in (await local.loadMetadata())?.documents ?? const <DocumentItem>[])
+        if (doc.syncMode != SyncMode.never && !doc.isTrash) doc.content,
+    ];
     return repository;
+  }
+
+  SyncedImageFiles? _syncedImages() {
+    final auth = widget.authRepository;
+    if (auth == null || widget.documentRepository != null) return null;
+    return SyncedImageFiles(
+      store: FirebaseImageStore(),
+      uidProvider: () => auth.currentUser?.uid,
+      directory: getApplicationDocumentsDirectory,
+      guard: ImageSyncGuard(),
+    );
   }
 
   SyncedInkFileStorage? _syncedInk() {
@@ -123,8 +147,9 @@ class _MnoteAppState extends State<MnoteApp> {
   // must not create (and leak) new ones.
   late final SyncSettings _syncSettings = widget.syncSettings ?? SyncSettings();
   late final SyncedInkFileStorage? _ink = _syncedInk();
+  late final SyncedImageFiles? _images = _syncedImages();
   late final DocumentRepository _repository =
-      widget.documentRepository ?? _defaultRepository(_ink);
+      widget.documentRepository ?? _defaultRepository(_ink, _images);
 
   @override
   Widget build(BuildContext context) {

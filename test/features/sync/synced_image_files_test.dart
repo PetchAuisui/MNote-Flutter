@@ -116,6 +116,27 @@ void main() {
     expect(cloud.files, isEmpty);
   });
 
+  test('never reads or uploads a file past the source ceiling', () async {
+    File('${dir.path}/images/a.jpg').writeAsBytesSync(List.filled(500, 1));
+    final sync = build(
+      limits: const ImageSyncLimits(maxFileBytes: 100, maxSourceBytes: 200),
+    );
+    await sync.start();
+    await sync.libraryChanged();
+    expect(cloud.files, isEmpty);
+    expect(cloud.requests, 1, reason: 'only the existence check, once');
+  });
+
+  test('size checks use the configured ceilings', () {
+    final guard = ImageSyncGuard(
+      limits: const ImageSyncLimits(maxFileBytes: 100, maxSourceBytes: 200),
+    );
+    expect(guard.isTooLarge(100), isFalse);
+    expect(guard.isTooLarge(101), isTrue);
+    expect(guard.isUnreadable(200), isFalse);
+    expect(guard.isUnreadable(201), isTrue);
+  });
+
   test('stops uploading at the daily byte ceiling', () async {
     for (final n in ['a', 'b', 'c']) {
       File('${dir.path}/images/$n.jpg').writeAsBytesSync(List.filled(40, 1));

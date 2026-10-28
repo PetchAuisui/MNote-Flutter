@@ -163,9 +163,15 @@ class SyncedImageFiles implements SyncCompanion {
         await guard.recordUploaded(name, existing);
         return true;
       }
+      final length = await file.length();
+      if (guard.isUnreadable(length)) {
+        debugPrint('Image sync: $name is $length bytes, too big, not synced');
+        await guard.recordSkipped(name);
+        return true;
+      }
       var bytes = await file.readAsBytes();
       var type = contentType;
-      if (bytes.length > guard.limits.maxFileBytes) {
+      if (guard.isTooLarge(bytes.length)) {
         // Older, full-size pictures go up as a smaller copy; the original
         // stays on this device.
         final dot = name.lastIndexOf('.');
@@ -173,8 +179,9 @@ class SyncedImageFiles implements SyncCompanion {
           bytes,
           name.substring(dot),
         );
-        if (shrunk == null || shrunk.bytes.length > guard.limits.maxFileBytes) {
-          await guard.recordUploaded(name, 0);
+        if (shrunk == null || guard.isTooLarge(shrunk.bytes.length)) {
+          debugPrint('Image sync: $name stays over the size limit, not synced');
+          await guard.recordSkipped(name);
           return true;
         }
         bytes = shrunk.bytes;

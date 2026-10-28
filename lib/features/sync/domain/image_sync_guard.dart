@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ImageSyncLimits {
   const ImageSyncLimits({
     this.maxFileBytes = 1536 * 1024,
+    this.maxSourceBytes = 25 * 1024 * 1024,
     this.maxTotalBytes = 200 * 1024 * 1024,
     this.maxDailyUploadBytes = 30 * 1024 * 1024,
     this.maxDailyDownloadBytes = 60 * 1024 * 1024,
@@ -20,6 +21,10 @@ class ImageSyncLimits {
 
   /// Matches the size limit in `storage.rules`.
   final int maxFileBytes;
+
+  /// Files bigger than this are never even read, since shrinking them would
+  /// need a lot of memory.
+  final int maxSourceBytes;
 
   /// Everything this device has uploaded, far below the 5 GB free tier.
   final int maxTotalBytes;
@@ -81,6 +86,15 @@ class ImageSyncGuard {
     return contentTypes[name.substring(dot + 1).toLowerCase()];
   }
 
+  /// Whether a picture of [bytes] is over the size that may be uploaded.
+  bool isTooLarge(int bytes) => bytes > limits.maxFileBytes;
+
+  /// Whether a file of [bytes] is too big to be read and shrunk at all.
+  bool isUnreadable(int bytes) => bytes > limits.maxSourceBytes;
+
+  /// Marks [name] as handled without uploading it, so it is not retried.
+  Future<void> recordSkipped(String name) => recordUploaded(name, 0);
+
   Future<bool> isUploaded(String name) async {
     await _load();
     return _uploaded.containsKey(name);
@@ -112,7 +126,7 @@ class ImageSyncGuard {
   /// crash or a failed upload cannot be retried past the ceiling.
   Future<bool> reserveUpload(String name, int bytes) async {
     await _load();
-    if (!_open || bytes > limits.maxFileBytes) return false;
+    if (!_open || isTooLarge(bytes)) return false;
     if (_uploadedToday + bytes > limits.maxDailyUploadBytes) return false;
     final replaced = _uploaded[name] ?? 0;
     if (totalUploaded - replaced + bytes > limits.maxTotalBytes) return false;

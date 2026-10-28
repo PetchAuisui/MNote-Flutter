@@ -38,8 +38,12 @@ class MarkdownFormattingToolbar extends StatefulWidget {
   final VoidCallback onList;
   final VoidCallback onOrderedList;
   final VoidCallback onTaskList;
-  final VoidCallback onIndentList;
-  final VoidCallback onOutdentList;
+
+  /// Null (and the button disabled) when the selection has no list item.
+  final VoidCallback? onIndentList;
+
+  /// Null (and the button disabled) when no selected list item is nested.
+  final VoidCallback? onOutdentList;
   final VoidCallback onQuote;
   final VoidCallback onLineBreak;
   final VoidCallback onHorizontalRule;
@@ -66,266 +70,272 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
     final onDiagramTemplate = widget.onDiagramTemplate;
     final onImportDiagram = widget.onImportDiagram;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Material(
-        key: const Key('markdown-toolbar-surface'),
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final showLabels = constraints.maxWidth >= 1400;
-            return Padding(
-              padding: const EdgeInsets.all(8),
-              child: SizedBox(
-                height: workspaceToolbarControlSize,
-                width: double.infinity,
-                child: Row(
-                  key: const Key('markdown-formatting-toolbar'),
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: _fitTools(context, constraints.maxWidth - 16, [
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-undo'),
-                      icon: Icons.undo_rounded,
-                      label: context.l10n.undo,
-                      showLabel: false,
-                      onPressed: widget.onUndo,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: Key('toolbar-redo'),
-                      icon: Icons.redo_rounded,
-                      label: context.l10n.redo,
-                      showLabel: false,
-                      onPressed: widget.onRedo,
-                    ),
-                    _ToolbarDivider(),
-                    _ToolbarMenuButton<int>(
-                      buttonKey: Key('toolbar-heading'),
-                      icon: Icons.title_rounded,
-                      showIcon: false,
-                      label: context.l10n.phHeadingN(_headingLevel),
-                      showLabel: true,
-                      onSelected: (level) {
-                        setState(() => _headingLevel = level);
-                        widget.onHeading(level);
-                      },
-                      items: [
-                        PopupMenuItem(
-                          value: 1,
-                          child: Text(context.l10n.phHeadingN(1)),
-                        ),
-                        PopupMenuItem(
-                          value: 2,
-                          child: Text(context.l10n.phHeadingN(2)),
-                        ),
-                        PopupMenuItem(
-                          value: 3,
-                          child: Text(context.l10n.phHeadingN(3)),
-                        ),
-                        PopupMenuItem(
-                          value: 4,
-                          child: Text(context.l10n.phHeadingN(4)),
-                        ),
-                      ],
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-bold'),
-                      icon: Icons.format_bold_rounded,
-                      label: context.l10n.tbBold,
-                      showLabel: showLabels,
-                      onPressed: widget.onBold,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-italic'),
-                      icon: Icons.format_italic_rounded,
-                      label: context.l10n.tbItalic,
-                      showLabel: showLabels,
-                      onPressed: widget.onItalic,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-strikethrough'),
-                      icon: Icons.format_strikethrough_rounded,
-                      label: context.l10n.tbStrike,
-                      showLabel: showLabels,
-                      onPressed: widget.onStrikethrough,
-                    ),
-                    const _ToolbarDivider(),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-list'),
-                      icon: Icons.format_list_bulleted_rounded,
-                      label: context.l10n.tbBullets,
-                      showLabel: showLabels,
-                      onPressed: widget.onList,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-ordered-list'),
-                      icon: Icons.format_list_numbered_rounded,
-                      label: context.l10n.tbNumbered,
-                      showLabel: showLabels,
-                      onPressed: widget.onOrderedList,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-task-list'),
-                      icon: Icons.checklist_rounded,
-                      label: context.l10n.tbTasks,
-                      showLabel: showLabels,
-                      onPressed: widget.onTaskList,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-indent-list'),
-                      icon: Icons.format_indent_increase_rounded,
-                      label: context.l10n.tbIndent,
-                      tooltip: context.l10n.tbIndent,
-                      showLabel: false,
-                      onPressed: widget.onIndentList,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-outdent-list'),
-                      icon: Icons.format_indent_decrease_rounded,
-                      label: context.l10n.tbOutdent,
-                      tooltip: context.l10n.tbOutdent,
-                      showLabel: false,
-                      onPressed: widget.onOutdentList,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-quote'),
-                      icon: Icons.format_quote_rounded,
-                      label: context.l10n.tbQuote,
-                      showLabel: showLabels,
-                      onPressed: widget.onQuote,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-line-break'),
-                      icon: Icons.keyboard_return_rounded,
-                      label: context.l10n.tbLineBreak,
-                      tooltip: context.l10n.tbLineBreakTip,
-                      showLabel: showLabels,
-                      onPressed: widget.onLineBreak,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-horizontal-rule'),
-                      icon: Icons.horizontal_rule_rounded,
-                      label: context.l10n.tbRule,
-                      tooltip: context.l10n.tbRuleTip,
-                      showLabel: showLabels,
-                      onPressed: widget.onHorizontalRule,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-table'),
-                      icon: Icons.table_chart_outlined,
-                      label: context.l10n.tbTable,
-                      showLabel: showLabels,
-                      onPressed: widget.onTable,
-                    ),
-                    _ToolbarMenuButton<_CodeStyle>(
-                      buttonKey: Key('toolbar-code'),
-                      icon: Icons.code_rounded,
-                      label: context.l10n.tbCode,
-                      showLabel: showLabels,
-                      onSelected: (style) {
-                        switch (style) {
-                          case _CodeStyle.inline:
-                            widget.onInlineCode();
-                          case _CodeStyle.block:
-                            widget.onCodeBlock();
-                        }
-                      },
-                      items: [
-                        PopupMenuItem(
-                          value: _CodeStyle.inline,
-                          child: Row(
-                            children: [
-                              Icon(Icons.code_rounded, size: 20),
-                              SizedBox(width: 12),
-                              Expanded(child: Text(context.l10n.tbInlineCode)),
-                            ],
+    // Taps on the toolbar belong to the text being edited, so they must not
+    // count as a tap outside it and close the block the user is typing in.
+    return TextFieldTapRegion(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+        child: Material(
+          key: const Key('markdown-toolbar-surface'),
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final showLabels = constraints.maxWidth >= 1400;
+              return Padding(
+                padding: const EdgeInsets.all(8),
+                child: SizedBox(
+                  height: workspaceToolbarControlSize,
+                  width: double.infinity,
+                  child: Row(
+                    key: const Key('markdown-formatting-toolbar'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: _fitTools(context, constraints.maxWidth - 16, [
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-undo'),
+                        icon: Icons.undo_rounded,
+                        label: context.l10n.undo,
+                        showLabel: false,
+                        onPressed: widget.onUndo,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: Key('toolbar-redo'),
+                        icon: Icons.redo_rounded,
+                        label: context.l10n.redo,
+                        showLabel: false,
+                        onPressed: widget.onRedo,
+                      ),
+                      _ToolbarDivider(),
+                      _ToolbarMenuButton<int>(
+                        buttonKey: Key('toolbar-heading'),
+                        icon: Icons.title_rounded,
+                        showIcon: false,
+                        label: context.l10n.phHeadingN(_headingLevel),
+                        showLabel: true,
+                        onSelected: (level) {
+                          setState(() => _headingLevel = level);
+                          widget.onHeading(level);
+                        },
+                        items: [
+                          PopupMenuItem(
+                            value: 1,
+                            child: Text(context.l10n.phHeadingN(1)),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: _CodeStyle.block,
-                          child: Row(
-                            children: [
-                              Icon(Icons.data_object_rounded, size: 20),
-                              SizedBox(width: 12),
-                              Expanded(child: Text(context.l10n.tbCodeBlock)),
-                            ],
+                          PopupMenuItem(
+                            value: 2,
+                            child: Text(context.l10n.phHeadingN(2)),
                           ),
-                        ),
-                      ],
-                    ),
-                    if (onDiagramTemplate != null || onImportDiagram != null)
-                      _ToolbarMenuButton<_DiagramMenuAction>(
-                        buttonKey: const Key('toolbar-diagram'),
-                        icon: Icons.account_tree_outlined,
-                        label: context.l10n.tbDiagram,
+                          PopupMenuItem(
+                            value: 3,
+                            child: Text(context.l10n.phHeadingN(3)),
+                          ),
+                          PopupMenuItem(
+                            value: 4,
+                            child: Text(context.l10n.phHeadingN(4)),
+                          ),
+                        ],
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-bold'),
+                        icon: Icons.format_bold_rounded,
+                        label: context.l10n.tbBold,
                         showLabel: showLabels,
-                        onSelected: (action) {
-                          switch (action) {
-                            case _InsertDiagramTemplate(:final template):
-                              onDiagramTemplate?.call(template);
-                            case _ImportDiagramFile():
-                              onImportDiagram?.call();
+                        onPressed: widget.onBold,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-italic'),
+                        icon: Icons.format_italic_rounded,
+                        label: context.l10n.tbItalic,
+                        showLabel: showLabels,
+                        onPressed: widget.onItalic,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-strikethrough'),
+                        icon: Icons.format_strikethrough_rounded,
+                        label: context.l10n.tbStrike,
+                        showLabel: showLabels,
+                        onPressed: widget.onStrikethrough,
+                      ),
+                      const _ToolbarDivider(),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-list'),
+                        icon: Icons.format_list_bulleted_rounded,
+                        label: context.l10n.tbBullets,
+                        showLabel: showLabels,
+                        onPressed: widget.onList,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-ordered-list'),
+                        icon: Icons.format_list_numbered_rounded,
+                        label: context.l10n.tbNumbered,
+                        showLabel: showLabels,
+                        onPressed: widget.onOrderedList,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-task-list'),
+                        icon: Icons.checklist_rounded,
+                        label: context.l10n.tbTasks,
+                        showLabel: showLabels,
+                        onPressed: widget.onTaskList,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-indent-list'),
+                        icon: Icons.format_indent_increase_rounded,
+                        label: context.l10n.tbIndent,
+                        tooltip: context.l10n.tbIndent,
+                        showLabel: false,
+                        onPressed: widget.onIndentList,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-outdent-list'),
+                        icon: Icons.format_indent_decrease_rounded,
+                        label: context.l10n.tbOutdent,
+                        tooltip: context.l10n.tbOutdent,
+                        showLabel: false,
+                        onPressed: widget.onOutdentList,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-quote'),
+                        icon: Icons.format_quote_rounded,
+                        label: context.l10n.tbQuote,
+                        showLabel: showLabels,
+                        onPressed: widget.onQuote,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-line-break'),
+                        icon: Icons.keyboard_return_rounded,
+                        label: context.l10n.tbLineBreak,
+                        tooltip: context.l10n.tbLineBreakTip,
+                        showLabel: showLabels,
+                        onPressed: widget.onLineBreak,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-horizontal-rule'),
+                        icon: Icons.horizontal_rule_rounded,
+                        label: context.l10n.tbRule,
+                        tooltip: context.l10n.tbRuleTip,
+                        showLabel: showLabels,
+                        onPressed: widget.onHorizontalRule,
+                      ),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-table'),
+                        icon: Icons.table_chart_outlined,
+                        label: context.l10n.tbTable,
+                        showLabel: showLabels,
+                        onPressed: widget.onTable,
+                      ),
+                      _ToolbarMenuButton<_CodeStyle>(
+                        buttonKey: Key('toolbar-code'),
+                        icon: Icons.code_rounded,
+                        label: context.l10n.tbCode,
+                        showLabel: showLabels,
+                        onSelected: (style) {
+                          switch (style) {
+                            case _CodeStyle.inline:
+                              widget.onInlineCode();
+                            case _CodeStyle.block:
+                              widget.onCodeBlock();
                           }
                         },
                         items: [
-                          if (onDiagramTemplate != null)
-                            for (final template in mermaidTemplatesFor(
-                              context.l10n,
-                            ))
+                          PopupMenuItem(
+                            value: _CodeStyle.inline,
+                            child: Row(
+                              children: [
+                                Icon(Icons.code_rounded, size: 20),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(context.l10n.tbInlineCode),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: _CodeStyle.block,
+                            child: Row(
+                              children: [
+                                Icon(Icons.data_object_rounded, size: 20),
+                                SizedBox(width: 12),
+                                Expanded(child: Text(context.l10n.tbCodeBlock)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (onDiagramTemplate != null || onImportDiagram != null)
+                        _ToolbarMenuButton<_DiagramMenuAction>(
+                          buttonKey: const Key('toolbar-diagram'),
+                          icon: Icons.account_tree_outlined,
+                          label: context.l10n.tbDiagram,
+                          showLabel: showLabels,
+                          onSelected: (action) {
+                            switch (action) {
+                              case _InsertDiagramTemplate(:final template):
+                                onDiagramTemplate?.call(template);
+                              case _ImportDiagramFile():
+                                onImportDiagram?.call();
+                            }
+                          },
+                          items: [
+                            if (onDiagramTemplate != null)
+                              for (final template in mermaidTemplatesFor(
+                                context.l10n,
+                              ))
+                                PopupMenuItem(
+                                  key: Key('toolbar-diagram-${template.id}'),
+                                  value: _InsertDiagramTemplate(template),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _diagramTemplateIcon(template.id),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: Text(template.label)),
+                                    ],
+                                  ),
+                                ),
+                            if (onDiagramTemplate != null &&
+                                onImportDiagram != null)
+                              const PopupMenuDivider(),
+                            if (onImportDiagram != null)
                               PopupMenuItem(
-                                key: Key('toolbar-diagram-${template.id}'),
-                                value: _InsertDiagramTemplate(template),
+                                key: Key('toolbar-diagram-import'),
+                                value: _ImportDiagramFile(),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      _diagramTemplateIcon(template.id),
-                                      size: 20,
+                                    Icon(Icons.file_open_outlined, size: 20),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(context.l10n.tbImportMmd),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(child: Text(template.label)),
                                   ],
                                 ),
                               ),
-                          if (onDiagramTemplate != null &&
-                              onImportDiagram != null)
-                            const PopupMenuDivider(),
-                          if (onImportDiagram != null)
-                            PopupMenuItem(
-                              key: Key('toolbar-diagram-import'),
-                              value: _ImportDiagramFile(),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.file_open_outlined, size: 20),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(context.l10n.tbImportMmd),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
+                      const _ToolbarDivider(),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-link'),
+                        icon: Icons.link_rounded,
+                        label: context.l10n.tbLink,
+                        showLabel: showLabels,
+                        onPressed: widget.onLink,
                       ),
-                    const _ToolbarDivider(),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-link'),
-                      icon: Icons.link_rounded,
-                      label: context.l10n.tbLink,
-                      showLabel: showLabels,
-                      onPressed: widget.onLink,
-                    ),
-                    _ToolbarActionButton(
-                      buttonKey: const Key('toolbar-image'),
-                      icon: Icons.image_outlined,
-                      label: context.l10n.tbImage,
-                      showLabel: showLabels,
-                      onPressed: widget.onImage,
-                    ),
-                  ]),
+                      _ToolbarActionButton(
+                        buttonKey: const Key('toolbar-image'),
+                        icon: Icons.image_outlined,
+                        label: context.l10n.tbImage,
+                        showLabel: showLabels,
+                        onPressed: widget.onImage,
+                      ),
+                    ]),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

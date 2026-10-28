@@ -4,7 +4,8 @@ import 'package:mnote/l10n/l10n.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
 
-/// A floating table of contents: tapping a heading scrolls the editor to it.
+/// The note's table of contents, shown as a side sheet or inside a bottom
+/// sheet: tapping a heading scrolls the document to it.
 class MarkdownOutlinePanel extends StatefulWidget {
   const MarkdownOutlinePanel({
     super.key,

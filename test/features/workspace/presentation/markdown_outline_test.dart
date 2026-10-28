@@ -31,6 +31,15 @@ void main() {
       expect(parseMarkdownHeadings(source), isEmpty);
     });
 
+    test('reads a setext heading written over several lines', () {
+      final headings = parseMarkdownHeadings('First line\nsecond line\n===');
+      expect(headings.map((h) => (h.level, h.title)), [
+        (1, 'First line second line'),
+      ]);
+      // A list followed by a rule is not a heading.
+      expect(parseMarkdownHeadings('- item\n- next\n---'), isEmpty);
+    });
+
     test('keeps an empty heading and strips link syntax', () {
       final headings = parseMarkdownHeadings('#\n\n## See [docs](https://x.y)');
       expect(headings.map((h) => h.title), ['', 'See docs']);

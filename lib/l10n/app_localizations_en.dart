@@ -1401,4 +1401,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get firebaseSetupError =>
       'Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md';
+
+  @override
+  String get outlineTitle => 'Outline';
+
+  @override
+  String get outlineEmpty => 'No headings yet. Start a line with # to add one.';
+
+  @override
+  String get outlineUntitled => '(Untitled heading)';
 }

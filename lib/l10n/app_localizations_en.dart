@@ -380,16 +380,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createFile => 'Create file';
 
   @override
-  String newMarkdownBody(String name) {
-    return '# $name\n\nStart typing or jot down your notes here...';
-  }
-
-  @override
-  String newTextBody(String name) {
-    return 'Text note $name\n\n';
-  }
-
-  @override
   String get newFolderTitle => 'New folder';
 
   @override

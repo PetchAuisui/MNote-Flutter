@@ -776,18 +776,6 @@ abstract class AppLocalizations {
   /// **'สร้างไฟล์'**
   String get createFile;
 
-  /// No description provided for @newMarkdownBody.
-  ///
-  /// In th, this message translates to:
-  /// **'# {name}\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...'**
-  String newMarkdownBody(String name);
-
-  /// No description provided for @newTextBody.
-  ///
-  /// In th, this message translates to:
-  /// **'บันทึกข้อความ {name}\n\n'**
-  String newTextBody(String name);
-
   /// No description provided for @newFolderTitle.
   ///
   /// In th, this message translates to:

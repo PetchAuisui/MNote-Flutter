@@ -379,16 +379,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get createFile => 'สร้างไฟล์';
 
   @override
-  String newMarkdownBody(String name) {
-    return '# $name\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...';
-  }
-
-  @override
-  String newTextBody(String name) {
-    return 'บันทึกข้อความ $name\n\n';
-  }
-
-  @override
   String get newFolderTitle => 'สร้างโฟลเดอร์ใหม่';
 
   @override

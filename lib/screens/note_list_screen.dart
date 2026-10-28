@@ -359,9 +359,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
     final newDoc = DocumentItem(
       id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
       name: fileName,
-      content: isMarkdown
-          ? context.l10n.newMarkdownBody(fileName)
-          : context.l10n.newTextBody(fileName),
+      // A new note opens blank, ready to type into.
+      content: '',
       updatedAt: DateTime.now(),
       folderId: _currentFolderId,
     );

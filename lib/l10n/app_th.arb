@@ -204,22 +204,6 @@
   "newTextTitle": "สร้างไฟล์ข้อความ (.txt) ใหม่",
   "fileNameLabel": "ชื่อไฟล์",
   "createFile": "สร้างไฟล์",
-  "newMarkdownBody": "# {name}\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...",
-  "@newMarkdownBody": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "newTextBody": "บันทึกข้อความ {name}\n\n",
-  "@newTextBody": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "newFolderTitle": "สร้างโฟลเดอร์ใหม่",
   "folderNameLabel": "ชื่อโฟลเดอร์",
   "folderNameHint": "เช่น วิชาสัมมนา, บันทึกย่อ",

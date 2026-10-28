@@ -113,8 +113,6 @@
   "newTextTitle": "New text file (.txt)",
   "fileNameLabel": "File name",
   "createFile": "Create file",
-  "newMarkdownBody": "# {name}\n\nStart typing or jot down your notes here...",
-  "newTextBody": "Text note {name}\n\n",
   "newFolderTitle": "New folder",
   "folderNameLabel": "Folder name",
   "folderNameHint": "e.g. Seminar, Notes",

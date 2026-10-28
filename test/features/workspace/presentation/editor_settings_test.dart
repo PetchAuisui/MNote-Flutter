@@ -137,6 +137,15 @@ void main() {
     });
   });
 
+  test('italic text uses the bundled upright face', () {
+    const options = DocumentTextOptions(fontFamily: 'Sarabun');
+
+    final style = options.apply(const TextStyle(fontStyle: FontStyle.italic));
+
+    expect(style.fontFamily, 'Sarabun_regular');
+    expect(style.fontStyle, FontStyle.italic);
+  });
+
   group('rendered table', () {
     Future<(Size, Size)> cellSizes(
       WidgetTester tester,

@@ -130,8 +130,14 @@ class DeviceDocumentStorage implements DocumentStorage {
   }
 
   Future<void> _importLegacyIndex() async {
-    if (await _db.isInitialized()) return;
     final legacy = await _legacyIndex();
+    // The old index holds every note's text. An earlier build kept it beside
+    // the database as .migrated, where deleting notes or clearing local data
+    // never reached it, so remove that copy wherever it is left.
+    await _deleteQuietly(File('${legacy.path}.migrated'));
+    // A JSON index beside a database already in use was written by an older
+    // build run in between, so it may hold newer changes: leave it alone.
+    if (await _db.isInitialized()) return;
     if (!await legacy.exists()) return;
     try {
       await _db.importLegacyJson(await legacy.readAsString());
@@ -139,11 +145,16 @@ class DeviceDocumentStorage implements DocumentStorage {
       // An unreadable old index is treated as no index, as before.
       return;
     }
+    // The database holds the library now; keep no second copy of it.
+    await _deleteQuietly(legacy);
+  }
+
+  static Future<void> _deleteQuietly(File file) async {
     try {
-      // Only tidies up: the database is initialized now, so the old file is
-      // never imported again even if it cannot be set aside.
-      await legacy.rename('${legacy.path}.migrated');
-    } catch (_) {}
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Left in place; a .migrated copy is tried again on the next start.
+    }
   }
 
   @override

@@ -1,3 +1,6 @@
+import 'dart:convert' show latin1;
+import 'dart:io';
+
 import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -194,5 +197,36 @@ void main() {
       addTearDown(old.close);
       expect(await old.isInitialized(), isFalse);
     });
+  });
+
+  test(
+    'overwrites deleted rows so removed notes cannot be read back',
+    () async {
+      final row = await db.customSelect('PRAGMA secure_delete').getSingle();
+      expect(row.data.values.single, 1);
+    },
+  );
+
+  test('deleted note text is gone from the database file', () async {
+    final dir = Directory.systemTemp.createTempSync('mnote_db');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/library.sqlite');
+    final onDisk = LibraryDatabase(NativeDatabase(file));
+    const secret = 'secret-note-text-0123456789';
+    await onDisk.replaceLibrary(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: 'd1',
+            name: 'a.md',
+            content: secret * 50,
+            updatedAt: updated,
+          ),
+        ],
+      ),
+    );
+    await onDisk.replaceLibrary(const LibraryMetadata());
+    await onDisk.close();
+    expect(latin1.decode(file.readAsBytesSync()).contains(secret), isFalse);
   });
 }

@@ -1109,23 +1109,25 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   /// Docks the outline as a standard side sheet that shares the row with the
-  /// document instead of covering it.
+  /// document instead of covering it. The view keeps one place in the tree
+  /// whether or not the sheet is shown, so toggling it never rebuilds the
+  /// editor or the ink page from scratch.
   Widget _withOutline(Widget view) {
-    if (!_outlineOpen || _isCompact) return view;
     return Row(
       // The sheet runs the full height of the document, not just its list.
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 280,
-          child: MarkdownOutlinePanel(
-            textController: _textController,
-            outline: _outline,
-            onClose: () => setState(() => _outlineOpen = false),
-            onSelected: (heading) => _outline.scrollToOffset(heading.offset),
+        if (_outlineOpen && !_isCompact)
+          SizedBox(
+            width: 280,
+            child: MarkdownOutlinePanel(
+              textController: _textController,
+              outline: _outline,
+              onClose: () => setState(() => _outlineOpen = false),
+              onSelected: (heading) => _outline.scrollToOffset(heading.offset),
+            ),
           ),
-        ),
-        Expanded(child: view),
+        Expanded(key: const ValueKey('outline-document'), child: view),
       ],
     );
   }

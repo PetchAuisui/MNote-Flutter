@@ -58,6 +58,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   );
   double _viewportHeight = 0;
   bool _jumping = false;
+  VoidCallback? _jumpStep;
   String? _headingsSource;
   List<MarkdownHeading> _headings = const [];
   InkTool _tool = InkTool.pen;
@@ -227,28 +228,33 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     final to = (16 - top * scale).clamp(lowest, 0.0);
     _jumping = true;
     widget.outline?.activeOffset.value = offset;
-    final curve = CurvedAnimation(
-      parent: _scrollAnimation,
-      curve: Curves.easeInOutCubic,
-    );
+    // A jump started mid-way through another replaces it rather than letting
+    // both move the page at once.
+    if (_jumpStep case final previous?) {
+      _scrollAnimation.removeListener(previous);
+    }
     void step() {
+      final t = Curves.easeInOutCubic.transform(_scrollAnimation.value);
       final current = _transform.value;
       _transform.value = current.clone()
         ..setTranslationRaw(
           current.getTranslation().x,
-          from + (to - from) * curve.value,
+          from + (to - from) * t,
           0,
         );
     }
 
-    curve.addListener(step);
+    _jumpStep = step;
+    _scrollAnimation.addListener(step);
     try {
-      await _scrollAnimation.forward(from: 0);
-    } finally {
-      curve.removeListener(step);
-      curve.dispose();
-      _jumping = false;
+      await _scrollAnimation.forward(from: 0).orCancel;
+    } on TickerCanceled {
+      // Replaced by a newer jump, which now owns the animation.
+      return;
     }
+    _scrollAnimation.removeListener(step);
+    _jumpStep = null;
+    _jumping = false;
   }
 
   void _fit() {

@@ -527,6 +527,7 @@ void main() {
     await tester.pumpWidget(_buildWorkspaceApp(welcome: true));
     await tester.pumpAndSettle();
     final contentWidth = tester.getSize(find.byType(MarkdownLiveEditor)).width;
+    final editorState = tester.state(find.byType(MarkdownLiveEditor));
 
     await tester.tap(find.byKey(const Key('toolbar-outline-button')));
     await tester.pumpAndSettle();
@@ -536,6 +537,8 @@ void main() {
       tester.getSize(find.byType(MarkdownLiveEditor)).width,
       lessThan(contentWidth),
     );
+    // Opening the sheet keeps the editor (its scroll and active block).
+    expect(tester.state(find.byType(MarkdownLiveEditor)), same(editorState));
     // It is a full-height sheet beside the document, not a floating card.
     expect(
       tester.getSize(find.byKey(const Key('outline-panel'))).height,
@@ -545,6 +548,7 @@ void main() {
     await tester.tap(find.byKey(const Key('outline-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('outline-panel')), findsNothing);
+    expect(tester.state(find.byType(MarkdownLiveEditor)), same(editorState));
   });
 
   testWidgets('the outline opens as a bottom sheet on compact screens', (

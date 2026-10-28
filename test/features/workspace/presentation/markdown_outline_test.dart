@@ -137,5 +137,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(transform.value.getTranslation().y, lessThan(-500));
     expect(outline.activeOffset.value, far.offset);
+
+    // A second jump before the first ends takes over: the page settles at the
+    // top heading and keeps following the reader afterwards.
+    unawaited(outline.scrollToOffset(0));
+    await tester.pump(const Duration(milliseconds: 100));
+    unawaited(outline.scrollToOffset(far.offset));
+    await tester.pump(const Duration(milliseconds: 50));
+    unawaited(outline.scrollToOffset(0));
+    await tester.pumpAndSettle();
+    expect(transform.value.getTranslation().y, greaterThan(-50));
+    expect(outline.activeOffset.value, 0);
+    transform.value = transform.value.clone()
+      ..setTranslationRaw(transform.value.getTranslation().x, -100000, 0);
+    await tester.pump();
+    expect(outline.activeOffset.value, far.offset);
   });
 }

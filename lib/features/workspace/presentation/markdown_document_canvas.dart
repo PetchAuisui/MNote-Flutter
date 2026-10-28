@@ -49,9 +49,10 @@ class MarkdownDocumentSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final documentTheme = MarkdownDocumentStyle.theme(context);
     final ranges = markdownBlockRanges(markdown);
-    blockKeys?.removeWhere(
-      (start, _) => !ranges.any((range) => range.start == start),
-    );
+    if (blockKeys case final keys?) {
+      final starts = {for (final range in ranges) range.start};
+      keys.removeWhere((start, _) => !starts.contains(start));
+    }
     final blockContext = MarkdownBlockContext(markdown, ranges);
     final surface = ConstrainedBox(
       constraints: BoxConstraints(minHeight: height),

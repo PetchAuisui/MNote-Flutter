@@ -969,11 +969,220 @@ class DocumentsCompanion extends UpdateCompanion<Document> {
   }
 }
 
+class $LibraryInfoTable extends LibraryInfo
+    with TableInfo<$LibraryInfoTable, LibraryInfoData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LibraryInfoTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'library_info';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LibraryInfoData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  LibraryInfoData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LibraryInfoData(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $LibraryInfoTable createAlias(String alias) {
+    return $LibraryInfoTable(attachedDatabase, alias);
+  }
+}
+
+class LibraryInfoData extends DataClass implements Insertable<LibraryInfoData> {
+  final String key;
+  final String value;
+  const LibraryInfoData({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  LibraryInfoCompanion toCompanion(bool nullToAbsent) {
+    return LibraryInfoCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory LibraryInfoData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LibraryInfoData(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  LibraryInfoData copyWith({String? key, String? value}) =>
+      LibraryInfoData(key: key ?? this.key, value: value ?? this.value);
+  LibraryInfoData copyWithCompanion(LibraryInfoCompanion data) {
+    return LibraryInfoData(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LibraryInfoData(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LibraryInfoData &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class LibraryInfoCompanion extends UpdateCompanion<LibraryInfoData> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const LibraryInfoCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LibraryInfoCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<LibraryInfoData> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LibraryInfoCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return LibraryInfoCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LibraryInfoCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LibraryDatabase extends GeneratedDatabase {
   _$LibraryDatabase(QueryExecutor e) : super(e);
   $LibraryDatabaseManager get managers => $LibraryDatabaseManager(this);
   late final $FoldersTable folders = $FoldersTable(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
+  late final $LibraryInfoTable libraryInfo = $LibraryInfoTable(this);
   late final Index documentsFolder = Index(
     'documents_folder',
     'CREATE INDEX documents_folder ON documents (folder_id)',
@@ -989,6 +1198,7 @@ abstract class _$LibraryDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     folders,
     documents,
+    libraryInfo,
     documentsFolder,
     documentsTrash,
   ];
@@ -1503,6 +1713,158 @@ typedef $$DocumentsTableProcessedTableManager =
       Document,
       PrefetchHooks Function()
     >;
+typedef $$LibraryInfoTableCreateCompanionBuilder =
+    LibraryInfoCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$LibraryInfoTableUpdateCompanionBuilder =
+    LibraryInfoCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$LibraryInfoTableFilterComposer
+    extends Composer<_$LibraryDatabase, $LibraryInfoTable> {
+  $$LibraryInfoTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LibraryInfoTableOrderingComposer
+    extends Composer<_$LibraryDatabase, $LibraryInfoTable> {
+  $$LibraryInfoTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LibraryInfoTableAnnotationComposer
+    extends Composer<_$LibraryDatabase, $LibraryInfoTable> {
+  $$LibraryInfoTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$LibraryInfoTableTableManager
+    extends
+        RootTableManager<
+          _$LibraryDatabase,
+          $LibraryInfoTable,
+          LibraryInfoData,
+          $$LibraryInfoTableFilterComposer,
+          $$LibraryInfoTableOrderingComposer,
+          $$LibraryInfoTableAnnotationComposer,
+          $$LibraryInfoTableCreateCompanionBuilder,
+          $$LibraryInfoTableUpdateCompanionBuilder,
+          (
+            LibraryInfoData,
+            BaseReferences<
+              _$LibraryDatabase,
+              $LibraryInfoTable,
+              LibraryInfoData
+            >,
+          ),
+          LibraryInfoData,
+          PrefetchHooks Function()
+        > {
+  $$LibraryInfoTableTableManager(_$LibraryDatabase db, $LibraryInfoTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LibraryInfoTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LibraryInfoTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LibraryInfoTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LibraryInfoCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => LibraryInfoCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$LibraryInfoTable, LibraryInfoData>(table),
+                  BaseReferences<
+                    _$LibraryDatabase,
+                    $LibraryInfoTable,
+                    LibraryInfoData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LibraryInfoTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LibraryDatabase,
+      $LibraryInfoTable,
+      LibraryInfoData,
+      $$LibraryInfoTableFilterComposer,
+      $$LibraryInfoTableOrderingComposer,
+      $$LibraryInfoTableAnnotationComposer,
+      $$LibraryInfoTableCreateCompanionBuilder,
+      $$LibraryInfoTableUpdateCompanionBuilder,
+      (
+        LibraryInfoData,
+        BaseReferences<_$LibraryDatabase, $LibraryInfoTable, LibraryInfoData>,
+      ),
+      LibraryInfoData,
+      PrefetchHooks Function()
+    >;
 
 class $LibraryDatabaseManager {
   final _$LibraryDatabase _db;
@@ -1511,4 +1873,6 @@ class $LibraryDatabaseManager {
       $$FoldersTableTableManager(_db, _db.folders);
   $$DocumentsTableTableManager get documents =>
       $$DocumentsTableTableManager(_db, _db.documents);
+  $$LibraryInfoTableTableManager get libraryInfo =>
+      $$LibraryInfoTableTableManager(_db, _db.libraryInfo);
 }

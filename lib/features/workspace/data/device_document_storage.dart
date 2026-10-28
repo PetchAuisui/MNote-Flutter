@@ -122,31 +122,39 @@ class DeviceDocumentStorage implements DocumentStorage {
 
   static LibraryDatabase get _db => _database ??= openLibraryDatabase();
 
+  /// The legacy import, run at most once even when reads overlap.
+  static Future<void>? _migration;
+
   /// The index from before the SQLite database existed.
   Future<File> _legacyIndex() async {
     final appDir = await getApplicationDocumentsDirectory();
     return File('${appDir.path}/.mnote_library.json');
   }
 
+  Future<void> _importLegacyIndex() async {
+    if (await _db.isInitialized()) return;
+    final legacy = await _legacyIndex();
+    if (!await legacy.exists()) return;
+    try {
+      await _db.importLegacyJson(await legacy.readAsString());
+    } catch (_) {
+      // An unreadable old index is treated as no index, as before.
+      return;
+    }
+    try {
+      // Only tidies up: the database is initialized now, so the old file is
+      // never imported again even if it cannot be set aside.
+      await legacy.rename('${legacy.path}.migrated');
+    } catch (_) {}
+  }
+
   @override
   Future<String?> readMetadata() async {
-    if (await _db.isEmpty()) {
-      final legacy = await _legacyIndex();
-      if (await legacy.exists()) {
-        try {
-          await _db.importLegacyJson(await legacy.readAsString());
-          // Set the old file aside so deleting every note later cannot make
-          // an empty database import it again.
-          await legacy.rename('${legacy.path}.migrated');
-        } catch (_) {
-          // An unreadable old index is treated as no index, as before.
-          return null;
-        }
-      }
-    }
-    final library = await _db.loadLibrary();
-    if (library.folders.isEmpty && library.documents.isEmpty) return null;
-    return jsonEncode(library.toJson());
+    await (_migration ??= _importLegacyIndex());
+    // Null means never saved. A library emptied by the user is still
+    // returned, so sync uploads its deletions and the list shows it empty.
+    if (!await _db.isInitialized()) return null;
+    return jsonEncode((await _db.loadLibrary()).toJson());
   }
 
   @override

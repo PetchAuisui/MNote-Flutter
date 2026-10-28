@@ -133,4 +133,66 @@ void main() {
 
     expect(writes, 0);
   });
+
+  test('an emptied library is still initialized, unlike a new one', () async {
+    expect(await db.isInitialized(), isFalse);
+    await db.replaceLibrary(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(id: 'd1', name: 'a.md', content: '', updatedAt: updated),
+        ],
+      ),
+    );
+    // Deleting the last note leaves an empty library that was saved before,
+    // so sync still uploads the deletion.
+    await db.replaceLibrary(const LibraryMetadata());
+    expect(await db.isEmpty(), isTrue);
+    expect(await db.isInitialized(), isTrue);
+  });
+
+  group('upgrading a version 1 database', () {
+    late List<String> tables;
+
+    setUp(() async {
+      final fresh = LibraryDatabase(NativeDatabase.memory());
+      tables = await fresh
+          .customSelect(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' "
+            "AND name IN ('folders', 'documents')",
+          )
+          .map((row) => row.read<String>('sql'))
+          .get();
+      await fresh.close();
+    });
+
+    LibraryDatabase openVersion1({required bool withNote}) => LibraryDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          for (final sql in tables) {
+            raw.execute(sql);
+          }
+          if (withNote) {
+            raw.execute(
+              "INSERT INTO documents (id, name, updated_at) "
+              "VALUES ('d1', 'a.md', '2026-05-01T10:00:00.000Z')",
+            );
+          }
+          raw.execute('PRAGMA user_version = 1');
+        },
+      ),
+    );
+
+    test('keeps its notes and counts as initialized', () async {
+      final old = openVersion1(withNote: true);
+      addTearDown(old.close);
+      expect(await old.isInitialized(), isTrue);
+      expect((await old.loadLibrary()).documents.single.id, 'd1');
+    });
+
+    test('an empty one still waits for the legacy import', () async {
+      final old = openVersion1(withNote: false);
+      addTearDown(old.close);
+      expect(await old.isInitialized(), isFalse);
+    });
+  });
 }

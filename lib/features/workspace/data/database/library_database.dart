@@ -34,16 +34,29 @@ class Documents extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Facts about the stored library itself, as key/value pairs.
+class LibraryInfo extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+/// Set once the library has been written, so an emptied library is told
+/// apart from one that was never saved.
+const _initializedKey = 'initialized';
+
 /// The on-device library index (folders and note records) in SQLite.
 ///
 /// Markdown files stay on disk where the user can reach them; this holds the
 /// catalogue around them: names, folders, stars, trash and sync choice.
-@DriftDatabase(tables: [Folders, Documents])
+@DriftDatabase(tables: [Folders, Documents, LibraryInfo])
 class LibraryDatabase extends _$LibraryDatabase {
   LibraryDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   // No foreign key from documents.folderId to folders.id on purpose: a note
   // synced before its folder, or after the folder was removed, must still
@@ -52,16 +65,34 @@ class LibraryDatabase extends _$LibraryDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     // Add one step per schemaVersion bump here, never drop user data.
-    onUpgrade: (m, from, to) async {},
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(libraryInfo);
+        // A version 1 database that holds rows was written before.
+        if (!await isEmpty()) await _markInitialized();
+      }
+    },
   );
 
-  /// Whether nothing has been stored yet, so a legacy JSON index may be
-  /// imported.
+  /// Whether no folders or notes are stored.
   Future<bool> isEmpty() async {
-    final folders = await select(this.folders).get();
-    final documents = await select(this.documents).get();
-    return folders.isEmpty && documents.isEmpty;
+    final folder = await (select(folders)..limit(1)).getSingleOrNull();
+    final document = await (select(documents)..limit(1)).getSingleOrNull();
+    return folder == null && document == null;
   }
+
+  /// Whether the library has ever been saved. An emptied library still is,
+  /// which is how deleting the last note differs from a fresh install.
+  Future<bool> isInitialized() async {
+    final row = await (select(
+      libraryInfo,
+    )..where((t) => t.key.equals(_initializedKey))).getSingleOrNull();
+    return row != null;
+  }
+
+  Future<void> _markInitialized() => into(libraryInfo).insertOnConflictUpdate(
+    LibraryInfoCompanion.insert(key: _initializedKey, value: '1'),
+  );
 
   Future<LibraryMetadata> loadLibrary() async {
     final folderRows = await select(folders).get();
@@ -153,6 +184,7 @@ class LibraryDatabase extends _$LibraryDatabase {
           }
         }
       });
+      await _markInitialized();
     });
   }
 

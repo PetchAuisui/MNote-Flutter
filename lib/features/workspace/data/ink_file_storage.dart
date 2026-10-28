@@ -31,8 +31,6 @@ class DeviceInkFileStorage implements InkFileStorage {
       fileName: name,
       bytes: bytes,
       mimeType: 'application/json',
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
     );
     return uri != null;
   }

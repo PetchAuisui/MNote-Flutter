@@ -37,8 +37,6 @@ class DeviceDocumentStorage implements DocumentStorage {
       fileName: name,
       bytes: bytes,
       mimeType: 'text/markdown',
-      type: FileType.custom,
-      allowedExtensions: _documentExtensions,
     );
   }
 

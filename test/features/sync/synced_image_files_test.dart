@@ -177,9 +177,7 @@ void main() {
   test('pauses after repeated failures', () async {
     File('${dir.path}/images/a.jpg').writeAsBytesSync([1]);
     cloud.failing = true;
-    final sync = build(
-      limits: const ImageSyncLimits(failuresBeforePause: 2),
-    );
+    final sync = build(limits: const ImageSyncLimits(failuresBeforePause: 2));
     await sync.start();
     await sync.libraryChanged();
     final requests = cloud.requests;
@@ -205,9 +203,12 @@ void main() {
     expect(cloud.requests, 0);
   });
 
-  test('spent budget survives a restart and corrupt state fails closed', () async {
-    SharedPreferences.setMockInitialValues({ImageSyncGuard.stateKey: '{'});
-    final guard = ImageSyncGuard(now: () => clock);
-    expect(await guard.reserveOperation(), isFalse);
-  });
+  test(
+    'spent budget survives a restart and corrupt state fails closed',
+    () async {
+      SharedPreferences.setMockInitialValues({ImageSyncGuard.stateKey: '{'});
+      final guard = ImageSyncGuard(now: () => clock);
+      expect(await guard.reserveOperation(), isFalse);
+    },
+  );
 }

@@ -1084,12 +1084,26 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// The outline toggle at the leading edge of the header, as in GoodNotes.
   Widget? _buildOutlineButton() {
     if (!_hasOutline) return null;
+    final colors = Theme.of(context).colorScheme;
+    // A Material 3 toggle icon button: full-contrast when off, a tonal
+    // container while the side sheet is open.
     return IconButton(
       key: const Key('toolbar-outline-button'),
       onPressed: _toggleOutline,
-      visualDensity: VisualDensity.compact,
       tooltip: context.l10n.outlineTitle,
       isSelected: _outlineOpen && !_isCompact,
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colors.onSecondaryContainer
+              : colors.onSurface,
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colors.secondaryContainer
+              : null,
+        ),
+      ),
       icon: const Icon(Icons.toc_rounded),
     );
   }

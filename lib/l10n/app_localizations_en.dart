@@ -363,31 +363,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String defaultTextName(int n) {
-    return 'Text_$n';
-  }
-
-  @override
   String get newMarkdownTitle => 'New Markdown file';
-
-  @override
-  String get newTextTitle => 'New text file (.txt)';
 
   @override
   String get fileNameLabel => 'File name';
 
   @override
   String get createFile => 'Create file';
-
-  @override
-  String newMarkdownBody(String name) {
-    return '# $name\n\nStart typing or jot down your notes here...';
-  }
-
-  @override
-  String newTextBody(String name) {
-    return 'Text note $name\n\n';
-  }
 
   @override
   String get newFolderTitle => 'New folder';
@@ -666,9 +648,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newMarkdownItem => 'New Markdown note (.md)';
 
   @override
-  String get newTextItem => 'New text file (.txt)';
-
-  @override
   String get newFolderItem => 'New folder';
 
   @override
@@ -711,7 +690,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyLibraryBody =>
-      'Tap \"+ New\" above to create a Markdown note, a TXT file or a folder';
+      'Tap \"+ New\" above to create a Markdown note or a folder';
 
   @override
   String get folderColorTitle => 'Change folder color';

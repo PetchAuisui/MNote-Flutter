@@ -77,7 +77,8 @@ void main() {
     await tester.tap(find.text('New'));
     await tester.pumpAndSettle();
     expect(find.text('New Markdown note (.md)'), findsOneWidget);
-    expect(find.text('New text file (.txt)'), findsOneWidget);
+    // Notes are only created as Markdown; .txt files can still be imported.
+    expect(find.text('New text file (.txt)'), findsNothing);
     expect(find.text('Import a file from this device'), findsOneWidget);
 
     await tester.tap(find.text('New folder').last);

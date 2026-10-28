@@ -191,6 +191,8 @@ void main() {
     await tester.enterText(_editor, '- parent\n- child');
     tester.widget<TextField>(_editor).controller!.selection =
         const TextSelection(baseOffset: 9, extentOffset: 16);
+    // Let the toolbar see the list line before using the list tools.
+    await tester.pump();
     await _action(tester, 'toolbar-indent-list');
     expect(_source(tester).text, '- parent\n  - child');
     await _action(tester, 'toolbar-outdent-list');
@@ -278,15 +280,111 @@ void main() {
     expect(find.byType(NoteListScreen), findsOneWidget);
     await tester.tap(find.text('ใหม่'));
     await tester.pumpAndSettle();
+    // Markdown is the only kind of note the New menu creates.
+    expect(find.text('ไฟล์ข้อความใหม่ (.txt)'), findsNothing);
     await tester.tap(find.text('เอกสาร Markdown ใหม่ (.md)'));
     await tester.pumpAndSettle();
+    // The name field has no ".md" suffix, but the note is still saved as .md.
+    expect(find.text('.md'), findsNothing);
     await tester.tap(find.text('สร้างไฟล์'));
     await tester.pumpAndSettle();
     expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+    expect(
+      tester
+          .widget<MarkdownWorkspacePage>(find.byType(MarkdownWorkspacePage))
+          .initialDocument!
+          .name,
+      endsWith('.md'),
+    );
     expect(find.byType(MarkdownLiveEditor), findsOneWidget);
+    // A new note starts blank instead of with a heading and placeholder text.
+    expect(_source(tester).text, isEmpty);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(NoteListScreen), findsOneWidget);
+  });
+
+  testWidgets('a blank note named Untitled is not replaced by the example', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: MarkdownDocument(
+            name: 'Untitled.md',
+            content: '',
+            savedName: 'Untitled.md',
+            savedContent: '',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_source(tester).text, isEmpty);
+  });
+
+  group('formatting while typing in a block', () {
+    Future<TextEditingController> typeInto(
+      WidgetTester tester,
+      String text, {
+      required int cursor,
+    }) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_buildWorkspaceApp());
+      await tester.pumpAndSettle();
+      await tester.enterText(_editor, text);
+      final block = tester.widget<TextField>(_editor).controller!;
+      block.selection = TextSelection.collapsed(offset: cursor);
+      await tester.pump();
+      return block;
+    }
+
+    testWidgets('toolbar buttons keep the block open on the cursor line', (
+      tester,
+    ) async {
+      final block = await typeInto(tester, '- parent\n- child', cursor: 12);
+      await tester.tap(find.byKey(const Key('toolbar-indent-list')));
+      await tester.pumpAndSettle();
+      expect(_editor, findsOneWidget);
+      expect(block.text, '- parent\n  - child');
+      // The edited line stays selected, so it is clear where it landed.
+      expect(block.selection.textInside(block.text), '  - child');
+
+      await tester.tap(find.byKey(const Key('toolbar-outdent-list')));
+      await tester.pumpAndSettle();
+      expect(_editor, findsOneWidget);
+      expect(block.text, '- parent\n- child');
+    });
+
+    testWidgets('the heading menu keeps the block open', (tester) async {
+      final block = await typeInto(tester, 'first line', cursor: 3);
+      await tester.tap(find.byKey(const Key('toolbar-heading')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuItem<int>).at(1));
+      await tester.pumpAndSettle();
+      expect(_editor, findsOneWidget);
+      expect(block.text, '## first line');
+    });
+
+    testWidgets('list indent tools are disabled outside a list', (
+      tester,
+    ) async {
+      await typeInto(tester, 'plain paragraph', cursor: 4);
+      IconButton button(String key) =>
+          tester.widget<IconButton>(find.byKey(Key(key)));
+      expect(button('toolbar-indent-list').onPressed, isNull);
+      expect(button('toolbar-outdent-list').onPressed, isNull);
+
+      await typeInto(tester, '- top item', cursor: 4);
+      expect(button('toolbar-indent-list').onPressed, isNotNull);
+      // Nothing to outdent until the item is nested.
+      expect(button('toolbar-outdent-list').onPressed, isNull);
+    });
   });
 
   testWidgets('a failed image copy tells the user and leaves the note alone', (

@@ -139,7 +139,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         'assets/examples/welcome_v1.md',
       );
       if (!mounted) return;
-      if (!_workspace.upgradeExample(previous, content)) {
+      // Only an empty workspace opened without a note shows the example;
+      // a note the user opened stays as it is, even a blank "Untitled" one.
+      if (!_workspace.upgradeExample(previous, content) &&
+          widget.initialDocument == null) {
         _workspace.loadExample(content);
       }
     } catch (_) {
@@ -1468,51 +1471,81 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return context.l10n.statusSaved;
   }
 
+  /// The lines the selection touches, for deciding which list tools apply.
+  List<String> get _selectedLines {
+    final value = _textController.value;
+    final text = value.text;
+    final selection = value.selection.isValid
+        ? value.selection
+        : TextSelection.collapsed(offset: text.length);
+    final start = selection.start == 0
+        ? 0
+        : text.lastIndexOf('\n', selection.start - 1) + 1;
+    final next = text.indexOf('\n', selection.end);
+    return text.substring(start, next == -1 ? text.length : next).split('\n');
+  }
+
+  static final _listItem = RegExp(r'^\s*([-*+]|\d+[.)])\s');
+
   Widget _buildFormattingToolbar() {
-    return ValueListenableBuilder<UndoHistoryValue>(
-      valueListenable: _undoController,
-      builder: (context, history, _) => MarkdownFormattingToolbar(
-        onUndo: history.canUndo ? _undoController.undo : null,
-        onRedo: history.canRedo ? _undoController.redo : null,
-        onHeading: _applyHeading,
-        onBold: () =>
-            _toggleInlineFormat('**', '**', placeholder: context.l10n.phBold),
-        onItalic: () =>
-            _toggleInlineFormat('_', '_', placeholder: context.l10n.phItalic),
-        onStrikethrough: () =>
-            _toggleInlineFormat('~~', '~~', placeholder: context.l10n.phStrike),
-        onList: () => _formatSelectedLines(
-          prefixBuilder: (_) => '- ',
-          placeholder: context.l10n.phItem,
-          removePattern: '- ',
-        ),
-        onOrderedList: _formatOrderedList,
-        onTaskList: () => _formatSelectedLines(
-          prefixBuilder: (_) => '- [ ] ',
-          placeholder: context.l10n.phTask,
-          removePattern: RegExp(r'^- \[[ xX]\] '),
-        ),
-        onIndentList: () => _changeListIndent(increase: true),
-        onOutdentList: () => _changeListIndent(increase: false),
-        onQuote: () => _formatSelectedLines(
-          prefixBuilder: (_) => '> ',
-          placeholder: context.l10n.phQuote,
-          removePattern: '> ',
-        ),
-        onLineBreak: _insertLineBreak,
-        onHorizontalRule: _insertHorizontalRule,
-        onInlineCode: () => _toggleInlineFormat('`', '`', placeholder: 'code'),
-        onCodeBlock: _insertCodeBlock,
-        onDiagramTemplate: _insertDiagramTemplate,
-        onImportDiagram: _importDiagramFile,
-        onLink: () => _replaceSelection(
-          '[',
-          '](https://)',
-          placeholder: context.l10n.phLinkName,
-        ),
-        onImage: _insertImage,
-        onTable: _insertTable,
-      ),
+    // Rebuilt as the cursor moves so list tools are enabled only where they
+    // do something visible.
+    return ListenableBuilder(
+      listenable: Listenable.merge([_undoController, _textController]),
+      builder: (context, _) {
+        final history = _undoController.value;
+        final listLines = _selectedLines.where(_listItem.hasMatch).toList();
+        return MarkdownFormattingToolbar(
+          onUndo: history.canUndo ? _undoController.undo : null,
+          onRedo: history.canRedo ? _undoController.redo : null,
+          onHeading: _applyHeading,
+          onBold: () =>
+              _toggleInlineFormat('**', '**', placeholder: context.l10n.phBold),
+          onItalic: () =>
+              _toggleInlineFormat('_', '_', placeholder: context.l10n.phItalic),
+          onStrikethrough: () => _toggleInlineFormat(
+            '~~',
+            '~~',
+            placeholder: context.l10n.phStrike,
+          ),
+          onList: () => _formatSelectedLines(
+            prefixBuilder: (_) => '- ',
+            placeholder: context.l10n.phItem,
+            removePattern: '- ',
+          ),
+          onOrderedList: _formatOrderedList,
+          onTaskList: () => _formatSelectedLines(
+            prefixBuilder: (_) => '- [ ] ',
+            placeholder: context.l10n.phTask,
+            removePattern: RegExp(r'^- \[[ xX]\] '),
+          ),
+          onIndentList: listLines.isEmpty
+              ? null
+              : () => _changeListIndent(increase: true),
+          onOutdentList: listLines.any((line) => line.startsWith(RegExp(r'\s')))
+              ? () => _changeListIndent(increase: false)
+              : null,
+          onQuote: () => _formatSelectedLines(
+            prefixBuilder: (_) => '> ',
+            placeholder: context.l10n.phQuote,
+            removePattern: '> ',
+          ),
+          onLineBreak: _insertLineBreak,
+          onHorizontalRule: _insertHorizontalRule,
+          onInlineCode: () =>
+              _toggleInlineFormat('`', '`', placeholder: 'code'),
+          onCodeBlock: _insertCodeBlock,
+          onDiagramTemplate: _insertDiagramTemplate,
+          onImportDiagram: _importDiagramFile,
+          onLink: () => _replaceSelection(
+            '[',
+            '](https://)',
+            placeholder: context.l10n.phLinkName,
+          ),
+          onImage: _insertImage,
+          onTable: _insertTable,
+        );
+      },
     );
   }
 

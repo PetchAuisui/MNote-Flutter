@@ -161,9 +161,16 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     // Focus can change while Flutter moves the editor between document blocks.
     // Finish only after that move has completed, never during a rebuild.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_focus.hasFocus && _start != null) {
-        setState(() => _start = null);
+      if (!mounted || _focus.hasFocus || _start == null) return;
+      // A menu or dialog opened from the toolbar takes focus while it is up
+      // and hands it back when it closes, so keep the block open meanwhile.
+      final focused = FocusManager.instance.primaryFocus?.context;
+      if (focused != null &&
+          focused.mounted &&
+          ModalRoute.of(focused) != ModalRoute.of(context)) {
+        return;
       }
+      setState(() => _start = null);
     });
   }
 

@@ -192,34 +192,9 @@
       }
     }
   },
-  "defaultTextName": "ข้อความ_{n}",
-  "@defaultTextName": {
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
   "newMarkdownTitle": "สร้างไฟล์ Markdown ใหม่",
-  "newTextTitle": "สร้างไฟล์ข้อความ (.txt) ใหม่",
   "fileNameLabel": "ชื่อไฟล์",
   "createFile": "สร้างไฟล์",
-  "newMarkdownBody": "# {name}\n\nเริ่มพิมพ์ข้อความหรือจดโน้ตของคุณที่นี่...",
-  "@newMarkdownBody": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "newTextBody": "บันทึกข้อความ {name}\n\n",
-  "@newTextBody": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "newFolderTitle": "สร้างโฟลเดอร์ใหม่",
   "folderNameLabel": "ชื่อโฟลเดอร์",
   "folderNameHint": "เช่น วิชาสัมมนา, บันทึกย่อ",
@@ -415,7 +390,6 @@
   "sortNameDesc": "ชื่อ (ฮ - ก)",
   "createOrImport": "สร้างใหม่หรือดึงไฟล์",
   "newMarkdownItem": "เอกสาร Markdown ใหม่ (.md)",
-  "newTextItem": "ไฟล์ข้อความใหม่ (.txt)",
   "newFolderItem": "โฟลเดอร์ใหม่",
   "importItem": "ดึงไฟล์จากเครื่อง (Import)",
   "newButton": "ใหม่",
@@ -434,7 +408,7 @@
   "trashEmptyTitle": "ถังขยะว่างเปล่า",
   "trashEmptyBody": "ไม่มีไฟล์หรือโฟลเดอร์ในถังขยะ",
   "emptyLibraryTitle": "ยังไม่มีไฟล์หรือโฟลเดอร์",
-  "emptyLibraryBody": "กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์",
+  "emptyLibraryBody": "กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown หรือโฟลเดอร์",
   "folderColorTitle": "เปลี่ยนสีโฟลเดอร์",
   "defaultColor": "สีเริ่มต้น",
   "folderColorLabel": "สีโฟลเดอร์",

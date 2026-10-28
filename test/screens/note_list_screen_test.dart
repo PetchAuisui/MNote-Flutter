@@ -187,9 +187,7 @@ void main() {
 
     expect(find.text('ยังไม่มีไฟล์หรือโฟลเดอร์'), findsOneWidget);
     expect(
-      find.text(
-        'กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์',
-      ),
+      find.text('กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown หรือโฟลเดอร์'),
       findsOneWidget,
     );
   });
@@ -1184,5 +1182,41 @@ void main() {
 
     expect(family(), isNot(before));
     expect(family(), contains('Sarabun'));
+  });
+
+  testWidgets('grid cards keep one size when a name wraps to two lines', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = FakeDocumentRepository()
+      ..storedMetadata = LibraryMetadata(
+        folders: [],
+        documents: [
+          DocumentItem(
+            id: 'short',
+            name: 'Me.md',
+            content: 'hello',
+            updatedAt: DateTime(2026),
+          ),
+          DocumentItem(
+            id: 'long',
+            name: 'AI For Education and Learning Design.md',
+            content: 'hello',
+            updatedAt: DateTime(2026),
+          ),
+        ],
+      );
+    await tester.pumpWidget(
+      MaterialApp(home: NoteListScreen(repository: repo)),
+    );
+    await tester.pumpAndSettle();
+
+    final short = find.byKey(const ValueKey('doc-card-short'));
+    final long = find.byKey(const ValueKey('doc-card-long'));
+    expect(short, findsOneWidget);
+    expect(long, findsOneWidget);
+    expect(tester.getSize(long), tester.getSize(short));
   });
 }

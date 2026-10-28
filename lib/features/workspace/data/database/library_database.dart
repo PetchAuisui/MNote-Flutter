@@ -17,6 +17,8 @@ class Folders extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@TableIndex(name: 'documents_folder', columns: {#folderId})
+@TableIndex(name: 'documents_trash', columns: {#isTrash})
 class Documents extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -42,6 +44,16 @@ class LibraryDatabase extends _$LibraryDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  // No foreign key from documents.folderId to folders.id on purpose: a note
+  // synced before its folder, or after the folder was removed, must still
+  // save rather than fail the whole write.
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    // Add one step per schemaVersion bump here, never drop user data.
+    onUpgrade: (m, from, to) async {},
+  );
 
   /// Whether nothing has been stored yet, so a legacy JSON index may be
   /// imported.
@@ -83,38 +95,63 @@ class LibraryDatabase extends _$LibraryDatabase {
     );
   }
 
-  /// Replaces the whole library in one transaction, so a crash never leaves
-  /// half of an update behind.
+  /// Makes the stored library equal to [library], writing only the rows that
+  /// changed. Runs in one transaction, so a crash never leaves half of an
+  /// update behind.
   Future<void> replaceLibrary(LibraryMetadata library) {
     return transaction(() async {
-      await delete(folders).go();
-      await delete(documents).go();
+      final oldFolders = {for (final f in await select(folders).get()) f.id: f};
+      final oldDocs = {for (final d in await select(documents).get()) d.id: d};
+
+      final newFolders = {
+        for (final f in library.folders)
+          f.id: Folder(
+            id: f.id,
+            name: f.name,
+            updatedAt: f.updatedAt,
+            isStarred: f.isStarred,
+            isTrash: f.isTrash,
+            colorValue: f.colorValue,
+          ),
+      };
+      final newDocs = {
+        for (final d in library.documents)
+          d.id: Document(
+            id: d.id,
+            name: d.name,
+            content: d.content,
+            updatedAt: d.updatedAt,
+            folderId: d.folderId,
+            isStarred: d.isStarred,
+            uri: d.uri?.toString(),
+            isTrash: d.isTrash,
+            syncMode: d.syncMode.name,
+          ),
+      };
+
+      await (delete(folders)..where(
+            (t) => t.id.isIn(
+              oldFolders.keys.where((k) => !newFolders.containsKey(k)),
+            ),
+          ))
+          .go();
+      await (delete(documents)..where(
+            (t) =>
+                t.id.isIn(oldDocs.keys.where((k) => !newDocs.containsKey(k))),
+          ))
+          .go();
+
       await batch((b) {
-        b.insertAll(folders, [
-          for (final f in library.folders)
-            FoldersCompanion.insert(
-              id: f.id,
-              name: f.name,
-              updatedAt: f.updatedAt,
-              isStarred: Value(f.isStarred),
-              isTrash: Value(f.isTrash),
-              colorValue: Value(f.colorValue),
-            ),
-        ], mode: InsertMode.insertOrReplace);
-        b.insertAll(documents, [
-          for (final d in library.documents)
-            DocumentsCompanion.insert(
-              id: d.id,
-              name: d.name,
-              content: Value(d.content),
-              updatedAt: d.updatedAt,
-              folderId: Value(d.folderId),
-              isStarred: Value(d.isStarred),
-              uri: Value(d.uri?.toString()),
-              isTrash: Value(d.isTrash),
-              syncMode: Value(d.syncMode.name),
-            ),
-        ], mode: InsertMode.insertOrReplace);
+        for (final f in newFolders.values) {
+          if (oldFolders[f.id] != f) {
+            b.insert(folders, f, mode: InsertMode.insertOrReplace);
+          }
+        }
+        for (final d in newDocs.values) {
+          if (oldDocs[d.id] != d) {
+            b.insert(documents, d, mode: InsertMode.insertOrReplace);
+          }
+        }
       });
     });
   }

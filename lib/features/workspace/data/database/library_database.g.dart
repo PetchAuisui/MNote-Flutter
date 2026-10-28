@@ -974,11 +974,27 @@ abstract class _$LibraryDatabase extends GeneratedDatabase {
   $LibraryDatabaseManager get managers => $LibraryDatabaseManager(this);
   late final $FoldersTable folders = $FoldersTable(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
+  late final Index documentsFolder = Index(
+    'documents_folder',
+    'CREATE INDEX documents_folder ON documents (folder_id)',
+  );
+  late final Index documentsTrash = Index(
+    'documents_trash',
+    'CREATE INDEX documents_trash ON documents (is_trash)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [folders, documents];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    folders,
+    documents,
+    documentsFolder,
+    documentsTrash,
+  ];
+  @override
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
 typedef $$FoldersTableCreateCompanionBuilder =

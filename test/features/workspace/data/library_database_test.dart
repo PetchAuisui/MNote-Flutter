@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/workspace/data/database/library_database.dart';
@@ -80,5 +81,56 @@ void main() {
     final library = await db.loadLibrary();
     expect(library.folders.single.name, 'Old');
     expect(library.documents.single.syncMode, SyncMode.auto);
+  });
+
+  test('keeps milliseconds so sync can compare times', () async {
+    final precise = DateTime.utc(2026, 5, 1, 10, 0, 0, 123);
+    await db.replaceLibrary(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(id: 'a', name: 'a.md', content: '', updatedAt: precise),
+        ],
+      ),
+    );
+
+    final doc = (await db.loadLibrary()).documents.single;
+    expect(doc.updatedAt.toUtc(), precise);
+  });
+
+  test('saves a note whose folder is missing', () async {
+    await db.replaceLibrary(
+      LibraryMetadata(
+        documents: [
+          DocumentItem(
+            id: 'a',
+            name: 'a.md',
+            content: '',
+            updatedAt: updated,
+            folderId: 'gone',
+          ),
+        ],
+      ),
+    );
+
+    expect((await db.loadLibrary()).documents.single.folderId, 'gone');
+  });
+
+  test('an unchanged library is not rewritten', () async {
+    final library = LibraryMetadata(
+      documents: [
+        DocumentItem(id: 'a', name: 'a.md', content: 'x', updatedAt: updated),
+      ],
+    );
+    await db.replaceLibrary(library);
+
+    var writes = 0;
+    final sub = db
+        .tableUpdates(TableUpdateQuery.onTable(db.documents))
+        .listen((_) => writes++);
+    await db.replaceLibrary(library);
+    await Future<void>.delayed(Duration.zero);
+    await sub.cancel();
+
+    expect(writes, 0);
   });
 }

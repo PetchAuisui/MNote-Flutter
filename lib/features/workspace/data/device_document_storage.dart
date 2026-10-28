@@ -135,6 +135,9 @@ class DeviceDocumentStorage implements DocumentStorage {
       if (await legacy.exists()) {
         try {
           await _db.importLegacyJson(await legacy.readAsString());
+          // Set the old file aside so deleting every note later cannot make
+          // an empty database import it again.
+          await legacy.rename('${legacy.path}.migrated');
         } catch (_) {
           // An unreadable old index is treated as no index, as before.
           return null;

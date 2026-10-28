@@ -293,6 +293,28 @@ void main() {
     expect(find.byType(NoteListScreen), findsOneWidget);
   });
 
+  testWidgets('a blank note named Untitled is not replaced by the example', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: MarkdownDocument(
+            name: 'Untitled.md',
+            content: '',
+            savedName: 'Untitled.md',
+            savedContent: '',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_source(tester).text, isEmpty);
+  });
+
   group('formatting while typing in a block', () {
     Future<TextEditingController> typeInto(
       WidgetTester tester,

@@ -139,7 +139,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         'assets/examples/welcome_v1.md',
       );
       if (!mounted) return;
-      if (!_workspace.upgradeExample(previous, content)) {
+      // Only an empty workspace opened without a note shows the example;
+      // a note the user opened stays as it is, even a blank "Untitled" one.
+      if (!_workspace.upgradeExample(previous, content) &&
+          widget.initialDocument == null) {
         _workspace.loadExample(content);
       }
     } catch (_) {

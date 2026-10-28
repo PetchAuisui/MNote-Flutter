@@ -536,6 +536,11 @@ void main() {
       tester.getSize(find.byType(MarkdownLiveEditor)).width,
       lessThan(contentWidth),
     );
+    // It is a full-height sheet beside the document, not a floating card.
+    expect(
+      tester.getSize(find.byKey(const Key('outline-panel'))).height,
+      tester.getSize(find.byType(MarkdownLiveEditor)).height,
+    );
 
     await tester.tap(find.byKey(const Key('outline-close')));
     await tester.pumpAndSettle();

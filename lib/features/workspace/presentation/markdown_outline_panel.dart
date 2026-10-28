@@ -46,7 +46,7 @@ class _MarkdownOutlinePanelState extends State<MarkdownOutlinePanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 6, 4, 0),
+          padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 8, 4),
           child: Row(
             children: [
               Expanded(
@@ -134,7 +134,7 @@ class _HeadingList extends StatelessWidget {
       valueListenable: outline.activeOffset,
       builder: (context, active, _) => ListView.builder(
         shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
         itemCount: headings.length,
         itemBuilder: (context, index) {
           final heading = headings[index];

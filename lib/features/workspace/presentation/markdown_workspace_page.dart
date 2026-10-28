@@ -1099,6 +1099,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Widget _withOutline(Widget view) {
     if (!_outlineOpen || _isCompact) return view;
     return Row(
+      // The sheet runs the full height of the document, not just its list.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
           width: 280,

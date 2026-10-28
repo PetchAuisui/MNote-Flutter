@@ -1389,4 +1389,14 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get firebaseSetupError =>
       'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md';
+
+  @override
+  String get outlineTitle => 'สารบัญ';
+
+  @override
+  String get outlineEmpty =>
+      'ยังไม่มีหัวข้อ พิมพ์ # นำหน้าข้อความเพื่อสร้างหัวข้อ';
+
+  @override
+  String get outlineUntitled => '(ไม่มีชื่อหัวข้อ)';
 }

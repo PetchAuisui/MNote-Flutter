@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'editor_settings.dart';
 import 'markdown_document_style.dart';
+import 'markdown_outline.dart';
 import 'markdown_rendered_block.dart';
 
 /// History belongs to the workspace so switching views does not discard it.
@@ -16,6 +17,27 @@ class MarkdownEditHistory {
   }
 }
 
+/// Lets the workspace move the live editor to a heading and follow its scroll.
+class MarkdownOutlineController {
+  Future<void> Function(int offset)? _scrollTo;
+
+  /// Called by the view that currently shows the document.
+  void attach(Future<void> Function(int offset) scrollTo) =>
+      _scrollTo = scrollTo;
+
+  void detach(Future<void> Function(int offset) scrollTo) {
+    if (_scrollTo == scrollTo) _scrollTo = null;
+  }
+
+  /// Source offset of the heading the reader is currently in, if any.
+  final activeOffset = ValueNotifier<int?>(null);
+
+  /// Scrolls the heading that starts at [offset] to the top of the editor.
+  Future<void> scrollToOffset(int offset) async => _scrollTo?.call(offset);
+
+  void dispose() => activeOffset.dispose();
+}
+
 /// Renders a document in place, exposing Markdown only in the active block.
 class MarkdownLiveEditor extends StatefulWidget {
   const MarkdownLiveEditor({
@@ -27,9 +49,11 @@ class MarkdownLiveEditor extends StatefulWidget {
     this.undoController,
     this.onTapLink,
     this.history,
+    this.outline,
   });
   final TextEditingController controller;
   final MarkdownEditHistory? history;
+  final MarkdownOutlineController? outline;
   final UndoHistoryController? undoController;
   final ValueChanged<String> onChanged;
   final void Function(String, String?, String?)? onTapLink;
@@ -44,6 +68,12 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   final _blockController = TextEditingController();
   final _focus = FocusNode();
   final _activeEditorKey = GlobalKey();
+  final _viewportKey = GlobalKey();
+  final _scroll = ScrollController();
+  final _blockKeys = <int, GlobalKey>{};
+  String? _headingsSource;
+  List<MarkdownHeading> _headings = const [];
+  bool _jumping = false;
   int? _start;
   int _end = 0;
   bool _updating = false;
@@ -72,6 +102,58 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     widget.undoController?.onRedo.addListener(_redo);
     _blockController.addListener(_edit);
     _focus.addListener(_onFocusChanged);
+    _scroll.addListener(_trackActiveHeading);
+    widget.outline?.attach(_scrollToOffset);
+  }
+
+  List<MarkdownHeading> _headingsOf(String source) {
+    if (_headingsSource != source) {
+      _headings = parseMarkdownHeadings(source);
+      _headingsSource = source;
+    }
+    return _headings;
+  }
+
+  BuildContext? _contextFor(int offset) {
+    final start = _start;
+    if (start != null && offset >= start && offset < _end) {
+      return _activeEditorKey.currentContext;
+    }
+    return _blockKeys[offset]?.currentContext;
+  }
+
+  void _trackActiveHeading() {
+    final outline = widget.outline;
+    if (_jumping || outline == null) return;
+    final headings = _headingsOf(_source);
+    final viewport = _viewportKey.currentContext?.findRenderObject();
+    int? active = headings.isEmpty ? null : headings.first.offset;
+    if (viewport is RenderBox && viewport.attached) {
+      for (final heading in headings) {
+        final box = _contextFor(heading.offset)?.findRenderObject();
+        if (box is! RenderBox || !box.attached) continue;
+        // A heading counts as reached once it is near the top of the view.
+        if (box.localToGlobal(Offset.zero, ancestor: viewport).dy > 48) break;
+        active = heading.offset;
+      }
+    }
+    outline.activeOffset.value = active;
+  }
+
+  Future<void> _scrollToOffset(int offset) async {
+    final target = _contextFor(offset);
+    if (target == null) return;
+    _jumping = true;
+    widget.outline?.activeOffset.value = offset;
+    try {
+      await Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
+      );
+    } finally {
+      _jumping = false;
+    }
   }
 
   void _onFocusChanged() {
@@ -95,6 +177,10 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
       _start = null;
       _past.clear();
       _future.clear();
+    }
+    if (oldWidget.outline != widget.outline) {
+      oldWidget.outline?.detach(_scrollToOffset);
+      widget.outline?.attach(_scrollToOffset);
     }
     if (oldWidget.undoController != widget.undoController) {
       oldWidget.undoController?.onUndo.removeListener(_undo);
@@ -288,6 +374,10 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     final blockContext = MarkdownBlockContext(source, ranges);
 
     var editorAdded = false;
+    final blockStarts = {for (final range in ranges) range.start};
+    _blockKeys.removeWhere((start, _) => !blockStarts.contains(start));
+    GlobalKey blockKey(int start) =>
+        _blockKeys.putIfAbsent(start, GlobalKey.new);
 
     for (final range in ranges) {
       if (_start != null && range.end <= _start!) {
@@ -296,19 +386,22 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
             key: ValueKey('markdown-block-${range.start}'),
             behavior: HitTestBehavior.opaque,
             onTap: () => _activate(range.start, range.end),
-            child: IgnorePointer(
-              ignoring: RegExp(
-                r'^\s*(`{3,}|~{3,})',
-              ).hasMatch(range.textInside(source)),
-              child: MarkdownRenderedBlock(
-                markdown: range.textInside(source),
-                references: blockContext.references,
-                orderedNumber: blockContext.orderedNumbers[range.start],
-                theme: documentTheme,
-                imageDirectory: widget.imageDirectory,
-                builders: widget.builders,
-                onTapLink: widget.onTapLink,
-                textOptions: _textOptions,
+            child: KeyedSubtree(
+              key: blockKey(range.start),
+              child: IgnorePointer(
+                ignoring: RegExp(
+                  r'^\s*(`{3,}|~{3,})',
+                ).hasMatch(range.textInside(source)),
+                child: MarkdownRenderedBlock(
+                  markdown: range.textInside(source),
+                  references: blockContext.references,
+                  orderedNumber: blockContext.orderedNumbers[range.start],
+                  theme: documentTheme,
+                  imageDirectory: widget.imageDirectory,
+                  builders: widget.builders,
+                  onTapLink: widget.onTapLink,
+                  textOptions: _textOptions,
+                ),
               ),
             ),
           ),
@@ -330,19 +423,22 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
           key: ValueKey('markdown-block-${range.start}'),
           behavior: HitTestBehavior.opaque,
           onTap: () => _activate(range.start, range.end),
-          child: IgnorePointer(
-            ignoring: RegExp(
-              r'^\s*(`{3,}|~{3,})',
-            ).hasMatch(range.textInside(source)),
-            child: MarkdownRenderedBlock(
-              markdown: range.textInside(source),
-              references: blockContext.references,
-              orderedNumber: blockContext.orderedNumbers[range.start],
-              theme: documentTheme,
-              imageDirectory: widget.imageDirectory,
-              builders: widget.builders,
-              onTapLink: widget.onTapLink,
-              textOptions: _textOptions,
+          child: KeyedSubtree(
+            key: blockKey(range.start),
+            child: IgnorePointer(
+              ignoring: RegExp(
+                r'^\s*(`{3,}|~{3,})',
+              ).hasMatch(range.textInside(source)),
+              child: MarkdownRenderedBlock(
+                markdown: range.textInside(source),
+                references: blockContext.references,
+                orderedNumber: blockContext.orderedNumbers[range.start],
+                theme: documentTheme,
+                imageDirectory: widget.imageDirectory,
+                builders: widget.builders,
+                onTapLink: widget.onTapLink,
+                textOptions: _textOptions,
+              ),
             ),
           ),
         ),
@@ -369,11 +465,18 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         child: const SizedBox(height: 120, width: double.infinity),
       ),
     );
+    if (widget.outline != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _trackActiveHeading();
+      });
+    }
     return Theme(
       data: documentTheme,
       child: ColoredBox(
+        key: _viewportKey,
         color: Colors.white,
         child: SingleChildScrollView(
+          controller: _scroll,
           key: const Key('markdown-live-preview'),
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Center(
@@ -398,6 +501,8 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     widget.controller.removeListener(_sync);
     widget.undoController?.onUndo.removeListener(_undo);
     widget.undoController?.onRedo.removeListener(_redo);
+    widget.outline?.detach(_scrollToOffset);
+    _scroll.dispose();
     _blockController.dispose();
     _focus.removeListener(_onFocusChanged);
     _focus.dispose();

@@ -518,4 +518,51 @@ void main() {
     expect(find.text('ไม่สามารถย้ายเอกสารไปยังถังขยะได้'), findsOneWidget);
     expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
   });
+  testWidgets('the header outline button docks a side sheet on wide screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp(welcome: true));
+    await tester.pumpAndSettle();
+    final contentWidth = tester.getSize(find.byType(MarkdownLiveEditor)).width;
+    final editorState = tester.state(find.byType(MarkdownLiveEditor));
+
+    await tester.tap(find.byKey(const Key('toolbar-outline-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('outline-panel')), findsOneWidget);
+    // The sheet shares the row, so the document gets narrower.
+    expect(
+      tester.getSize(find.byType(MarkdownLiveEditor)).width,
+      lessThan(contentWidth),
+    );
+    // Opening the sheet keeps the editor (its scroll and active block).
+    expect(tester.state(find.byType(MarkdownLiveEditor)), same(editorState));
+    // It is a full-height sheet beside the document, not a floating card.
+    expect(
+      tester.getSize(find.byKey(const Key('outline-panel'))).height,
+      tester.getSize(find.byType(MarkdownLiveEditor)).height,
+    );
+
+    await tester.tap(find.byKey(const Key('outline-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('outline-panel')), findsNothing);
+    expect(tester.state(find.byType(MarkdownLiveEditor)), same(editorState));
+  });
+
+  testWidgets('the outline opens as a bottom sheet on compact screens', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_buildWorkspaceApp(welcome: true));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('toolbar-outline-button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byKey(const Key('outline-panel')), findsNothing);
+  });
 }

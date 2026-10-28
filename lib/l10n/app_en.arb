@@ -418,5 +418,8 @@
   "aiNoteTooLong": "The note is too long for the AI assistant. Tap x on the note name to send without it.",
   "aiDisclaimer": "Gemini is an AI and can make mistakes. Check important information.",
   "startWriting": "Start writing Markdown…",
-  "firebaseSetupError": "Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md"
+  "firebaseSetupError": "Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md",
+  "outlineTitle": "Outline",
+  "outlineEmpty": "No headings yet. Start a line with # to add one.",
+  "outlineUntitled": "(Untitled heading)"
 }

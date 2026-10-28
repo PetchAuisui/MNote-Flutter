@@ -28,6 +28,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'editor_settings.dart';
 import 'ink_settings.dart';
 import 'markdown_live_editor.dart';
+import 'markdown_outline_panel.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_session.dart';
@@ -81,6 +82,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   late final FocusNode _markdownFocusNode;
   late UndoHistoryController _undoController;
   final _markdownHistory = MarkdownEditHistory();
+  final _outline = MarkdownOutlineController();
+  bool _outlineOpen = false;
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
@@ -158,6 +161,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _markdownFocusNode
       ..removeListener(_onMarkdownFocusChanged)
       ..dispose();
+    _outline.dispose();
     _textController.dispose();
     _titleController.dispose();
     _editorScrollController.dispose();
@@ -982,18 +986,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                               child: _workspace.mode == WorkspaceMode.edit
                                   ? _buildEditor()
                                   : _workspace.mode == WorkspaceMode.split
-                                  ? _buildSplitView()
+                                  ? _withOutline(_buildSplitView())
                                   : _workspace.mode == WorkspaceMode.ink
-                                  ? InkPage(
-                                      key: ObjectKey(_ink),
-                                      session: _ink,
-                                      markdown: document.content,
-                                      name: document.name,
-                                      imageDirectory: _imageDirectory,
-                                      transformationController: _inkTransform,
-                                      showToolbar: false,
-                                      onViewportWidthChanged: (w) =>
-                                          _inkViewportWidth = w,
+                                  ? _withOutline(
+                                      InkPage(
+                                        key: ObjectKey(_ink),
+                                        session: _ink,
+                                        markdown: document.content,
+                                        name: document.name,
+                                        imageDirectory: _imageDirectory,
+                                        transformationController: _inkTransform,
+                                        showToolbar: false,
+                                        onViewportWidthChanged: (w) =>
+                                            _inkViewportWidth = w,
+                                        outline: _outline,
+                                      ),
                                     )
                                   : _buildPreview(),
                             ),
@@ -1039,7 +1046,94 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  /// Below this width Material 3 treats the window as compact, where the
+  /// outline opens as a bottom sheet instead of a docked side sheet.
+  static const _compactWidth = 600.0;
+
+  bool get _hasOutline =>
+      _workspace.mode == WorkspaceMode.split ||
+      _workspace.mode == WorkspaceMode.ink;
+
+  bool get _isCompact => MediaQuery.sizeOf(context).width < _compactWidth;
+
+  void _toggleOutline() {
+    if (!_isCompact) {
+      setState(() => _outlineOpen = !_outlineOpen);
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+      ),
+      builder: (sheetContext) => MarkdownOutlinePanel(
+        asSheet: true,
+        textController: _textController,
+        outline: _outline,
+        onClose: () => Navigator.pop(sheetContext),
+        onSelected: (heading) {
+          Navigator.pop(sheetContext);
+          _outline.scrollToOffset(heading.offset);
+        },
+      ),
+    );
+  }
+
+  /// The outline toggle at the leading edge of the header, as in GoodNotes.
+  Widget? _buildOutlineButton() {
+    if (!_hasOutline) return null;
+    final colors = Theme.of(context).colorScheme;
+    // A Material 3 toggle icon button: full-contrast when off, a tonal
+    // container while the side sheet is open.
+    return IconButton(
+      key: const Key('toolbar-outline-button'),
+      onPressed: _toggleOutline,
+      tooltip: context.l10n.outlineTitle,
+      isSelected: _outlineOpen && !_isCompact,
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colors.onSecondaryContainer
+              : colors.onSurface,
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colors.secondaryContainer
+              : null,
+        ),
+      ),
+      icon: const Icon(Icons.toc_rounded),
+    );
+  }
+
+  /// Docks the outline as a standard side sheet that shares the row with the
+  /// document instead of covering it. The view keeps one place in the tree
+  /// whether or not the sheet is shown, so toggling it never rebuilds the
+  /// editor or the ink page from scratch.
+  Widget _withOutline(Widget view) {
+    return Row(
+      // The sheet runs the full height of the document, not just its list.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_outlineOpen && !_isCompact)
+          SizedBox(
+            width: 280,
+            child: MarkdownOutlinePanel(
+              textController: _textController,
+              outline: _outline,
+              onClose: () => setState(() => _outlineOpen = false),
+              onSelected: (heading) => _outline.scrollToOffset(heading.offset),
+            ),
+          ),
+        Expanded(key: const ValueKey('outline-document'), child: view),
+      ],
+    );
+  }
+
   Widget _buildSplitView() => MarkdownLiveEditor(
+    outline: _outline,
     history: _markdownHistory,
     onTapLink: (text, href, title) => _openLink(href),
     undoController: _undoController,
@@ -1058,6 +1152,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 720;
           final title = _buildDocumentTitle(document);
+          final outlineButton = _buildOutlineButton();
           final modes = _buildModeSwitcher(compact: !wide);
           final actions = _buildDocumentActions();
           if (!wide) {
@@ -1073,6 +1168,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                           BackButton(
                             onPressed: () => Navigator.maybePop(context),
                           ),
+                        ?outlineButton,
                         Expanded(child: title),
                         actions,
                       ],
@@ -1098,6 +1194,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                         BackButton(
                           onPressed: () => Navigator.maybePop(context),
                         ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (outlineButton != null) ...[
+                        outlineButton,
                         const SizedBox(width: 8),
                       ],
                       Expanded(

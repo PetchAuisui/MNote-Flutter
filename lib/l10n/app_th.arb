@@ -777,5 +777,8 @@
   "aiNoteTooLong": "โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ",
   "aiDisclaimer": "Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ",
   "startWriting": "เริ่มเขียน Markdown…",
-  "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md"
+  "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md",
+  "outlineTitle": "สารบัญ",
+  "outlineEmpty": "ยังไม่มีหัวข้อ พิมพ์ # นำหน้าข้อความเพื่อสร้างหัวข้อ",
+  "outlineUntitled": "(ไม่มีชื่อหัวข้อ)"
 }

@@ -2611,6 +2611,24 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md'**
   String get firebaseSetupError;
+
+  /// No description provided for @outlineTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'สารบัญ'**
+  String get outlineTitle;
+
+  /// No description provided for @outlineEmpty.
+  ///
+  /// In th, this message translates to:
+  /// **'ยังไม่มีหัวข้อ พิมพ์ # นำหน้าข้อความเพื่อสร้างหัวข้อ'**
+  String get outlineEmpty;
+
+  /// No description provided for @outlineUntitled.
+  ///
+  /// In th, this message translates to:
+  /// **'(ไม่มีชื่อหัวข้อ)'**
+  String get outlineUntitled;
 }
 
 class _AppLocalizationsDelegate

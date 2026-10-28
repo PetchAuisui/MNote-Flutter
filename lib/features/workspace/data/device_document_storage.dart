@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:mnote/features/workspace/data/database/library_database.dart';
+import 'package:mnote/features/workspace/data/database/library_database_native.dart';
 import 'package:mnote/features/workspace/data/document_storage.dart';
+import 'package:mnote/models/note_item.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DeviceDocumentStorage implements DocumentStorage {
@@ -113,20 +117,39 @@ class DeviceDocumentStorage implements DocumentStorage {
     return uri;
   }
 
-  @override
-  Future<String?> readMetadata() async {
+  /// One connection per app run, shared by every storage instance.
+  static LibraryDatabase? _database;
+
+  static LibraryDatabase get _db => _database ??= openLibraryDatabase();
+
+  /// The index from before the SQLite database existed.
+  Future<File> _legacyIndex() async {
     final appDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDir.path}/.mnote_library.json');
-    if (await file.exists()) {
-      return file.readAsString();
-    }
-    return null;
+    return File('${appDir.path}/.mnote_library.json');
   }
 
   @override
-  Future<void> writeMetadata(String content) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDir.path}/.mnote_library.json');
-    await file.writeAsString(content, flush: true);
+  Future<String?> readMetadata() async {
+    if (await _db.isEmpty()) {
+      final legacy = await _legacyIndex();
+      if (await legacy.exists()) {
+        try {
+          await _db.importLegacyJson(await legacy.readAsString());
+        } catch (_) {
+          // An unreadable old index is treated as no index, as before.
+          return null;
+        }
+      }
+    }
+    final library = await _db.loadLibrary();
+    if (library.folders.isEmpty && library.documents.isEmpty) return null;
+    return jsonEncode(library.toJson());
+  }
+
+  @override
+  Future<void> writeMetadata(String content) {
+    return _db.replaceLibrary(
+      LibraryMetadata.fromJson(jsonDecode(content) as Map<String, dynamic>),
+    );
   }
 }

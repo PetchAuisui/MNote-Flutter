@@ -72,6 +72,9 @@ class LibraryDatabase extends _$LibraryDatabase {
         if (!await isEmpty()) await _markInitialized();
       }
     },
+    // Notes' text lives in this file. Without this, SQLite leaves a deleted
+    // row's text in free pages, readable after "clear local data".
+    beforeOpen: (_) => customStatement('PRAGMA secure_delete = ON'),
   );
 
   /// Whether no folders or notes are stored.

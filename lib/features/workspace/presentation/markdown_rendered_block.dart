@@ -94,7 +94,6 @@ class _DocumentImageState extends State<_DocumentImage> {
   }
 
   Future<File?> _locate() async {
-    if (uri.scheme == 'file') return File.fromUri(uri);
     final candidates = <Directory>[];
     final base = widget.directory;
     if (base != null) candidates.add(Directory.fromUri(Uri.parse(base)));
@@ -103,8 +102,17 @@ class _DocumentImageState extends State<_DocumentImage> {
     } on Object {
       // No documents folder on this platform; the note folder is all we have.
     }
-    final relative = Uri.decodeFull(uri.path);
     // A synced note must not point the viewer at files outside its folders.
+    if (uri.scheme == 'file') {
+      final path = File.fromUri(uri).absolute.path;
+      final inside = candidates.any((d) {
+        final root = d.absolute.path;
+        return path.startsWith(root.endsWith('/') ? root : '$root/');
+      });
+      if (!inside || path.split(RegExp(r'[\\/]')).contains('..')) return null;
+      return File(path);
+    }
+    final relative = Uri.decodeFull(uri.path);
     if (relative.split(RegExp(r'[\\/]')).contains('..')) return null;
     for (final directory in candidates) {
       final file = File('${directory.path}/$relative');

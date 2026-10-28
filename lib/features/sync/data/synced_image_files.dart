@@ -134,7 +134,7 @@ class SyncedImageFiles implements SyncCompanion {
       if (handled >= maxPerPass || _uid != uid) return;
       final file = File('$base/$name');
       final stored = name.substring('images/'.length);
-      if (await file.exists()) {
+      if (await file.exists() && await file.length() > 0) {
         if (await guard.isUploaded(stored)) continue;
         debugPrint('Image sync: uploading $stored');
         handled++;
@@ -217,8 +217,14 @@ class SyncedImageFiles implements SyncCompanion {
         await guard.recordMissing(name);
         return true;
       }
+      // Signed out or switched account while the request was in flight.
+      if (_uid != uid) return false;
       await file.parent.create(recursive: true);
-      await file.writeAsBytes(bytes);
+      // Write beside the target and rename, so a crash never leaves a
+      // half-written picture that later passes would treat as complete.
+      final partial = File('${file.path}.part');
+      await partial.writeAsBytes(bytes, flush: true);
+      await partial.rename(file.path);
       await guard.recordDownloaded(bytes.length);
       return true;
     } on Object catch (e) {

@@ -307,29 +307,23 @@ class _NoteListScreenState extends State<NoteListScreen> {
   }
 
   // สร้างไฟล์ใหม่ (สร้างไฟล์เฉยๆ หรือเปิด Workspace)
-  Future<void> _createNewFile({required bool isMarkdown}) async {
-    final ext = isMarkdown ? 'md' : 'txt';
+  // New notes are always Markdown; .txt files can still be imported.
+  Future<void> _createNewFile() async {
+    const ext = 'md';
     final count = _documents.where((d) => d.extension == ext).length + 1;
-    final defaultName = isMarkdown
-        ? context.l10n.defaultDocName(count)
-        : context.l10n.defaultTextName(count);
+    final defaultName = context.l10n.defaultDocName(count);
 
     final textController = TextEditingController(text: defaultName);
 
     final fileName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          isMarkdown
-              ? context.l10n.newMarkdownTitle
-              : context.l10n.newTextTitle,
-        ),
+        title: Text(context.l10n.newMarkdownTitle),
         content: TextField(
           controller: textController,
           autofocus: true,
           decoration: InputDecoration(
             labelText: context.l10n.fileNameLabel,
-            suffixText: '.$ext',
             border: const OutlineInputBorder(),
           ),
         ),
@@ -2195,9 +2189,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
       tooltip: context.l10n.createOrImport,
       onSelected: (action) {
         if (action == 'new_md') {
-          _createNewFile(isMarkdown: true);
-        } else if (action == 'new_txt') {
-          _createNewFile(isMarkdown: false);
+          _createNewFile();
         } else if (action == 'new_folder') {
           _createNewFolder();
         } else if (action == 'import') {
@@ -2212,16 +2204,6 @@ class _NoteListScreenState extends State<NoteListScreen> {
               Icon(Icons.description_outlined, color: primary, size: 20),
               const SizedBox(width: 12),
               Expanded(child: Text(context.l10n.newMarkdownItem)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'new_txt',
-          child: Row(
-            children: [
-              Icon(Icons.text_snippet_outlined, color: Colors.teal, size: 20),
-              SizedBox(width: 12),
-              Expanded(child: Text(context.l10n.newTextItem)),
             ],
           ),
         ),

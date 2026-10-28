@@ -362,15 +362,7 @@ class AppLocalizationsTh extends AppLocalizations {
   }
 
   @override
-  String defaultTextName(int n) {
-    return 'ข้อความ_$n';
-  }
-
-  @override
   String get newMarkdownTitle => 'สร้างไฟล์ Markdown ใหม่';
-
-  @override
-  String get newTextTitle => 'สร้างไฟล์ข้อความ (.txt) ใหม่';
 
   @override
   String get fileNameLabel => 'ชื่อไฟล์';
@@ -653,9 +645,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get newMarkdownItem => 'เอกสาร Markdown ใหม่ (.md)';
 
   @override
-  String get newTextItem => 'ไฟล์ข้อความใหม่ (.txt)';
-
-  @override
   String get newFolderItem => 'โฟลเดอร์ใหม่';
 
   @override
@@ -692,7 +681,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get emptyLibraryBody =>
-      'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์';
+      'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown หรือโฟลเดอร์';
 
   @override
   String get folderColorTitle => 'เปลี่ยนสีโฟลเดอร์';

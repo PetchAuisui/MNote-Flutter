@@ -280,11 +280,22 @@ void main() {
     expect(find.byType(NoteListScreen), findsOneWidget);
     await tester.tap(find.text('ใหม่'));
     await tester.pumpAndSettle();
+    // Markdown is the only kind of note the New menu creates.
+    expect(find.text('ไฟล์ข้อความใหม่ (.txt)'), findsNothing);
     await tester.tap(find.text('เอกสาร Markdown ใหม่ (.md)'));
     await tester.pumpAndSettle();
+    // The name field has no ".md" suffix, but the note is still saved as .md.
+    expect(find.text('.md'), findsNothing);
     await tester.tap(find.text('สร้างไฟล์'));
     await tester.pumpAndSettle();
     expect(find.byType(MarkdownWorkspacePage), findsOneWidget);
+    expect(
+      tester
+          .widget<MarkdownWorkspacePage>(find.byType(MarkdownWorkspacePage))
+          .initialDocument!
+          .name,
+      endsWith('.md'),
+    );
     expect(find.byType(MarkdownLiveEditor), findsOneWidget);
     // A new note starts blank instead of with a heading and placeholder text.
     expect(_source(tester).text, isEmpty);

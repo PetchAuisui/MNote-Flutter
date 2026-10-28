@@ -187,9 +187,7 @@ void main() {
 
     expect(find.text('ยังไม่มีไฟล์หรือโฟลเดอร์'), findsOneWidget);
     expect(
-      find.text(
-        'กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์',
-      ),
+      find.text('กดปุ่ม "+ ใหม่" ด้านบน เพื่อสร้างไฟล์ Markdown หรือโฟลเดอร์'),
       findsOneWidget,
     );
   });

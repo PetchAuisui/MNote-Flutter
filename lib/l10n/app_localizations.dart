@@ -746,23 +746,11 @@ abstract class AppLocalizations {
   /// **'เอกสาร_{n}'**
   String defaultDocName(int n);
 
-  /// No description provided for @defaultTextName.
-  ///
-  /// In th, this message translates to:
-  /// **'ข้อความ_{n}'**
-  String defaultTextName(int n);
-
   /// No description provided for @newMarkdownTitle.
   ///
   /// In th, this message translates to:
   /// **'สร้างไฟล์ Markdown ใหม่'**
   String get newMarkdownTitle;
-
-  /// No description provided for @newTextTitle.
-  ///
-  /// In th, this message translates to:
-  /// **'สร้างไฟล์ข้อความ (.txt) ใหม่'**
-  String get newTextTitle;
 
   /// No description provided for @fileNameLabel.
   ///
@@ -1256,12 +1244,6 @@ abstract class AppLocalizations {
   /// **'เอกสาร Markdown ใหม่ (.md)'**
   String get newMarkdownItem;
 
-  /// No description provided for @newTextItem.
-  ///
-  /// In th, this message translates to:
-  /// **'ไฟล์ข้อความใหม่ (.txt)'**
-  String get newTextItem;
-
   /// No description provided for @newFolderItem.
   ///
   /// In th, this message translates to:
@@ -1331,7 +1313,7 @@ abstract class AppLocalizations {
   /// No description provided for @emptyLibraryBody.
   ///
   /// In th, this message translates to:
-  /// **'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown, ไฟล์ TXT หรือโฟลเดอร์'**
+  /// **'กดปุ่ม \"+ ใหม่\" ด้านบน เพื่อสร้างไฟล์ Markdown หรือโฟลเดอร์'**
   String get emptyLibraryBody;
 
   /// No description provided for @folderColorTitle.

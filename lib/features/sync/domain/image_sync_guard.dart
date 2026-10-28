@@ -14,7 +14,7 @@ class ImageSyncLimits {
     this.maxDailyDownloadBytes = 60 * 1024 * 1024,
     this.maxDailyOperations = 300,
     this.failuresBeforePause = 3,
-    this.pause = const Duration(hours: 6),
+    this.pause = const Duration(minutes: 30),
     this.missingRetry = const Duration(minutes: 10),
   });
 
@@ -29,7 +29,9 @@ class ImageSyncLimits {
   /// Every Storage request counts, including lookups and failed ones.
   final int maxDailyOperations;
 
-  /// Consecutive failures that stop all picture sync for [pause].
+  /// Consecutive failures that stop all picture sync for [pause]. This pause
+  /// is only remembered until the app closes; the daily and total ceilings are
+  /// what protect the bill across launches.
   final int failuresBeforePause;
   final Duration pause;
 
@@ -94,7 +96,13 @@ class ImageSyncGuard {
   /// operations ceiling whether or not it later succeeds.
   Future<bool> reserveOperation() async {
     await _load();
-    if (!_open) return false;
+    if (!_open) {
+      debugPrint(
+        'Image sync guard closed: operations=$_operations/'
+        '${limits.maxDailyOperations}, paused until $_pausedUntil',
+      );
+      return false;
+    }
     _operations++;
     await _save();
     return true;
@@ -199,11 +207,6 @@ class ImageSyncGuard {
         _operations = json['operations'] as int? ?? 0;
         _uploadedToday = json['uploadedToday'] as int? ?? 0;
         _downloadedToday = json['downloadedToday'] as int? ?? 0;
-        _failures = json['failures'] as int? ?? 0;
-        final until = json['pausedUntil'] as int?;
-        _pausedUntil = until == null
-            ? null
-            : DateTime.fromMillisecondsSinceEpoch(until);
         _uploaded = (json['uploaded'] as Map<String, dynamic>? ?? {})
             .cast<String, int>();
         _missing = {
@@ -231,8 +234,6 @@ class ImageSyncGuard {
           'operations': _operations,
           'uploadedToday': _uploadedToday,
           'downloadedToday': _downloadedToday,
-          'failures': _failures,
-          'pausedUntil': _pausedUntil?.millisecondsSinceEpoch,
           'uploaded': _uploaded,
           'missing': {
             for (final e in _missing.entries)

@@ -273,7 +273,10 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   }
 
   void _notifyCompanions() {
-    if (_uid == null || !_ready) return;
+    if (_uid == null || !_ready) {
+      debugPrint('Sync: companions not notified (uid=$_uid, ready=$_ready)');
+      return;
+    }
     for (final companion in companions) {
       unawaited(companion.libraryChanged());
     }

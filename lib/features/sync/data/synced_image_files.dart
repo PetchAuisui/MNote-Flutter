@@ -89,7 +89,10 @@ class SyncedImageFiles implements SyncCompanion {
 
   @override
   Future<void> libraryChanged() {
-    if (!ImageSyncGuard.enabled || _uid == null) return Future.value();
+    if (!ImageSyncGuard.enabled || _uid == null) {
+      debugPrint('Image sync: skipped (signed out or disabled)');
+      return Future.value();
+    }
     // Passes triggered while one is waiting merge into that one.
     if (_queued) return _queue;
     _queued = true;
@@ -117,19 +120,26 @@ class SyncedImageFiles implements SyncCompanion {
   Future<void> _pass() async {
     final uid = _uid;
     final source = notes;
-    if (uid == null || source == null) return;
+    if (uid == null || source == null) {
+      debugPrint('Image sync: not ready (uid=$uid, notes=${source != null})');
+      return;
+    }
     final base = (await directory()).path;
+    final names = referencedIn(await source());
+    debugPrint('Image sync: ${names.length} referenced picture(s) in $base');
     var handled = 0;
-    for (final name in referencedIn(await source())) {
+    for (final name in names) {
       if (handled >= maxPerPass || _uid != uid) return;
       final file = File('$base/$name');
       final stored = name.substring('images/'.length);
       if (await file.exists()) {
         if (await guard.isUploaded(stored)) continue;
+        debugPrint('Image sync: uploading $stored');
         handled++;
         if (!await _upload(uid, stored, file)) return;
       } else {
         if (await guard.isMissingRecently(stored)) continue;
+        debugPrint('Image sync: $stored is not on this device, downloading');
         handled++;
         if (!await _download(uid, stored, file)) return;
       }
@@ -140,9 +150,14 @@ class SyncedImageFiles implements SyncCompanion {
   /// the request failed).
   Future<bool> _upload(String uid, String name, File file) async {
     final contentType = ImageSyncGuard.contentTypeOf(name)!;
-    if (!await guard.reserveOperation()) return false;
+    if (!await guard.reserveOperation()) {
+      debugPrint('Image sync: guard is closed for now, skipping $name');
+      return false;
+    }
     try {
+      debugPrint('Image sync: checking the cloud for $name');
       final existing = await store.sizeOf(uid, name);
+      debugPrint('Image sync: cloud has $name = $existing');
       if (existing != null) {
         // Another device uploaded it already.
         await guard.recordUploaded(name, existing);
@@ -169,9 +184,13 @@ class SyncedImageFiles implements SyncCompanion {
                 .toLowerCase()] ??
             contentType;
       }
-      if (!await guard.reserveUpload(name, bytes.length)) return false;
+      if (!await guard.reserveUpload(name, bytes.length)) {
+        debugPrint('Image sync: guard refused $name (${bytes.length} bytes)');
+        return false;
+      }
       await store.upload(uid, name, bytes, type);
       await guard.recordUploaded(name, bytes.length);
+      debugPrint('Image sync: uploaded $name (${bytes.length} bytes)');
       return true;
     } on Object catch (e) {
       debugPrint('Image upload failed for $name: $e');

@@ -1,12 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/markdown_zip_export.dart';
 
 import 'helpers/fakes.dart';
 
@@ -151,11 +154,15 @@ The end.''';
         await tester.tap(find.byKey(const Key('export-save-button')));
         await tester.pumpAndSettle();
 
-        expect(savedExt, 'md');
-        expect(savedFileName, 'Welcome.md');
-        expect(utf8.decode(savedBytes!), contains('ยินดีต้อนรับสู่ Mnote'));
+        expect(savedExt, 'zip');
+        expect(savedFileName, 'Welcome.zip');
+        final zip = ZipDecoder().decodeBytes(savedBytes!);
         expect(
-          find.textContaining('ส่งออกไฟล์ Welcome.md สำเร็จ'),
+          utf8.decode(zip.findFile('Welcome.md')!.content),
+          contains('ยินดีต้อนรับสู่ Mnote'),
+        );
+        expect(
+          find.textContaining('ส่งออกไฟล์ Welcome.zip สำเร็จ'),
           findsOneWidget,
         );
 
@@ -190,5 +197,41 @@ The end.''';
         expect(savedBytes!.isNotEmpty, isTrue);
       },
     );
+  });
+
+  group('buildMarkdownZip', () {
+    test('puts the note at the top and its pictures in img/', () async {
+      final dir = await Directory.systemTemp.createTemp('mnote_zip');
+      addTearDown(() => dir.delete(recursive: true));
+      await File('${dir.path}/photo one.png').writeAsBytes([1, 2, 3]);
+      const pixel =
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const note =
+          '# รูป\n\n![a](photo%20one.png#120x80)\n\n![b]($pixel)\n\n'
+          '![web](https://example.com/x.png)\n\n![gone](missing.png)\n\n'
+          '<img src="photo%20one.png" width="40">\n';
+
+      final bytes = await buildMarkdownZip(
+        markdown: note,
+        fileName: 'Pictures',
+        imageDirectory: dir.uri.toString(),
+      );
+      final zip = ZipDecoder().decodeBytes(bytes);
+      final names = zip.files.map((f) => f.name).toSet();
+      expect(names, {
+        'img/',
+        'Pictures.md',
+        'img/photo-one.png',
+        'img/image.png',
+      });
+      expect(zip.findFile('img/photo-one.png')!.content, [1, 2, 3]);
+
+      final md = utf8.decode(zip.findFile('Pictures.md')!.content);
+      expect(md, contains('![a](img/photo-one.png#120x80)'));
+      expect(md, contains('![b](img/image.png)'));
+      expect(md, contains('![web](https://example.com/x.png)'));
+      expect(md, contains('![gone](missing.png)'));
+      expect(md, contains('<img src="img/photo-one.png" width="40">'));
+    });
   });
 }

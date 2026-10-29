@@ -864,6 +864,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       context,
       document: _workspace.document,
       surfaceKey: _surfaceBoundaryKey,
+      imageDirectory: _imageDirectory,
       inkLoader: _currentInkSnapshot,
       exportSaver: widget.exportSaver ?? defaultExportSaver,
     );

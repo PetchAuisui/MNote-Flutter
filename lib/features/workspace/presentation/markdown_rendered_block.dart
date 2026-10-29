@@ -16,6 +16,38 @@ class _LineBreakSyntax extends md.InlineSyntax {
   }
 }
 
+/// Finds the file a note's picture link points at. Relative paths resolve
+/// against [directory] (the note's folder), then the app documents folder.
+/// Returns null for a missing file or one outside those folders.
+Future<File?> locateDocumentImage(Uri uri, String? directory) async {
+  final candidates = <Directory>[];
+  if (directory != null) {
+    candidates.add(Directory.fromUri(Uri.parse(directory)));
+  }
+  try {
+    candidates.add(await getApplicationDocumentsDirectory());
+  } on Object {
+    // No documents folder on this platform; the note folder is all we have.
+  }
+  // A synced note must not point the viewer at files outside its folders.
+  if (uri.scheme == 'file') {
+    final path = File.fromUri(uri).absolute.path;
+    final inside = candidates.any((d) {
+      final root = d.absolute.path;
+      return path.startsWith(root.endsWith('/') ? root : '$root/');
+    });
+    if (!inside || path.split(RegExp(r'[\\/]')).contains('..')) return null;
+    return File(path);
+  }
+  final relative = Uri.decodeFull(uri.path);
+  if (relative.split(RegExp(r'[\\/]')).contains('..')) return null;
+  for (final candidate in candidates) {
+    final file = File('${candidate.path}/$relative');
+    if (await file.exists()) return file;
+  }
+  return null;
+}
+
 /// Loads a picture referenced from a note. Relative paths resolve against the
 /// note's folder, then the app documents folder (where pictures land for a note
 /// without a file location). A missing file shows a placeholder, not a gap.
@@ -40,7 +72,7 @@ class _DocumentImage extends StatefulWidget {
 
 class _DocumentImageState extends State<_DocumentImage> {
   // Looked up once, not on every rebuild, so the picture does not flicker.
-  late Future<File?> _file = _locate();
+  late Future<File?> _file = locateDocumentImage(uri, widget.directory);
 
   Uri get uri => widget.uri;
   double? get width => widget.width;
@@ -50,7 +82,7 @@ class _DocumentImageState extends State<_DocumentImage> {
   void didUpdateWidget(_DocumentImage old) {
     super.didUpdateWidget(old);
     if (old.uri != widget.uri || old.directory != widget.directory) {
-      _file = _locate();
+      _file = locateDocumentImage(uri, widget.directory);
     }
   }
 
@@ -91,34 +123,6 @@ class _DocumentImageState extends State<_DocumentImage> {
         );
       },
     );
-  }
-
-  Future<File?> _locate() async {
-    final candidates = <Directory>[];
-    final base = widget.directory;
-    if (base != null) candidates.add(Directory.fromUri(Uri.parse(base)));
-    try {
-      candidates.add(await getApplicationDocumentsDirectory());
-    } on Object {
-      // No documents folder on this platform; the note folder is all we have.
-    }
-    // A synced note must not point the viewer at files outside its folders.
-    if (uri.scheme == 'file') {
-      final path = File.fromUri(uri).absolute.path;
-      final inside = candidates.any((d) {
-        final root = d.absolute.path;
-        return path.startsWith(root.endsWith('/') ? root : '$root/');
-      });
-      if (!inside || path.split(RegExp(r'[\\/]')).contains('..')) return null;
-      return File(path);
-    }
-    final relative = Uri.decodeFull(uri.path);
-    if (relative.split(RegExp(r'[\\/]')).contains('..')) return null;
-    for (final directory in candidates) {
-      final file = File('${directory.path}/$relative');
-      if (await file.exists()) return file;
-    }
-    return null;
   }
 
   Widget _broken(BuildContext context, Object error, StackTrace? stack) {

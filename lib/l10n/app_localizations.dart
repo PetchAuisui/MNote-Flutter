@@ -1733,7 +1733,7 @@ abstract class AppLocalizations {
   /// No description provided for @mdSubtitle.
   ///
   /// In th, this message translates to:
-  /// **'ไฟล์ข้อความ Markdown ต้นฉบับ'**
+  /// **'ไฟล์ Zip รวม Markdown และรูปภาพในโฟลเดอร์ img'**
   String get mdSubtitle;
 
   /// No description provided for @txtSubtitle.
@@ -1853,7 +1853,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportMdAll.
   ///
   /// In th, this message translates to:
-  /// **'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด'**
+  /// **'รวมไฟล์ Markdown กับโฟลเดอร์ img สำหรับรูปภาพในเอกสาร'**
   String get exportMdAll;
 
   /// No description provided for @exportPlain.

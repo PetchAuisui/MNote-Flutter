@@ -1115,6 +1115,9 @@ class _NoteListScreenState extends State<NoteListScreen> {
     await showExportBottomSheet(
       context,
       document: mdDoc,
+      imageDirectory: uri != null && uri.scheme == 'file'
+          ? uri.resolve('.').toString()
+          : null,
       inkLoader: () async {
         final bytes = await inkStorage.autoLoad(name: mdDoc.name);
         return bytes == null ? null : utf8.decode(bytes);

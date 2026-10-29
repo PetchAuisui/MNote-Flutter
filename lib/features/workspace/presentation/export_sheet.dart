@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
+import 'package:mnote/features/workspace/presentation/markdown_zip_export.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -186,6 +187,7 @@ Future<void> showExportBottomSheet(
   BuildContext context, {
   required MarkdownDocument document,
   GlobalKey? surfaceKey,
+  String? imageDirectory,
   InkSnapshotLoader? inkLoader,
   ExportSaver exportSaver = defaultExportSaver,
   ExportSharer exportSharer = defaultExportSharer,
@@ -197,6 +199,7 @@ Future<void> showExportBottomSheet(
     builder: (sheetContext) => ExportBottomSheet(
       document: document,
       surfaceKey: surfaceKey,
+      imageDirectory: imageDirectory,
       inkLoader: inkLoader,
       exportSaver: exportSaver,
       exportSharer: exportSharer,
@@ -209,6 +212,7 @@ class ExportBottomSheet extends StatefulWidget {
     super.key,
     required this.document,
     this.surfaceKey,
+    this.imageDirectory,
     this.inkLoader,
     required this.exportSaver,
     this.exportSharer = defaultExportSharer,
@@ -216,6 +220,9 @@ class ExportBottomSheet extends StatefulWidget {
 
   final MarkdownDocument document;
   final GlobalKey? surfaceKey;
+
+  /// The note's folder, where its relative picture links resolve.
+  final String? imageDirectory;
   final InkSnapshotLoader? inkLoader;
   final ExportSaver exportSaver;
   final ExportSharer exportSharer;
@@ -235,7 +242,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
       case ExportFormat.pdf:
         return 'PDF (.pdf)';
       case ExportFormat.markdown:
-        return 'Markdown (.md)';
+        return 'Markdown (.zip)';
       case ExportFormat.plainText:
         return context.l10n.fmtTxt;
       case ExportFormat.image:
@@ -401,7 +408,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.description_rounded,
           iconColor: const Color(0xFF1E88E5),
           iconBgColor: const Color(0xFFE3F2FD),
-          title: 'Markdown (.md)',
+          title: 'Markdown (.zip)',
           subtitle: context.l10n.mdSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.markdown),
         ),
@@ -687,7 +694,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isMarkdown ? 'Markdown (.md)' : context.l10n.fmtTxt,
+                          isMarkdown ? 'Markdown (.zip)' : context.l10n.fmtTxt,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14.5,
@@ -782,10 +789,14 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     try {
       switch (format) {
         case ExportFormat.markdown:
-          bytes = Uint8List.fromList(utf8.encode(widget.document.content));
-          ext = 'md';
-          mimeType = 'text/markdown';
-          fileName = '$baseName.md';
+          bytes = await buildMarkdownZip(
+            markdown: widget.document.content,
+            fileName: baseName,
+            imageDirectory: widget.imageDirectory,
+          );
+          ext = 'zip';
+          mimeType = 'application/zip';
+          fileName = '$baseName.zip';
           break;
 
         case ExportFormat.mnote:

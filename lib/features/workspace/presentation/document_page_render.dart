@@ -309,6 +309,10 @@ const _maxSlicePixels = 4096.0;
 /// Resolution of the pictures in an exported PDF: about 240 dpi on A4.
 const _pdfPixelRatio = 2.0;
 
+/// White space between the edge of a PDF page and the note on it, in points:
+/// half an inch (about 1.27 cm) on every side.
+const pdfPageMargin = 36.0;
+
 /// Builds a PDF of [page]. A4 pages break between blocks; [continuous]
 /// keeps the note on one long page (split only past PDF's 200-inch limit).
 Future<Uint8List> buildDocumentPdf(
@@ -316,9 +320,10 @@ Future<Uint8List> buildDocumentPdf(
   required bool continuous,
 }) async {
   const a4 = PdfPageFormat.a4;
-  const margin = 24.0;
+  const margin = pdfPageMargin;
   const maxPdfPageHeight = 14400.0;
-  final scale = a4.width / page.size.width;
+  final contentWidth = a4.width - 2 * margin;
+  final scale = contentWidth / page.size.width;
   final contentHeight =
       ((continuous ? maxPdfPageHeight : a4.height) - 2 * margin) / scale;
   const sliceHeight = _maxSlicePixels / _pdfPixelRatio;
@@ -340,7 +345,7 @@ Future<Uint8List> buildDocumentPdf(
             width: image.width,
             height: image.height,
           ),
-          width: a4.width,
+          width: contentWidth,
           height: (bottom - top) * scale,
           fit: pw.BoxFit.fill,
         ),
@@ -355,7 +360,7 @@ Future<Uint8List> buildDocumentPdf(
                 (span.bottom - span.top) * scale + 2 * margin,
               )
             : a4,
-        margin: const pw.EdgeInsets.symmetric(vertical: margin),
+        margin: const pw.EdgeInsets.all(margin),
         build: (_) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: slices,

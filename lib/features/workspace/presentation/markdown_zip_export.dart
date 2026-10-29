@@ -16,9 +16,23 @@ final _imageLink = RegExp(
   caseSensitive: false,
 );
 
+/// Fenced code blocks, where image syntax is code to show, not a picture.
+final _fencedCode = RegExp(
+  r'^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?(?:^ {0,3}\1[`~]*[ \t]*$|(?![\s\S]))',
+  multiLine: true,
+);
+
+/// Picture links in [markdown] outside fenced code blocks.
+Iterable<RegExpMatch> _imageLinks(String markdown) {
+  final code = _fencedCode.allMatches(markdown).toList();
+  return _imageLink
+      .allMatches(markdown)
+      .where((m) => !code.any((c) => m.start >= c.start && m.start < c.end));
+}
+
 /// The picture links in [markdown], in order, without size suffixes.
 Iterable<Uri> markdownImageUris(String markdown) sync* {
-  for (final match in _imageLink.allMatches(markdown)) {
+  for (final match in _imageLinks(markdown)) {
     final src = match.namedGroup('src') ?? match.namedGroup('html')!;
     final uri = Uri.tryParse(src.split('#').first);
     if (uri != null) yield uri;
@@ -52,7 +66,7 @@ Future<Uint8List> buildMarkdownZip({
 
   final rewritten = StringBuffer();
   var last = 0;
-  for (final match in _imageLink.allMatches(markdown)) {
+  for (final match in _imageLinks(markdown)) {
     final isHtml = match.namedGroup('src') == null;
     final src = isHtml ? match.namedGroup('html')! : match.namedGroup('src')!;
     final hash = src.indexOf('#');
@@ -73,7 +87,10 @@ Future<Uint8List> buildMarkdownZip({
   rewritten.write(markdown.substring(last));
 
   archive.addFile(
-    ArchiveFile.bytes('$fileName.md', utf8.encode(rewritten.toString())),
+    ArchiveFile.bytes(
+      '${_safeEntryName(fileName)}.md',
+      utf8.encode(rewritten.toString()),
+    ),
   );
   return ZipEncoder().encodeBytes(archive);
 }
@@ -96,9 +113,15 @@ Future<_ImageBytes?> _readImage(
   try {
     if (uri.scheme == 'data') {
       final data = uri.data;
-      return data == null
+      return data == null || !data.mimeType.startsWith('image/')
           ? null
           : _ImageBytes(data.contentAsBytes(), mimeType: data.mimeType);
+    }
+    // A note may come from someone else: never pack a file that is not a
+    // picture, such as the library database next to the notes.
+    final extension = uri.path.split('.').last.toLowerCase();
+    if (!uri.path.contains('.') || !_imageExtensions.contains(extension)) {
+      return null;
     }
     if (uri.scheme == 'resource') {
       final asset = await bundle.load(uri.path);
@@ -110,6 +133,31 @@ Future<_ImageBytes?> _readImage(
   } on Object {
     return null;
   }
+}
+
+const _imageExtensions = {
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'bmp',
+  'heic',
+  'heif',
+  'svg',
+  'tif',
+  'tiff',
+  'ico',
+};
+
+/// [name] with no folder separators or other characters a zip tool could
+/// read as a path, so the note always lands at the top of the zip.
+String _safeEntryName(String name) {
+  final safe = name
+      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '-')
+      .replaceAll(RegExp(r'^[\s.]+'), '')
+      .trim();
+  return safe.isEmpty ? 'note' : safe;
 }
 
 const _extensionsByMime = {
@@ -125,6 +173,7 @@ const _extensionsByMime = {
 String _imageName(String link, _ImageBytes bytes) {
   final mimeExtension = _extensionsByMime[bytes.mimeType];
   if (mimeExtension != null) return 'image.$mimeExtension';
+  if (link.startsWith('data:')) return 'image';
   final path = Uri.tryParse(link)?.path ?? link;
   final base = Uri.decodeFull(path).split(RegExp(r'[\\/]')).last;
   final safe = base

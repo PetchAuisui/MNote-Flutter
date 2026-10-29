@@ -340,19 +340,22 @@ Future<Uint8List> buildDocumentPdf(
         _pdfPixelRatio,
       );
       final rgba = await image.toByteData();
+      // JPEG goes into the PDF as it is. Raw pixels would stay uncompressed
+      // in memory until the PDF is saved, about 24 MB per A4 page.
+      final jpeg = await compute(_encodeJpeg, (
+        width: image.width,
+        height: image.height,
+        rgba: rgba!.buffer.asUint8List(),
+      ));
+      image.dispose();
       slices.add(
         pw.Image(
-          pw.RawImage(
-            bytes: rgba!.buffer.asUint8List(),
-            width: image.width,
-            height: image.height,
-          ),
+          pw.MemoryImage(jpeg),
           width: contentWidth,
           height: (bottom - top) * scale,
           fit: pw.BoxFit.fill,
         ),
       );
-      image.dispose();
     }
     pdf.addPage(
       pw.Page(
@@ -390,20 +393,29 @@ Future<Uint8List> buildDocumentPng(DocumentPageRender page) async {
     image.dispose();
     return png!.buffer.asUint8List();
   }
-  // Too tall for one texture: capture slices and join their rows.
+  // Too tall for one texture: capture slices and join their rows. Slices
+  // are counted in whole pixel rows, so rounding never repeats a row.
+  final totalRows = (size.height * ratio).ceil();
+  const rowsPerSlice = 4096;
   final rows = BytesBuilder(copy: false);
   var width = 0;
   var height = 0;
-  for (var top = 0.0; top < size.height - 0.5; top += sliceHeight) {
-    final bottom = math.min(top + sliceHeight, size.height);
+  for (var row = 0; row < totalRows; row += rowsPerSlice) {
+    final sliceRows = math.min(rowsPerSlice, totalRows - row);
     final image = await page.capture(
-      Rect.fromLTRB(0, top, size.width, bottom),
+      Rect.fromLTRB(
+        0,
+        row / ratio,
+        size.width,
+        math.min((row + sliceRows) / ratio, size.height),
+      ),
       ratio,
     );
-    final rgba = await image.toByteData();
+    final rgba = (await image.toByteData())!.buffer.asUint8List();
     width = image.width;
-    height += image.height;
-    rows.add(rgba!.buffer.asUint8List());
+    final kept = math.min(sliceRows, image.height);
+    rows.add(Uint8List.sublistView(rgba, 0, kept * width * 4));
+    height += kept;
     image.dispose();
   }
   return compute(_encodePng, (
@@ -412,6 +424,17 @@ Future<Uint8List> buildDocumentPng(DocumentPageRender page) async {
     rgba: rows.takeBytes(),
   ));
 }
+
+Uint8List _encodeJpeg(({int width, int height, Uint8List rgba}) raw) =>
+    img.encodeJpg(
+      img.Image.fromBytes(
+        width: raw.width,
+        height: raw.height,
+        bytes: raw.rgba.buffer,
+        numChannels: 4,
+      ),
+      quality: 92,
+    );
 
 Uint8List _encodePng(({int width, int height, Uint8List rgba}) raw) =>
     img.encodePng(

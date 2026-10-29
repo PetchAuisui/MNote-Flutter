@@ -770,7 +770,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           break;
       }
 
-      navigator.pop();
+      // The sheet may have been swiped away while the page was rendering;
+      // popping then would close the note instead.
+      if (mounted) navigator.pop();
 
       if (isShare) {
         await widget.exportSharer(

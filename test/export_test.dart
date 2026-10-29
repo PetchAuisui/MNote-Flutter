@@ -249,6 +249,7 @@ The end.''';
       required Key option,
       bool continuous = false,
       bool includeInk = true,
+      bool dismissWhileRendering = false,
     }) async {
       String? ext;
       Uint8List? saved;
@@ -298,6 +299,10 @@ The end.''';
         await tester.pumpAndSettle();
       }
       await tester.tap(find.byKey(const Key('export-save-button')));
+      if (dismissWhileRendering) {
+        await tester.pump();
+        await tester.tapAt(const Offset(10, 10));
+      }
       await pumpUntil(tester, () => ext != null);
       return (ext: ext, bytes: saved);
     }
@@ -333,6 +338,28 @@ The end.''';
       );
       expect(result.ext, 'pdf');
       expect(pdfPageCount(result.bytes!), 1);
+    });
+
+    testWidgets('PDF pages are embedded as JPEG', (tester) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-pdf'),
+      );
+      final pdf = latin1.decode(result.bytes!);
+      expect(pdf, contains('/DCTDecode'));
+    });
+
+    testWidgets('closing the sheet while it renders keeps the page open', (
+      tester,
+    ) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-pdf'),
+        dismissWhileRendering: true,
+      );
+      expect(result.ext, 'pdf');
+      await tester.pumpAndSettle();
+      expect(find.text('open'), findsOneWidget);
     });
 
     testWidgets('PDF without ink still renders the Thai text', (tester) async {
@@ -398,6 +425,33 @@ The end.''';
       expect(md, contains('![web](https://example.com/x.png)'));
       expect(md, contains('![gone](missing.png)'));
       expect(md, contains('<img src="img/photo-one.png" width="40">'));
+    });
+
+    test('packs only pictures and keeps code and names safe', () async {
+      final dir = await Directory.systemTemp.createTemp('mnote_zip_safe');
+      addTearDown(() => dir.delete(recursive: true));
+      await File('${dir.path}/mnote.db').writeAsBytes([9, 9, 9]);
+      await File('${dir.path}/ok.png').writeAsBytes([1]);
+      const note =
+          '![db](mnote.db)\n\n'
+          '![txt](data:text/plain;base64,c2VjcmV0)\n\n'
+          '```\n![sample](ok.png)\n```\n\n'
+          '![real](ok.png)\n';
+
+      final bytes = await buildMarkdownZip(
+        markdown: note,
+        fileName: '../../evil/name',
+        imageDirectory: dir.uri.toString(),
+      );
+      final zip = ZipDecoder().decodeBytes(bytes);
+      final names = zip.files.map((f) => f.name).toSet();
+      expect(names, {'img/', '-..-evil-name.md', 'img/ok.png'});
+
+      final md = utf8.decode(zip.findFile('-..-evil-name.md')!.content);
+      expect(md, contains('![db](mnote.db)'));
+      expect(md, contains('![txt](data:text/plain;base64,c2VjcmV0)'));
+      expect(md, contains('```\n![sample](ok.png)\n```'));
+      expect(md, contains('![real](img/ok.png)'));
     });
   });
 }

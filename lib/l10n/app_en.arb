@@ -274,7 +274,7 @@
   "mnoteSubtitle": "Markdown and ink in one file that you can open on another device",
   "mdSubtitle": "A zip with the Markdown file and its pictures in img/",
   "txtSubtitle": "Content only, without Markdown symbols",
-  "pngSubtitle": "A high-resolution snapshot of the page and ink",
+  "pngSubtitle": "A high-resolution picture of the whole page and ink",
   "mnoteInfo": "This file keeps both the Markdown text and the ink strokes. Opened with Mnote on another device, you get the complete note.",
   "saveFile": "Save file",
   "shareFile": "Share file",

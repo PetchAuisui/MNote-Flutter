@@ -1,14 +1,11 @@
 import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/l10n/l10n.dart';
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
 import 'package:mnote/features/workspace/presentation/document_page_render.dart';
@@ -99,24 +96,6 @@ Future<void> defaultExportSharer({
   );
 }
 
-Future<Uint8List?> captureSurfaceImage(GlobalKey surfaceKey) async {
-  try {
-    final boundary =
-        surfaceKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null || boundary.debugNeedsPaint) return null;
-    final image = await boundary
-        .toImage(pixelRatio: 2.0)
-        .timeout(
-          const Duration(milliseconds: 300),
-          onTimeout: () => throw TimeoutException('toImage timed out'),
-        );
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData?.buffer.asUint8List();
-  } catch (_) {
-    return null;
-  }
-}
-
 /// Supplies the note's encoded ink for a `.mnote` export, or null when it has
 /// none.
 typedef InkSnapshotLoader = Future<String?> Function();
@@ -124,7 +103,6 @@ typedef InkSnapshotLoader = Future<String?> Function();
 Future<void> showExportBottomSheet(
   BuildContext context, {
   required MarkdownDocument document,
-  GlobalKey? surfaceKey,
   String? imageDirectory,
   InkSnapshotLoader? inkLoader,
   ExportSaver exportSaver = defaultExportSaver,
@@ -136,7 +114,6 @@ Future<void> showExportBottomSheet(
     isScrollControlled: true,
     builder: (sheetContext) => ExportBottomSheet(
       document: document,
-      surfaceKey: surfaceKey,
       imageDirectory: imageDirectory,
       inkLoader: inkLoader,
       exportSaver: exportSaver,
@@ -149,7 +126,6 @@ class ExportBottomSheet extends StatefulWidget {
   const ExportBottomSheet({
     super.key,
     required this.document,
-    this.surfaceKey,
     this.imageDirectory,
     this.inkLoader,
     required this.exportSaver,
@@ -157,7 +133,6 @@ class ExportBottomSheet extends StatefulWidget {
   });
 
   final MarkdownDocument document;
-  final GlobalKey? surfaceKey;
 
   /// The note's folder, where its relative picture links resolve.
   final String? imageDirectory;
@@ -778,15 +753,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           break;
 
         case ExportFormat.image:
-          final imageBytes = widget.surfaceKey != null
-              ? await captureSurfaceImage(widget.surfaceKey!)
-              : null;
-          if (imageBytes == null || imageBytes.isEmpty) {
-            messenger.showSnackBar(SnackBar(content: Text(l.needDocForImage)));
-            setState(() => _isProcessing = false);
-            return;
-          }
-          bytes = imageBytes;
+          bytes = await _renderPage(buildDocumentPng);
           ext = 'png';
           mimeType = 'image/png';
           fileName = '$baseName.png';

@@ -87,7 +87,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   int _editorHistoryRevision = 0;
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
-  final GlobalKey _surfaceBoundaryKey = GlobalKey();
   late final TransformationController _inkTransform;
   InkTool _inkTool = InkTool.pen;
   Color _inkPenColor = const Color(0xFF202124);
@@ -863,7 +862,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     showExportBottomSheet(
       context,
       document: _workspace.document,
-      surfaceKey: _surfaceBoundaryKey,
       imageDirectory: _imageDirectory,
       inkLoader: _currentInkSnapshot,
       exportSaver: widget.exportSaver ?? defaultExportSaver,
@@ -976,7 +974,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: RepaintBoundary(
-                      key: _surfaceBoundaryKey,
                       child: Card(
                         key: const Key('document-surface'),
                         margin: EdgeInsets.zero,

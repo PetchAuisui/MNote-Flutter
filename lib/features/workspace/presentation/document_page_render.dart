@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image/image.dart' as img;
 import 'package:markdown/markdown.dart' as md;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -370,3 +372,53 @@ Future<Uint8List> buildDocumentPdf(
   }
   return pdf.save();
 }
+
+/// The most pixels a PNG export holds; a longer note is drawn smaller.
+const _maxPngPixels = 24e6;
+
+/// Encodes all of [page] as one PNG.
+Future<Uint8List> buildDocumentPng(DocumentPageRender page) async {
+  final size = page.size;
+  final ratio = math.min(
+    2.0,
+    math.sqrt(_maxPngPixels / (size.width * size.height)),
+  );
+  final sliceHeight = _maxSlicePixels / ratio;
+  if (size.height <= sliceHeight) {
+    final image = await page.capture(Offset.zero & size, ratio);
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return png!.buffer.asUint8List();
+  }
+  // Too tall for one texture: capture slices and join their rows.
+  final rows = BytesBuilder(copy: false);
+  var width = 0;
+  var height = 0;
+  for (var top = 0.0; top < size.height - 0.5; top += sliceHeight) {
+    final bottom = math.min(top + sliceHeight, size.height);
+    final image = await page.capture(
+      Rect.fromLTRB(0, top, size.width, bottom),
+      ratio,
+    );
+    final rgba = await image.toByteData();
+    width = image.width;
+    height += image.height;
+    rows.add(rgba!.buffer.asUint8List());
+    image.dispose();
+  }
+  return compute(_encodePng, (
+    width: width,
+    height: height,
+    rgba: rows.takeBytes(),
+  ));
+}
+
+Uint8List _encodePng(({int width, int height, Uint8List rgba}) raw) =>
+    img.encodePng(
+      img.Image.fromBytes(
+        width: raw.width,
+        height: raw.height,
+        bytes: raw.rgba.buffer,
+        numChannels: 4,
+      ),
+    );

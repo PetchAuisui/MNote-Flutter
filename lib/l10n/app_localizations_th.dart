@@ -914,7 +914,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get txtSubtitle => 'เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก';
 
   @override
-  String get pngSubtitle => 'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง';
+  String get pngSubtitle => 'ภาพความละเอียดสูงของทั้งหน้าเอกสารและหมึก';
 
   @override
   String get mnoteInfo =>

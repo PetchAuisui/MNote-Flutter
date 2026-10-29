@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/presentation/document_page_render.dart';
@@ -300,6 +301,18 @@ The end.''';
       await pumpUntil(tester, () => ext != null);
       return (ext: ext, bytes: saved);
     }
+
+    testWidgets('PNG holds the whole page, not the viewport', (tester) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-image'),
+      );
+      expect(result.ext, 'png');
+      final png = img.decodePng(result.bytes!)!;
+      expect(png.width, (InkSession.pageWidth * 2).ceil());
+      // Sixty paragraphs run several screens tall.
+      expect(png.height, greaterThan(png.width * 2));
+    });
 
     testWidgets('A4 PDF spreads a long note over several pages', (
       tester,

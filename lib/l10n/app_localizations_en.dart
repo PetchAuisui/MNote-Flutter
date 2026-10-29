@@ -926,7 +926,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get txtSubtitle => 'Content only, without Markdown symbols';
 
   @override
-  String get pngSubtitle => 'A high-resolution snapshot of the page and ink';
+  String get pngSubtitle =>
+      'A high-resolution picture of the whole page and ink';
 
   @override
   String get mnoteInfo =>

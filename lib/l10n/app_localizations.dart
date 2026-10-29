@@ -1745,7 +1745,7 @@ abstract class AppLocalizations {
   /// No description provided for @pngSubtitle.
   ///
   /// In th, this message translates to:
-  /// **'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง'**
+  /// **'ภาพความละเอียดสูงของทั้งหน้าเอกสารและหมึก'**
   String get pngSubtitle;
 
   /// No description provided for @mnoteInfo.

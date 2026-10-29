@@ -1,19 +1,16 @@
 import 'package:mnote/l10n/language_preferences.dart';
 import 'package:mnote/l10n/l10n.dart';
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
+import 'package:mnote/features/workspace/presentation/document_page_render.dart';
+import 'package:mnote/features/workspace/presentation/markdown_zip_export.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 enum ExportFormat { pdf, markdown, plainText, image, mnote }
@@ -99,85 +96,6 @@ Future<void> defaultExportSharer({
   );
 }
 
-Future<Uint8List?> captureSurfaceImage(GlobalKey surfaceKey) async {
-  try {
-    final boundary =
-        surfaceKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null || boundary.debugNeedsPaint) return null;
-    final image = await boundary
-        .toImage(pixelRatio: 2.0)
-        .timeout(
-          const Duration(milliseconds: 300),
-          onTimeout: () => throw TimeoutException('toImage timed out'),
-        );
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData?.buffer.asUint8List();
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<Uint8List> generatePdf({
-  required String title,
-  required String markdown,
-  Uint8List? surfaceImageBytes,
-  bool includeInk = true,
-  bool isContinuous = false,
-}) async {
-  final pdf = pw.Document();
-  if (includeInk && surfaceImageBytes != null && surfaceImageBytes.isNotEmpty) {
-    final image = pw.MemoryImage(surfaceImageBytes);
-    final imgW = (image.width ?? 1).toDouble();
-    final imgH = (image.height ?? 1).toDouble();
-    final pageFormat = isContinuous
-        ? PdfPageFormat(
-            PdfPageFormat.a4.width,
-            (PdfPageFormat.a4.width * (imgH / imgW)).clamp(100.0, 6000.0),
-          )
-        : PdfPageFormat.a4;
-    pdf.addPage(
-      pw.Page(
-        pageFormat: pageFormat,
-        margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
-          return pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain));
-        },
-      ),
-    );
-  } else {
-    final plainText = stripMarkdown(markdown);
-    final safeTitle = title.replaceAll(RegExp(r'[^\x00-\x7F]'), '').trim();
-    final displayTitle = safeTitle.isEmpty ? 'Mnote Document' : safeTitle;
-    final safeText = plainText.replaceAll(RegExp(r'[^\x00-\x7F]'), ' ');
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                displayTitle,
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 16),
-              pw.Text(
-                safeText,
-                style: const pw.TextStyle(fontSize: 12, lineSpacing: 4),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-  return pdf.save();
-}
-
 /// Supplies the note's encoded ink for a `.mnote` export, or null when it has
 /// none.
 typedef InkSnapshotLoader = Future<String?> Function();
@@ -185,7 +103,7 @@ typedef InkSnapshotLoader = Future<String?> Function();
 Future<void> showExportBottomSheet(
   BuildContext context, {
   required MarkdownDocument document,
-  GlobalKey? surfaceKey,
+  String? imageDirectory,
   InkSnapshotLoader? inkLoader,
   ExportSaver exportSaver = defaultExportSaver,
   ExportSharer exportSharer = defaultExportSharer,
@@ -196,7 +114,7 @@ Future<void> showExportBottomSheet(
     isScrollControlled: true,
     builder: (sheetContext) => ExportBottomSheet(
       document: document,
-      surfaceKey: surfaceKey,
+      imageDirectory: imageDirectory,
       inkLoader: inkLoader,
       exportSaver: exportSaver,
       exportSharer: exportSharer,
@@ -208,14 +126,16 @@ class ExportBottomSheet extends StatefulWidget {
   const ExportBottomSheet({
     super.key,
     required this.document,
-    this.surfaceKey,
+    this.imageDirectory,
     this.inkLoader,
     required this.exportSaver,
     this.exportSharer = defaultExportSharer,
   });
 
   final MarkdownDocument document;
-  final GlobalKey? surfaceKey;
+
+  /// The note's folder, where its relative picture links resolve.
+  final String? imageDirectory;
   final InkSnapshotLoader? inkLoader;
   final ExportSaver exportSaver;
   final ExportSharer exportSharer;
@@ -235,7 +155,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
       case ExportFormat.pdf:
         return 'PDF (.pdf)';
       case ExportFormat.markdown:
-        return 'Markdown (.md)';
+        return 'Markdown (.zip)';
       case ExportFormat.plainText:
         return context.l10n.fmtTxt;
       case ExportFormat.image:
@@ -401,7 +321,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           icon: Icons.description_rounded,
           iconColor: const Color(0xFF1E88E5),
           iconBgColor: const Color(0xFFE3F2FD),
-          title: 'Markdown (.md)',
+          title: 'Markdown (.zip)',
           subtitle: context.l10n.mdSubtitle,
           onTap: () => setState(() => _selectedFormat = ExportFormat.markdown),
         ),
@@ -687,7 +607,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isMarkdown ? 'Markdown (.md)' : context.l10n.fmtTxt,
+                          isMarkdown ? 'Markdown (.zip)' : context.l10n.fmtTxt,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14.5,
@@ -764,6 +684,27 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     );
   }
 
+  /// Lays the whole note out off screen, with its ink when asked for, and
+  /// hands the page to [encode].
+  Future<Uint8List> _renderPage(
+    Future<Uint8List> Function(DocumentPageRender page) encode,
+  ) async {
+    final ink = _includeInk ? await widget.inkLoader?.call() : null;
+    if (!mounted) throw StateError('The export sheet was closed');
+    final page = await DocumentPageRender.render(
+      context,
+      markdown: widget.document.content,
+      ink: ink,
+      includeInk: _includeInk,
+      imageDirectory: widget.imageDirectory,
+    );
+    try {
+      return await encode(page);
+    } finally {
+      page.dispose();
+    }
+  }
+
   Future<void> _executeExport({required bool isShare}) async {
     if (_isProcessing || _selectedFormat == null) return;
     setState(() => _isProcessing = true);
@@ -782,10 +723,14 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
     try {
       switch (format) {
         case ExportFormat.markdown:
-          bytes = Uint8List.fromList(utf8.encode(widget.document.content));
-          ext = 'md';
-          mimeType = 'text/markdown';
-          fileName = '$baseName.md';
+          bytes = await buildMarkdownZip(
+            markdown: widget.document.content,
+            fileName: baseName,
+            imageDirectory: widget.imageDirectory,
+          );
+          ext = 'zip';
+          mimeType = 'application/zip';
+          fileName = '$baseName.zip';
           break;
 
         case ExportFormat.mnote:
@@ -808,30 +753,16 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           break;
 
         case ExportFormat.image:
-          final imageBytes = widget.surfaceKey != null
-              ? await captureSurfaceImage(widget.surfaceKey!)
-              : null;
-          if (imageBytes == null || imageBytes.isEmpty) {
-            messenger.showSnackBar(SnackBar(content: Text(l.needDocForImage)));
-            setState(() => _isProcessing = false);
-            return;
-          }
-          bytes = imageBytes;
+          bytes = await _renderPage(buildDocumentPng);
           ext = 'png';
           mimeType = 'image/png';
           fileName = '$baseName.png';
           break;
 
         case ExportFormat.pdf:
-          final surfaceBytes = widget.surfaceKey != null && _includeInk
-              ? await captureSurfaceImage(widget.surfaceKey!)
-              : null;
-          bytes = await generatePdf(
-            title: baseName,
-            markdown: widget.document.content,
-            surfaceImageBytes: surfaceBytes,
-            includeInk: _includeInk,
-            isContinuous: _isContinuous,
+          final continuous = _isContinuous;
+          bytes = await _renderPage(
+            (page) => buildDocumentPdf(page, continuous: continuous),
           );
           ext = 'pdf';
           mimeType = 'application/pdf';
@@ -839,7 +770,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           break;
       }
 
-      navigator.pop();
+      // The sheet may have been swiped away while the page was rendering;
+      // popping then would close the note instead.
+      if (mounted) navigator.pop();
 
       if (isShare) {
         await widget.exportSharer(
@@ -859,7 +792,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
           );
         }
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Export failed: $error');
       if (mounted) {
         setState(() => _isProcessing = false);
       }

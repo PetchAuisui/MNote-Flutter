@@ -919,13 +919,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Markdown and ink in one file that you can open on another device';
 
   @override
-  String get mdSubtitle => 'The original Markdown text file';
+  String get mdSubtitle =>
+      'A zip with the Markdown file and its pictures in img/';
 
   @override
   String get txtSubtitle => 'Content only, without Markdown symbols';
 
   @override
-  String get pngSubtitle => 'A high-resolution snapshot of the page and ink';
+  String get pngSubtitle =>
+      'A high-resolution picture of the whole page and ink';
 
   @override
   String get mnoteInfo =>
@@ -944,7 +946,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inkOnPdf => 'Renders ink and highlights onto the PDF';
 
   @override
-  String get pdfTextOnly => 'Exports plain text only (no ink strokes)';
+  String get pdfTextOnly => 'Exports the document without ink strokes';
 
   @override
   String get pageSize => 'Page size';
@@ -980,7 +982,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareImage => 'Share image';
 
   @override
-  String get exportMdAll => 'Exports all of the original Markdown code';
+  String get exportMdAll =>
+      'Packs the Markdown file with an img folder for its pictures';
 
   @override
   String get exportPlain => 'Strips Markdown symbols and leaves plain text';

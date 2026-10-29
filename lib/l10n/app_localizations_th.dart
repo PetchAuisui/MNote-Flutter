@@ -908,13 +908,13 @@ class AppLocalizationsTh extends AppLocalizations {
       'รวม Markdown และหมึกไว้ในไฟล์เดียว เปิดต่อบนเครื่องอื่นได้';
 
   @override
-  String get mdSubtitle => 'ไฟล์ข้อความ Markdown ต้นฉบับ';
+  String get mdSubtitle => 'ไฟล์ Zip รวม Markdown และรูปภาพในโฟลเดอร์ img';
 
   @override
   String get txtSubtitle => 'เฉพาะเนื้อหา ตัดสัญลักษณ์ Markdown ออก';
 
   @override
-  String get pngSubtitle => 'ภาพสแนปช็อตหน้าเอกสารและหมึกความละเอียดสูง';
+  String get pngSubtitle => 'ภาพความละเอียดสูงของทั้งหน้าเอกสารและหมึก';
 
   @override
   String get mnoteInfo =>
@@ -933,7 +933,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkOnPdf => 'เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF';
 
   @override
-  String get pdfTextOnly => 'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)';
+  String get pdfTextOnly => 'ส่งออกเอกสารโดยไม่รวมลายเส้นวาด';
 
   @override
   String get pageSize => 'ขนาดหน้าเอกสาร';
@@ -969,7 +969,8 @@ class AppLocalizationsTh extends AppLocalizations {
   String get shareImage => 'แชร์รูปภาพ';
 
   @override
-  String get exportMdAll => 'ส่งออกโค้ด Markdown ต้นฉบับทั้งหมด';
+  String get exportMdAll =>
+      'รวมไฟล์ Markdown กับโฟลเดอร์ img สำหรับรูปภาพในเอกสาร';
 
   @override
   String get exportPlain =>

@@ -416,10 +416,10 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
                     builders: {'code': MermaidElementBuilder()},
                     // Highlighter strokes sit beneath the text, so the text
                     // stays crisp on top of them like a real highlighter.
-                    underlay: _InkLayer(notifier: pen, highlighter: true),
+                    underlay: InkLayer(notifier: pen, highlighter: true),
                   ),
                   Positioned.fill(
-                    child: _InkLayer(notifier: pen, highlighter: false),
+                    child: InkLayer(notifier: pen, highlighter: false),
                   ),
                   // Receives the pointer input; the layers above and beneath
                   // the text do the drawing.
@@ -1215,8 +1215,12 @@ class _ColorSwatchButton extends StatelessWidget {
 }
 
 /// Draws either the highlighter strokes or all other strokes of [notifier].
-class _InkLayer extends StatelessWidget {
-  const _InkLayer({required this.notifier, required this.highlighter});
+class InkLayer extends StatelessWidget {
+  const InkLayer({
+    super.key,
+    required this.notifier,
+    required this.highlighter,
+  });
 
   final ScribbleNotifier notifier;
   final bool highlighter;

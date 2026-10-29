@@ -933,7 +933,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkOnPdf => 'เรนเดอร์ลายเส้นหมึกและไฮไลท์ลงบนเอกสาร PDF';
 
   @override
-  String get pdfTextOnly => 'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)';
+  String get pdfTextOnly => 'ส่งออกเอกสารโดยไม่รวมลายเส้นวาด';
 
   @override
   String get pageSize => 'ขนาดหน้าเอกสาร';

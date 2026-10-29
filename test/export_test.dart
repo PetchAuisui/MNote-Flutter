@@ -7,11 +7,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
+import 'package:mnote/features/workspace/presentation/document_page_render.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
-import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_zip_export.dart';
+import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
+
+import 'package:scribble/scribble.dart';
 
 import 'helpers/fakes.dart';
+
+/// Pumps frames, letting real I/O and image encoding run in between, until
+/// [done] holds. Exports render the page off screen, which takes both.
+Future<void> pumpUntil(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 300 && !done(); i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  expect(done(), isTrue, reason: 'export did not finish');
+}
+
+int pdfPageCount(Uint8List pdf) =>
+    RegExp(r'/Type\s*/Page\b').allMatches(latin1.decode(pdf)).length;
 
 void main() {
   group('stripMarkdown', () {
@@ -185,11 +204,8 @@ The end.''';
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('export-pdf-ink-switch')), findsOneWidget);
         expect(find.byKey(const Key('export-pdf-page-format')), findsOneWidget);
-        await tester.runAsync(() async {
-          await tester.tap(find.byKey(const Key('export-save-button')));
-          await Future.delayed(const Duration(milliseconds: 500));
-        });
-        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('export-save-button')));
+        await pumpUntil(tester, () => savedExt == 'pdf');
 
         expect(savedExt, 'pdf');
         expect(savedFileName, 'Welcome.pdf');
@@ -197,6 +213,143 @@ The end.''';
         expect(savedBytes!.isNotEmpty, isTrue);
       },
     );
+  });
+
+  group('Full-page export', () {
+    // Far longer than any viewport, in Thai, so a capture of the screen or a
+    // text-only fallback that drops Thai would both show.
+    final longNote = [
+      '# บันทึกยาว',
+      for (var i = 0; i < 60; i++)
+        'ย่อหน้าที่ $i ภาษาไทยยาวพอที่จะขึ้นบรรทัดใหม่ในหน้ากระดาษ '
+            'เพื่อทดสอบการส่งออกทั้งเอกสาร',
+    ].join('\n\n');
+
+    String inkSnapshot() {
+      final session = InkSession();
+      session.pen.setSketch(
+        sketch: const Sketch(
+          lines: [
+            SketchLine(
+              points: [Point(40, 40), Point(400, 2000)],
+              color: 0xFFB3261E,
+              width: 6,
+            ),
+          ],
+        ),
+      );
+      final snapshot = session.encode();
+      session.dispose();
+      return snapshot;
+    }
+
+    Future<({String? ext, Uint8List? bytes})> export(
+      WidgetTester tester, {
+      required Key option,
+      bool continuous = false,
+      bool includeInk = true,
+    }) async {
+      String? ext;
+      Uint8List? saved;
+      final repo = FakeDocumentRepository();
+      await tester.pumpWidget(
+        MnoteApp(
+          documentRepository: repo,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showExportBottomSheet(
+                  context,
+                  document: MarkdownDocument(
+                    name: 'Long.md',
+                    content: longNote,
+                    savedName: 'Long.md',
+                    savedContent: longNote,
+                  ),
+                  inkLoader: () async => inkSnapshot(),
+                  exportSaver:
+                      ({
+                        required String fileName,
+                        required Uint8List bytes,
+                        required String extension,
+                      }) async {
+                        ext = extension;
+                        saved = bytes;
+                        return Uri.file('/tmp/$fileName');
+                      },
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(option));
+      await tester.pumpAndSettle();
+      if (continuous) {
+        await tester.tap(find.text('ต่อเนื่อง'));
+        await tester.pumpAndSettle();
+      }
+      if (!includeInk) {
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const Key('export-save-button')));
+      await pumpUntil(tester, () => ext != null);
+      return (ext: ext, bytes: saved);
+    }
+
+    testWidgets('A4 PDF spreads a long note over several pages', (
+      tester,
+    ) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-pdf'),
+      );
+      expect(result.ext, 'pdf');
+      expect(pdfPageCount(result.bytes!), greaterThan(1));
+    });
+
+    testWidgets('continuous PDF keeps the note on one page', (tester) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-pdf'),
+        continuous: true,
+      );
+      expect(result.ext, 'pdf');
+      expect(pdfPageCount(result.bytes!), 1);
+    });
+
+    testWidgets('PDF without ink still renders the Thai text', (tester) async {
+      final result = await export(
+        tester,
+        option: const Key('export-option-pdf'),
+        includeInk: false,
+      );
+      expect(result.ext, 'pdf');
+      expect(pdfPageCount(result.bytes!), greaterThan(1));
+    });
+  });
+
+  group('paginate', () {
+    test('breaks between blocks and never past a page', () {
+      final spans = paginate(2500, 1000, [0, 300, 900, 1100, 1900, 2400]);
+      expect(spans, [
+        (top: 0.0, bottom: 900.0),
+        (top: 900.0, bottom: 1900.0),
+        (top: 1900.0, bottom: 2500.0),
+      ]);
+    });
+
+    test('cuts a block taller than a page', () {
+      expect(paginate(2500, 1000, [0]), [
+        (top: 0.0, bottom: 1000.0),
+        (top: 1000.0, bottom: 2000.0),
+        (top: 2000.0, bottom: 2500.0),
+      ]);
+    });
   });
 
   group('buildMarkdownZip', () {

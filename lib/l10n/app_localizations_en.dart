@@ -945,7 +945,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inkOnPdf => 'Renders ink and highlights onto the PDF';
 
   @override
-  String get pdfTextOnly => 'Exports plain text only (no ink strokes)';
+  String get pdfTextOnly => 'Exports the document without ink strokes';
 
   @override
   String get pageSize => 'Page size';

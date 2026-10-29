@@ -1781,7 +1781,7 @@ abstract class AppLocalizations {
   /// No description provided for @pdfTextOnly.
   ///
   /// In th, this message translates to:
-  /// **'ส่งออกเฉพาะข้อความล้วน (ไม่รวมลายเส้นวาด)'**
+  /// **'ส่งออกเอกสารโดยไม่รวมลายเส้นวาด'**
   String get pdfTextOnly;
 
   /// No description provided for @pageSize.

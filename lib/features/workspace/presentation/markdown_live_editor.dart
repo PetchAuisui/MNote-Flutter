@@ -5,6 +5,7 @@ import 'editor_settings.dart';
 import 'markdown_document_style.dart';
 import 'markdown_outline.dart';
 import 'markdown_rendered_block.dart';
+import 'markdown_table_editor.dart';
 
 /// History belongs to the workspace so switching views does not discard it.
 class MarkdownEditHistory {
@@ -76,6 +77,12 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   bool _jumping = false;
   int? _start;
   int _end = 0;
+
+  /// The table cell to open on, when the active block is a table.
+  (int, int)? _tableCell;
+
+  /// Shows the active table's Markdown instead of its cells.
+  bool _rawTable = false;
   bool _updating = false;
   late String _source;
   final _localHistory = MarkdownEditHistory();
@@ -314,7 +321,20 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     _activate(offset, offset);
   }
 
-  void _activate(int start, int end) {
+  void _activateAt(TextRange range, TapUpDetails details) {
+    final block = _blockKeys[range.start]?.currentContext;
+    _activate(
+      range.start,
+      range.end,
+      tableCell: block == null
+          ? null
+          : renderedTableCellAt(block, details.globalPosition),
+    );
+  }
+
+  void _activate(int start, int end, {(int, int)? tableCell}) {
+    _tableCell = tableCell;
+    _rawTable = false;
     _updating = true;
     _start = start;
     _end = end;
@@ -329,9 +349,27 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     _focus.requestFocus();
   }
 
+  void _editTableAsMarkdown() {
+    // Hand focus to the block itself so the switch does not close it.
+    _focus.requestFocus();
+    setState(() => _rawTable = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _start != null) _focus.requestFocus();
+    });
+  }
+
   Widget _editor() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final style = _textOptions.apply(
+      TextStyle(
+        fontSize: _textOptions.bodySize,
+        height: _textOptions.lineHeight,
+        color: const Color(0xFF202124),
+      ),
+    );
+    final table =
+        !_rawTable && MarkdownTable.parse(_blockController.text) != null;
     return KeyedSubtree(
       key: _activeEditorKey,
       child: Container(
@@ -347,26 +385,29 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         clipBehavior: Clip.antiAlias,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-          child: TextField(
-            key: const Key('markdown-live-block-editor'),
-            controller: _blockController,
-            focusNode: _focus,
-            maxLines: null,
-            onTapOutside: (_) => _focus.unfocus(),
-            style: _textOptions.apply(
-              TextStyle(
-                fontSize: _textOptions.bodySize,
-                height: _textOptions.lineHeight,
-                color: const Color(0xFF202124),
-              ),
-            ),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: context.l10n.startWriting,
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 4),
-            ),
-          ),
+          child: table
+              ? MarkdownTableEditor(
+                  key: ValueKey('markdown-table-editor-$_start'),
+                  controller: _blockController,
+                  focusNode: _focus,
+                  style: style,
+                  initialCell: _tableCell,
+                  onEditAsMarkdown: _editTableAsMarkdown,
+                )
+              : TextField(
+                  key: const Key('markdown-live-block-editor'),
+                  controller: _blockController,
+                  focusNode: _focus,
+                  maxLines: null,
+                  onTapOutside: (_) => _focus.unfocus(),
+                  style: style,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: context.l10n.startWriting,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 4),
+                  ),
+                ),
         ),
       ),
     );
@@ -392,7 +433,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
           GestureDetector(
             key: ValueKey('markdown-block-${range.start}'),
             behavior: HitTestBehavior.opaque,
-            onTap: () => _activate(range.start, range.end),
+            onTapUp: (details) => _activateAt(range, details),
             child: KeyedSubtree(
               key: blockKey(range.start),
               child: IgnorePointer(
@@ -429,7 +470,7 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         GestureDetector(
           key: ValueKey('markdown-block-${range.start}'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => _activate(range.start, range.end),
+          onTapUp: (details) => _activateAt(range, details),
           child: KeyedSubtree(
             key: blockKey(range.start),
             child: IgnorePointer(

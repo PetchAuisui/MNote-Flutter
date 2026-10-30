@@ -779,6 +779,21 @@ class AppLocalizationsTh extends AppLocalizations {
   String get tableRows => 'จำนวนแถวข้อมูล';
 
   @override
+  String get tableAddRow => 'เพิ่มแถว';
+
+  @override
+  String get tableAddColumn => 'เพิ่มคอลัมน์';
+
+  @override
+  String get tableDeleteRow => 'ลบแถว';
+
+  @override
+  String get tableDeleteColumn => 'ลบคอลัมน์';
+
+  @override
+  String get tableEditMarkdown => 'แก้เป็น Markdown';
+
+  @override
   String get insert => 'แทรก';
 
   @override

@@ -15,10 +15,10 @@ class AiFirebaseApp {
 
   @visibleForTesting
   static const FirebaseOptions androidOptions = FirebaseOptions(
-    apiKey: 'ใส่ current_key ของคุณตรงนี้',
-    appId: 'ใส่ mobilesdk_app_id ของคุณตรงนี้',
-    messagingSenderId: 'ใส่ project_number ของคุณตรงนี้',
-    projectId: 'ใส่ project_id ของคุณตรงนี้',
+    apiKey: 'AIzaSyBwcc_f5rA-YUbQ0NcNrkSru04cjpdiJO0',
+    appId: '1:5815891505:android:fdd824afb277359482c710',
+    messagingSenderId: '5815891505',
+    projectId: 'mnote-ai',
   );
 
   static Future<FirebaseApp>? _pending;

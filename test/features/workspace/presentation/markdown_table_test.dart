@@ -68,6 +68,12 @@ void main() {
         table,
       );
       expect(find.byKey(const Key('markdown-live-active-block')), findsOne);
+      // And back to the cells without closing the block.
+      await tester.tap(find.byKey(const Key('markdown-table-edit-cells')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('markdown-table-cell-0-0')), findsOne);
+      expect(find.byKey(const Key('markdown-live-block-editor')), findsNothing);
+      expect(controller.text, table);
     });
   }
 

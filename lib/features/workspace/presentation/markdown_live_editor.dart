@@ -349,13 +349,44 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     _focus.requestFocus();
   }
 
-  void _editTableAsMarkdown() {
+  void _editTableAsMarkdown() => _setRawTable(true);
+
+  void _editTableAsCells() => _setRawTable(false);
+
+  void _setRawTable(bool raw) {
     // Hand focus to the block itself so the switch does not close it.
     _focus.requestFocus();
-    setState(() => _rawTable = true);
+    setState(() => _rawTable = raw);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _start != null) _focus.requestFocus();
     });
+  }
+
+  Widget _rawTableEditor(Widget field) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Part of the field's tap region, so switching keeps the block open.
+        TextFieldTapRegion(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ListenableBuilder(
+              listenable: _blockController,
+              builder: (context, _) => TextButton.icon(
+                key: const Key('markdown-table-edit-cells'),
+                // Only offer the grid while the Markdown is still a table.
+                onPressed: MarkdownTable.parse(_blockController.text) == null
+                    ? null
+                    : _editTableAsCells,
+                icon: const Icon(Icons.grid_on, size: 18),
+                label: Text(context.l10n.tableEditCells),
+              ),
+            ),
+          ),
+        ),
+        field,
+      ],
+    );
   }
 
   Widget _editor() {
@@ -370,6 +401,20 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     );
     final table =
         !_rawTable && MarkdownTable.parse(_blockController.text) != null;
+    final field = TextField(
+      key: const Key('markdown-live-block-editor'),
+      controller: _blockController,
+      focusNode: _focus,
+      maxLines: null,
+      onTapOutside: (_) => _focus.unfocus(),
+      style: style,
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        hintText: context.l10n.startWriting,
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(vertical: 4),
+      ),
+    );
     return KeyedSubtree(
       key: _activeEditorKey,
       child: Container(
@@ -394,20 +439,9 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
                   initialCell: _tableCell,
                   onEditAsMarkdown: _editTableAsMarkdown,
                 )
-              : TextField(
-                  key: const Key('markdown-live-block-editor'),
-                  controller: _blockController,
-                  focusNode: _focus,
-                  maxLines: null,
-                  onTapOutside: (_) => _focus.unfocus(),
-                  style: style,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: context.l10n.startWriting,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 4),
-                  ),
-                ),
+              : _rawTable
+              ? _rawTableEditor(field)
+              : field,
         ),
       ),
     );

@@ -452,6 +452,7 @@
   "tableDeleteRow": "ลบแถว",
   "tableDeleteColumn": "ลบคอลัมน์",
   "tableEditMarkdown": "แก้เป็น Markdown",
+  "tableEditCells": "แก้เป็นตาราง",
   "insert": "แทรก",
   "openFileFailed": "เปิดไฟล์ไม่สำเร็จ กรุณาลองใหม่",
   "imageSaveFailed": "ไม่สามารถบันทึกรูปไว้ข้างโน้ตนี้ได้",

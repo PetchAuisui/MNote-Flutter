@@ -239,6 +239,7 @@
   "tableDeleteRow": "Delete row",
   "tableDeleteColumn": "Delete column",
   "tableEditMarkdown": "Edit as Markdown",
+  "tableEditCells": "Edit as table",
   "insert": "Insert",
   "openFileFailed": "Could not open the file. Please try again.",
   "imageSaveFailed": "Could not save the image next to this note",

@@ -1532,6 +1532,12 @@ abstract class AppLocalizations {
   /// **'แก้เป็น Markdown'**
   String get tableEditMarkdown;
 
+  /// No description provided for @tableEditCells.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้เป็นตาราง'**
+  String get tableEditCells;
+
   /// No description provided for @insert.
   ///
   /// In th, this message translates to:

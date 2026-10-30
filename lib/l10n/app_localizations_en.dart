@@ -805,6 +805,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tableEditMarkdown => 'Edit as Markdown';
 
   @override
+  String get tableEditCells => 'Edit as table';
+
+  @override
   String get insert => 'Insert';
 
   @override

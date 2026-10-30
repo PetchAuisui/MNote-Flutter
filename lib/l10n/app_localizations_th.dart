@@ -794,6 +794,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get tableEditMarkdown => 'แก้เป็น Markdown';
 
   @override
+  String get tableEditCells => 'แก้เป็นตาราง';
+
+  @override
   String get insert => 'แทรก';
 
   @override

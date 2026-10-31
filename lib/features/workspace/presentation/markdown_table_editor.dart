@@ -15,6 +15,33 @@ class _SourceCell {
   final int end;
 }
 
+final _escapedPipePattern = RegExp(r'(\\*)\|');
+
+/// Cell text to source: a pipe becomes `\|`, and backslashes right before it
+/// are doubled so they cannot pair up with the escape and split the cell.
+String _escapeCell(String cell) => cell
+    .replaceAll('\n', ' ')
+    .replaceAllMapped(
+      _escapedPipePattern,
+      (match) => '${'\\' * (match[1]!.length * 2 + 1)}|',
+    );
+
+/// The inverse of [_escapeCell] for one cell's source.
+String _unescapeCell(String source) =>
+    source.replaceAllMapped(_escapedPipePattern, (match) {
+      final slashes = match[1]!.length;
+      return slashes.isOdd ? '${'\\' * (slashes ~/ 2)}|' : match[0]!;
+    });
+
+/// Whether the pipe at [index] is escaped by an odd run of backslashes.
+bool _isEscaped(String line, int index, int from) {
+  var slashes = 0;
+  while (index - slashes - 1 >= from && line[index - slashes - 1] == '\\') {
+    slashes++;
+  }
+  return slashes.isOdd;
+}
+
 /// Splits a table line on unescaped pipes. [offset] is where the line starts.
 List<_SourceCell> _splitRow(String line, int offset) {
   var from = 0;
@@ -26,9 +53,7 @@ List<_SourceCell> _splitRow(String line, int offset) {
     to--;
   }
   if (from < to && line[from] == '|') from++;
-  if (to > from &&
-      line[to - 1] == '|' &&
-      (to - 2 < from || line[to - 2] != '\\')) {
+  if (to > from && line[to - 1] == '|' && !_isEscaped(line, to - 1, from)) {
     to--;
   }
   final cells = <_SourceCell>[];
@@ -43,7 +68,7 @@ List<_SourceCell> _splitRow(String line, int offset) {
     }
     cells.add(
       _SourceCell(
-        line.substring(start, end).replaceAll(r'\|', '|'),
+        _unescapeCell(line.substring(start, end)),
         offset + start,
         offset + end,
       ),
@@ -82,6 +107,9 @@ class MarkdownTable {
     final lines = source.split('\n');
     if (lines.length < 2 ||
         !lines[0].contains('|') ||
+        // GFM needs a pipe in the separator; a bare `---` underlines a
+        // setext heading.
+        !lines[1].contains('|') ||
         !_separatorPattern.hasMatch(lines[1]) ||
         lines.skip(2).any((line) => !line.contains('|'))) {
       return null;
@@ -93,16 +121,18 @@ class MarkdownTable {
       offset += line.length + 1;
     }
     final separator = parsed.removeAt(1);
-    final columns = parsed
-        .map((row) => row.length)
-        .fold(separator.length, (a, b) => a > b ? a : b);
+    // As in GFM: a header that does not match the separator is not a table
+    // (it may be a setext heading), and cells past the header are hidden, so
+    // rewriting the table would reveal them. Leave both to the Markdown editor.
+    final columns = separator.length;
+    if (parsed.first.length != columns ||
+        parsed.any((row) => row.length > columns)) {
+      return null;
+    }
     final alignments = [
-      for (var x = 0; x < columns; x++)
-        if (x < separator.length)
-          '${separator[x].text.startsWith(':') ? ':' : ''}---'
-              '${separator[x].text.endsWith(':') ? ':' : ''}'
-        else
-          '---',
+      for (final marker in separator)
+        '${marker.text.startsWith(':') ? ':' : ''}---'
+            '${marker.text.endsWith(':') ? ':' : ''}',
     ];
     final table = MarkdownTable([
       for (final row in parsed)
@@ -120,9 +150,6 @@ class MarkdownTable {
     return table;
   }
 
-  static String _escape(String cell) =>
-      cell.replaceAll('\n', ' ').replaceAll('|', r'\|');
-
   /// Writes the table back as Markdown, recording where each cell landed.
   String format() {
     final buffer = StringBuffer();
@@ -133,7 +160,7 @@ class MarkdownTable {
       for (final cell in cells) {
         buffer.write(' ');
         final start = buffer.length;
-        buffer.write(_escape(cell));
+        buffer.write(_escapeCell(cell));
         row.add(TextRange(start: start, end: buffer.length));
         buffer.write(' |');
       }
@@ -152,12 +179,16 @@ class MarkdownTable {
     return buffer.toString();
   }
 
+  /// Whether cell ([row], [column]) is written in the source; a short row
+  /// leaves its last cells out.
+  bool hasSource(int row, int column) => _ranges[row][column].isValid;
+
   /// The source offset of [index] within cell ([row], [column]).
   int sourceOffset(int row, int column, int index) {
     final range = _ranges[row][column];
     final text = rows[row][column];
     final before = text.substring(0, index.clamp(0, text.length));
-    return range.start + _escape(before).length;
+    return range.start + _escapeCell(before).length;
   }
 
   /// The cell holding source [offset] and the index inside its text.
@@ -171,7 +202,7 @@ class MarkdownTable {
         final text = rows[y][x];
         var index = 0;
         while (index < text.length &&
-            range.start + _escape(text.substring(0, index + 1)).length <=
+            range.start + _escapeCell(text.substring(0, index + 1)).length <=
                 offset) {
           index++;
         }
@@ -258,9 +289,21 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
   void initState() {
     super.initState();
     _table = MarkdownTable.parse(widget.controller.text)!;
-    _current = widget.initialCell ?? (0, 0);
+    _current = _clamp(widget.initialCell ?? (0, 0));
     _rebuildCells();
     widget.controller.addListener(_onSourceChanged);
+    _refocus();
+  }
+
+  /// Keeps a cell inside the table, which may have shrunk since it was picked
+  /// (for example while editing the Markdown).
+  (int, int) _clamp((int, int) cell) => (
+    cell.$1.clamp(0, _table.rows.length - 1),
+    cell.$2.clamp(0, _table.columns - 1),
+  );
+
+  /// Focuses the current cell after the next frame builds its field.
+  void _refocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusCell(_current.$1, _current.$2, selectAll: false);
     });
@@ -325,8 +368,12 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
         table.columns == _table.columns;
     _table = table;
     if (!sameShape) {
+      // The focused field is replaced, so focus its successor or the block
+      // would close.
+      _current = _clamp(_current);
       _rebuildCells();
       setState(() {});
+      _refocus();
       return;
     }
     final selection = widget.controller.selection;
@@ -364,8 +411,10 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final cell = _cells[y][x];
     // Only an actual edit rewrites the table; moving between cells must not
     // reformat Markdown the user wrote by hand.
+    // A cell missing from a short row has no place in the source until the
+    // table is written out in full.
     var text = widget.controller.text;
-    if (cell.text != _table.rows[y][x]) {
+    if (cell.text != _table.rows[y][x] || !_table.hasSource(y, x)) {
       _table.rows[y][x] = cell.text;
       text = _table.format();
     }
@@ -492,6 +541,8 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       focusNode: _cellFocus[y][x],
       textAlign: _align(x),
       textInputAction: TextInputAction.next,
+      // Without this, the field also moves focus to the next cell itself.
+      onEditingComplete: () {},
       onSubmitted: (_) => _onSubmitted(y, x),
       onTapOutside: (_) => widget.focusNode.unfocus(),
       style: y == 0

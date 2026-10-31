@@ -99,6 +99,35 @@ void main() {
       expect(MarkdownTable.parse('| just | pipes |'), isNull);
     });
 
+    test('follows GFM on which blocks are tables', () {
+      // A setext heading, and a separator that does not match the header.
+      expect(MarkdownTable.parse('Name | Price\n---'), isNull);
+      expect(MarkdownTable.parse('| A | B |\n| --- |\n| 1 | 2 |'), isNull);
+      // Cells past the header are hidden, so rewriting would reveal them.
+      expect(
+        MarkdownTable.parse('| A | B |\n| --- | --- |\n| 1 | 2 | 3 |'),
+        isNull,
+      );
+      final short = MarkdownTable.parse('| A | B |\n| --- | --- |\n| 1 |')!;
+      expect(short.rows[1], ['1', '']);
+      expect(short.hasSource(1, 0), isTrue);
+      expect(short.hasSource(1, 1), isFalse);
+    });
+
+    test('a backslash before a pipe stays in its cell', () {
+      for (final text in [r'a\|b', r'a\\|b', r'end\']) {
+        final table = MarkdownTable(
+          [
+            ['A', 'B'],
+            [text, 'x'],
+          ],
+          ['---', '---'],
+        );
+        final parsed = MarkdownTable.parse(table.format())!;
+        expect(parsed.rows, table.rows, reason: table.format());
+      }
+    });
+
     test('maps source offsets to cells and back', () {
       final table = MarkdownTable.parse(source)!;
       final offset = source.indexOf('Two') + 2;
@@ -166,6 +195,80 @@ void main() {
     // Still editing: the tools keep the block open.
     expect(find.byKey(const Key('markdown-table-cell-0-0')), findsOne);
   });
+  Future<TextEditingController> pumpEditor(
+    WidgetTester tester,
+    String text,
+  ) async {
+    final controller = TextEditingController(text: text);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarkdownLiveEditor(controller: controller, onChanged: (_) {}),
+        ),
+      ),
+    );
+    return controller;
+  }
+
+  bool cellFocused(WidgetTester tester, int y, int x) => tester
+      .widget<TextField>(find.byKey(Key('markdown-table-cell-$y-$x')))
+      .focusNode!
+      .hasFocus;
+
+  testWidgets('tools work after the Markdown removed the tapped row', (
+    tester,
+  ) async {
+    final controller = await pumpEditor(
+      tester,
+      '| A |\n| --- |\n| One |\n| Two |\n| Three |',
+    );
+    await tester.tap(find.text('Three', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(cellFocused(tester, 3, 0), isTrue);
+    await tester.tap(find.byKey(const Key('markdown-table-edit-markdown')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('markdown-live-block-editor')),
+      '| A |\n| --- |\n| One |',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('markdown-table-edit-cells')));
+    await tester.pumpAndSettle();
+    expect(cellFocused(tester, 1, 0), isTrue);
+    await tester.tap(find.byKey(const Key('markdown-table-add-row')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(controller.text, '| A |\n| --- |\n| One |\n|  |');
+  });
+
+  testWidgets('Enter moves straight down a column', (tester) async {
+    await pumpEditor(tester, '| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |');
+    await tester.tap(find.text('1', findRichText: true));
+    await tester.pumpAndSettle();
+    expect(cellFocused(tester, 1, 0), isTrue);
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    expect(cellFocused(tester, 2, 0), isTrue);
+    expect(cellFocused(tester, 1, 1), isFalse);
+  });
+
+  testWidgets('a cell missing from a short row maps into the source', (
+    tester,
+  ) async {
+    final controller = await pumpEditor(
+      tester,
+      '| A | B |\n| --- | --- |\n| 1 |',
+    );
+    await tester.tap(find.text('1', findRichText: true));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('markdown-table-cell-1-1')));
+    await tester.pumpAndSettle();
+    // Focusing it writes the row out, with the selection inside the cell.
+    expect(controller.text, '| A | B |\n| --- | --- |\n| 1 |  |');
+    expect(controller.selection, const TextSelection.collapsed(offset: 30));
+  });
+
   testWidgets('table tool inserts selected dimensions and supports undo', (
     tester,
   ) async {

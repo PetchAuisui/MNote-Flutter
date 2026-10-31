@@ -790,6 +790,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tableRows => 'Number of data rows';
 
   @override
+  String get tableAddRow => 'Add row';
+
+  @override
+  String get tableAddColumn => 'Add column';
+
+  @override
+  String get tableDeleteRow => 'Delete row';
+
+  @override
+  String get tableDeleteColumn => 'Delete column';
+
+  @override
+  String get tableEditMarkdown => 'Edit as Markdown';
+
+  @override
+  String get tableEditCells => 'Edit as table';
+
+  @override
   String get insert => 'Insert';
 
   @override

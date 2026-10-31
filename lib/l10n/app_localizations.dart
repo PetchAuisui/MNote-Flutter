@@ -1502,6 +1502,42 @@ abstract class AppLocalizations {
   /// **'จำนวนแถวข้อมูล'**
   String get tableRows;
 
+  /// No description provided for @tableAddRow.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มแถว'**
+  String get tableAddRow;
+
+  /// No description provided for @tableAddColumn.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มคอลัมน์'**
+  String get tableAddColumn;
+
+  /// No description provided for @tableDeleteRow.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบแถว'**
+  String get tableDeleteRow;
+
+  /// No description provided for @tableDeleteColumn.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบคอลัมน์'**
+  String get tableDeleteColumn;
+
+  /// No description provided for @tableEditMarkdown.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้เป็น Markdown'**
+  String get tableEditMarkdown;
+
+  /// No description provided for @tableEditCells.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้เป็นตาราง'**
+  String get tableEditCells;
+
   /// No description provided for @insert.
   ///
   /// In th, this message translates to:

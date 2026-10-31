@@ -94,4 +94,46 @@ void main() {
 
     expect(transform.value.getTranslation().y, closeTo(-2000, 0.5));
   });
+
+  testWidgets('fit width from a zoom keeps the middle of the view in place', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1200, 1600)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final transform = TransformationController();
+    addTearDown(transform.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: InkPage(
+            session: session,
+            markdown: List.filled(200, 'Line of text').join('\n\n'),
+            name: 'notes.md',
+            transformationController: transform,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final viewer = tester.getRect(find.byType(InteractiveViewer));
+
+    // Zoom to 2x with page y=1500 in the middle of the view.
+    final middle = viewer.height / 2;
+    transform.value = Matrix4.diagonal3Values(2, 2, 1)
+      ..setTranslationRaw(0, middle - 1500 * 2, 0);
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ink-fit')));
+    await tester.pumpAndSettle();
+
+    final scale = transform.value.getMaxScaleOnAxis();
+    expect(scale, lessThan(2));
+    final pageYInMiddle = (middle - transform.value.getTranslation().y) / scale;
+    expect(pageYInMiddle, closeTo(1500, 0.5));
+  });
 }

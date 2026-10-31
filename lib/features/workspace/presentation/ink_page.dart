@@ -1,6 +1,7 @@
 import 'package:mnote/l10n/l10n.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -16,29 +17,19 @@ import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
 import 'mermaid/mermaid_element_builder.dart';
 
-/// Fits an ink page of [pageHeight] to the width of [viewport] while keeping
-/// the part of the page in the middle of the view where it is, instead of
-/// jumping back to the top.
-void fitInkPageWidth(
-  TransformationController transform,
-  Size viewport,
-  double pageHeight,
-) {
-  final scale = (viewport.width / InkSession.pageWidth).clamp(0.1, 1.0);
-  final dx = viewport.width > InkSession.pageWidth
-      ? (viewport.width - InkSession.pageWidth) / 2
-      : 0.0;
-  final current = transform.value;
-  final centre =
-      (viewport.height / 2 - current.getTranslation().y) /
-      current.getMaxScaleOnAxis();
-  final lowest = (viewport.height - pageHeight * scale).clamp(
-    double.negativeInfinity,
-    0.0,
-  );
-  final dy = (viewport.height / 2 - centre * scale).clamp(lowest, 0.0);
-  transform.value = Matrix4.diagonal3Values(scale, scale, 1)
-    ..setTranslationRaw(dx, dy, 0);
+/// Lets a toolbar outside [InkPage] fit the page to the view width.
+class InkFitController {
+  VoidCallback? _fit;
+
+  /// Called by the [InkPage] that currently shows the page.
+  void attach(VoidCallback fit) => _fit = fit;
+
+  void detach(VoidCallback fit) {
+    if (_fit == fit) _fit = null;
+  }
+
+  /// Fits the page to the view width, keeping the current scroll position.
+  void fit() => _fit?.call();
 }
 
 class InkPage extends StatefulWidget {
@@ -51,7 +42,7 @@ class InkPage extends StatefulWidget {
     this.fileStorage,
     this.transformationController,
     this.showToolbar = true,
-    this.onViewportSizeChanged,
+    this.fitController,
     this.outline,
   });
   final InkSession session;
@@ -63,7 +54,7 @@ class InkPage extends StatefulWidget {
   final InkFileStorage? fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
-  final ValueChanged<Size>? onViewportSizeChanged;
+  final InkFitController? fitController;
 
   /// Lets the outline panel jump to headings and follow the visible one.
   final MarkdownOutlineController? outline;
@@ -156,6 +147,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _transform.addListener(_clampHorizontal);
     _transform.addListener(_trackActiveHeading);
     widget.outline?.attach(_scrollToOffset);
+    widget.fitController?.attach(_fit);
   }
 
   @override
@@ -164,6 +156,10 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     if (oldWidget.outline != widget.outline) {
       oldWidget.outline?.detach(_scrollToOffset);
       widget.outline?.attach(_scrollToOffset);
+    }
+    if (oldWidget.fitController != widget.fitController) {
+      oldWidget.fitController?.detach(_fit);
+      widget.fitController?.attach(_fit);
     }
     if (oldWidget.transformationController != widget.transformationController) {
       _transform.removeListener(_clampHorizontal);
@@ -181,6 +177,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _transform.removeListener(_clampHorizontal);
     _transform.removeListener(_trackActiveHeading);
     widget.outline?.detach(_scrollToOffset);
+    widget.fitController?.detach(_fit);
     _scrollAnimation.dispose();
     _autoSaveInkTimer?.cancel();
     if (widget.session.isDirty) {
@@ -246,11 +243,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     final value = _transform.value;
     final scale = value.getMaxScaleOnAxis();
     final from = value.getTranslation().y;
-    final lowest = (_viewportHeight - page.height * scale).clamp(
-      double.negativeInfinity,
-      0.0,
-    );
-    final to = (16 - top * scale).clamp(lowest, 0.0);
+    final to = (16 - top * scale).clamp(_lowestOffset(scale), 0.0);
     _jumping = true;
     widget.outline?.activeOffset.value = offset;
     // A jump started mid-way through another replaces it rather than letting
@@ -282,11 +275,35 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _jumping = false;
   }
 
-  void _fit() => fitInkPageWidth(
-    _transform,
-    Size(_viewportWidth, _viewportHeight),
-    widget.session.height,
-  );
+  /// The furthest the page can scroll up at [scale] before its bottom edge
+  /// leaves the bottom of the view.
+  double _lowestOffset(double scale) {
+    final rendered = _pageKey.currentContext?.size?.height ?? 0;
+    final height = math.max(rendered, widget.session.height);
+    return (_viewportHeight - height * scale).clamp(
+      double.negativeInfinity,
+      0.0,
+    );
+  }
+
+  /// Fits the page to the view width while keeping the part of the page in
+  /// the middle of the view where it is, instead of jumping back to the top.
+  void _fit() {
+    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
+    final dx = _viewportWidth > InkSession.pageWidth
+        ? (_viewportWidth - InkSession.pageWidth) / 2
+        : 0.0;
+    final current = _transform.value;
+    final centre =
+        (_viewportHeight / 2 - current.getTranslation().y) /
+        current.getMaxScaleOnAxis();
+    final dy = (_viewportHeight / 2 - centre * scale).clamp(
+      _lowestOffset(scale),
+      0.0,
+    );
+    _transform.value = Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(dx, dy, 0);
+  }
 
   /// Keeps the page horizontally centred (or edge-clamped when zoomed in).
   /// Runs on every transform change, so stale fits, stray pans and viewport
@@ -384,10 +401,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       final pen = widget.session.pen;
       final canvas = LayoutBuilder(
         builder: (context, constraints) {
-          if (_viewportHeight != constraints.maxHeight) {
-            _viewportHeight = constraints.maxHeight;
-            widget.onViewportSizeChanged?.call(constraints.biggest);
-          }
+          _viewportHeight = constraints.maxHeight;
           if (widget.outline != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) _trackActiveHeading();
@@ -395,7 +409,6 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
           }
           if (_viewportWidth != constraints.maxWidth) {
             _viewportWidth = constraints.maxWidth;
-            widget.onViewportSizeChanged?.call(constraints.biggest);
             // Re-centre immediately (also covers rotation / split-view resize).
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) _clampHorizontal();

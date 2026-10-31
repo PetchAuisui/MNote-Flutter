@@ -455,6 +455,42 @@ void main() {
     expect(transform.value.getTranslation().y, closeTo(-2000, 0.5));
   });
 
+  testWidgets('a new note in writing mode starts at the top', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    MarkdownWorkspacePage.defaultMode = WorkspaceMode.ink;
+    addTearDown(() => MarkdownWorkspacePage.defaultMode = WorkspaceMode.split);
+    final repo = FakeDocumentRepository();
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: MarkdownDocument.example(
+            List.filled(200, 'Line of text').join('\n\n'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final transform = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!;
+    transform.value = transform.value.clone()
+      ..setTranslationRaw(transform.value.getTranslation().x, -2000, 0);
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.note_add_outlined));
+    await tester.pumpAndSettle();
+
+    expect(transform.value.getTranslation().y, 0);
+  });
+
   testWidgets('importing a file from writing mode opens the Markdown tab', (
     tester,
   ) async {

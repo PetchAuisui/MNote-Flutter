@@ -92,7 +92,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Color _inkPenColor = const Color(0xFF202124);
   double _inkPenWidth = 3;
   bool _inkTouch = InkSettings.instance.fingerDrawing;
-  double _inkViewportWidth = 0;
+  final _inkFit = InkFitController();
 
   /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่
   AssistantChatController? _assistantChat;
@@ -120,7 +120,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _loadBundledExample();
     if (_workspace.mode == WorkspaceMode.ink) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitInk();
+        if (mounted) _inkFit.fit();
       });
     }
   }
@@ -345,6 +345,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   void _resetInk() {
     final previous = _ink;
+    // A different note starts at its top, not where the last one was left.
+    _inkTransform.value = Matrix4.identity();
     setState(() => _ink = InkSession());
     WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
@@ -998,8 +1000,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                         imageDirectory: _imageDirectory,
                                         transformationController: _inkTransform,
                                         showToolbar: false,
-                                        onViewportWidthChanged: (w) =>
-                                            _inkViewportWidth = w,
+                                        fitController: _inkFit,
                                         outline: _outline,
                                       ),
                                     )
@@ -1320,7 +1321,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         _workspace.setMode(selection.first);
         if (selection.first == WorkspaceMode.ink) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _fitInk();
+            if (mounted) _inkFit.fit();
           });
         }
       },
@@ -1547,15 +1548,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  void _fitInk() {
-    final scale = (_inkViewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
-    final dx = _inkViewportWidth > InkSession.pageWidth
-        ? (_inkViewportWidth - InkSession.pageWidth) / 2
-        : 0.0;
-    _inkTransform.value = Matrix4.diagonal3Values(scale, scale, 1)
-      ..setTranslationRaw(dx, 0, 0);
-  }
-
   void _selectInkTool(InkTool tool) {
     setState(() => _inkTool = tool);
     final pen = _ink.pen;
@@ -1666,7 +1658,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onRedo: _ink.pen.canRedo ? _ink.pen.redo : null,
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
-        onFit: _fitInk,
+        onFit: _inkFit.fit,
       ),
     );
   }

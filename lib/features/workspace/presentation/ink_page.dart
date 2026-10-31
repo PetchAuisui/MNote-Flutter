@@ -16,6 +16,31 @@ import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
 import 'mermaid/mermaid_element_builder.dart';
 
+/// Fits an ink page of [pageHeight] to the width of [viewport] while keeping
+/// the part of the page in the middle of the view where it is, instead of
+/// jumping back to the top.
+void fitInkPageWidth(
+  TransformationController transform,
+  Size viewport,
+  double pageHeight,
+) {
+  final scale = (viewport.width / InkSession.pageWidth).clamp(0.1, 1.0);
+  final dx = viewport.width > InkSession.pageWidth
+      ? (viewport.width - InkSession.pageWidth) / 2
+      : 0.0;
+  final current = transform.value;
+  final centre =
+      (viewport.height / 2 - current.getTranslation().y) /
+      current.getMaxScaleOnAxis();
+  final lowest = (viewport.height - pageHeight * scale).clamp(
+    double.negativeInfinity,
+    0.0,
+  );
+  final dy = (viewport.height / 2 - centre * scale).clamp(lowest, 0.0);
+  transform.value = Matrix4.diagonal3Values(scale, scale, 1)
+    ..setTranslationRaw(dx, dy, 0);
+}
+
 class InkPage extends StatefulWidget {
   const InkPage({
     super.key,
@@ -26,7 +51,7 @@ class InkPage extends StatefulWidget {
     this.fileStorage,
     this.transformationController,
     this.showToolbar = true,
-    this.onViewportWidthChanged,
+    this.onViewportSizeChanged,
     this.outline,
   });
   final InkSession session;
@@ -38,7 +63,7 @@ class InkPage extends StatefulWidget {
   final InkFileStorage? fileStorage;
   final TransformationController? transformationController;
   final bool showToolbar;
-  final ValueChanged<double>? onViewportWidthChanged;
+  final ValueChanged<Size>? onViewportSizeChanged;
 
   /// Lets the outline panel jump to headings and follow the visible one.
   final MarkdownOutlineController? outline;
@@ -257,14 +282,11 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _jumping = false;
   }
 
-  void _fit() {
-    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
-    final dx = _viewportWidth > InkSession.pageWidth
-        ? (_viewportWidth - InkSession.pageWidth) / 2
-        : 0.0;
-    _transform.value = Matrix4.diagonal3Values(scale, scale, 1)
-      ..setTranslationRaw(dx, 0, 0);
-  }
+  void _fit() => fitInkPageWidth(
+    _transform,
+    Size(_viewportWidth, _viewportHeight),
+    widget.session.height,
+  );
 
   /// Keeps the page horizontally centred (or edge-clamped when zoomed in).
   /// Runs on every transform change, so stale fits, stray pans and viewport
@@ -362,7 +384,10 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       final pen = widget.session.pen;
       final canvas = LayoutBuilder(
         builder: (context, constraints) {
-          _viewportHeight = constraints.maxHeight;
+          if (_viewportHeight != constraints.maxHeight) {
+            _viewportHeight = constraints.maxHeight;
+            widget.onViewportSizeChanged?.call(constraints.biggest);
+          }
           if (widget.outline != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) _trackActiveHeading();
@@ -370,7 +395,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
           }
           if (_viewportWidth != constraints.maxWidth) {
             _viewportWidth = constraints.maxWidth;
-            widget.onViewportWidthChanged?.call(constraints.maxWidth);
+            widget.onViewportSizeChanged?.call(constraints.biggest);
             // Re-centre immediately (also covers rotation / split-view resize).
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) _clampHorizontal();

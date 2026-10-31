@@ -92,7 +92,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Color _inkPenColor = const Color(0xFF202124);
   double _inkPenWidth = 3;
   bool _inkTouch = InkSettings.instance.fingerDrawing;
-  double _inkViewportWidth = 0;
+  Size _inkViewportSize = Size.zero;
 
   /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่
   AssistantChatController? _assistantChat;
@@ -998,8 +998,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                         imageDirectory: _imageDirectory,
                                         transformationController: _inkTransform,
                                         showToolbar: false,
-                                        onViewportWidthChanged: (w) =>
-                                            _inkViewportWidth = w,
+                                        onViewportSizeChanged: (size) =>
+                                            _inkViewportSize = size,
                                         outline: _outline,
                                       ),
                                     )
@@ -1547,14 +1547,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  void _fitInk() {
-    final scale = (_inkViewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
-    final dx = _inkViewportWidth > InkSession.pageWidth
-        ? (_inkViewportWidth - InkSession.pageWidth) / 2
-        : 0.0;
-    _inkTransform.value = Matrix4.diagonal3Values(scale, scale, 1)
-      ..setTranslationRaw(dx, 0, 0);
-  }
+  void _fitInk() =>
+      fitInkPageWidth(_inkTransform, _inkViewportSize, _ink.height);
 
   void _selectInkTool(InkTool tool) {
     setState(() => _inkTool = tool);

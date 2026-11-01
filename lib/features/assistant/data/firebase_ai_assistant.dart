@@ -15,7 +15,7 @@ import 'ai_firebase_app.dart';
 class FirebaseAiAssistant implements AiAssistant {
   const FirebaseAiAssistant();
 
-  static const modelName = 'gemini-3.8-flash';
+  static const modelName = 'gemini-3.1-flash-lite';
 
   static const _basePrompt =
       'คุณคือผู้ช่วยในแอปจดโน้ต MNote ตอบเป็นภาษาเดียวกับผู้ใช้ กระชับ '

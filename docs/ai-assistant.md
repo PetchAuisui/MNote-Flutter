@@ -5,7 +5,7 @@
 - Branch: `feature/ai-chat` (แชท, PR #31), `feature/ai-note-context` (แนบโน้ต) และ `feature/ai-separate-project` (ย้าย AI ไป Firebase project แยก + เปลี่ยนโมเดล)
 - ตอบโจทย์อาจารย์ข้อ "ใช้ AI อย่างน้อย 1 Feature (Gemini API)" และเป็น Firebase บริการที่ 3 ของโปรเจกต์ (ต่อจาก Auth และ Firestore)
 - โมเดล: `gemini-3.1-flash-lite` ผ่าน Firebase project **`mnote-ai`** (แผน Spark ไม่ผูกบัตร) แยกจาก project หลัก `mnote-8db27` เหตุผลในหัวข้อ 7.6
-- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release (หลังย้าย project แล้ว), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build **iOS ใช้ AI ไม่ได้ตั้งแต่ย้าย project** (หัวข้อ 7.5)
+- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release (หลังย้าย project แล้ว), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build **iOS: รองรับในโค้ดแล้ว แต่ยังไม่ได้ทดสอบบนเครื่องจริงหลังย้าย project** (รอ PM ซึ่งมี Mac หัวข้อ 7.5)
 
 > **ก่อนเทสหรือ demo อ่านหัวข้อ 7.5 (ใครใช้ AI ได้) และ 7.6 (โควตารวมทั้งทีม)** และคนดูแล Firebase อ่านหัวข้อ 7 ทั้งหมด
 
@@ -78,7 +78,7 @@ lib/
 │   │   ├── chat_message.dart                ข้อความแชท (role + text + attachedNoteTitle)
 │   │   └── ai_assistant.dart                interface AiAssistant + exception + AiDocumentContext (+ maxContentLength)
 │   ├── data/
-│   │   ├── ai_firebase_app.dart             เปิด Firebase app ชื่อ `ai` (project mnote-ai) + App Check ของ project นั้น
+│   │   ├── ai_firebase_app.dart             เปิด Firebase app ชื่อ `ai` (project mnote-ai, Android + iOS) + App Check ของ project นั้น
 │   │   └── firebase_ai_assistant.dart       ตัวจริง: เรียก Gemini, ห่อโน้ตด้วยแท็ก <note>, เลือก system prompt
 │   └── presentation/
 │       ├── assistant_chat_controller.dart   state ของแชท + สถานะการแนบโน้ต (ChangeNotifier)
@@ -90,7 +90,7 @@ lib/
 test/
 ├── helpers/fake_ai_assistant.dart           ตัวปลอมสำหรับ test (ไม่ต่อเน็ต, จำ lastDocument)
 └── features/assistant/
-    ├── ai_firebase_app_test.dart             3 test
+    ├── ai_firebase_app_test.dart             6 test
     ├── assistant_chat_controller_test.dart  28 test
     ├── assistant_chat_panel_test.dart       25 test
     ├── assistant_entry_test.dart             7 test
@@ -177,7 +177,7 @@ App Check ผูกกับ Firebase app แต่ละตัว token ขอ�
 | **AI ใช้ Firebase project แยก (`mnote-ai`)** | project หลักผูกบัตรแล้ว Gemini ไม่มีโควตาฟรี ทีมไม่เติมเงิน (หัวข้อ 7.6) แยกเฉพาะ AI ข้อมูลของทีมไม่ต้องย้าย |
 | **เปิด app `ai` ตอนส่งข้อความครั้งแรก ไม่ใช่ใน `main.dart`** | ไม่ต้องแตะ `main.dart` ของทีม และคนที่ไม่เปิดแชตไม่เสียเวลาเปิดแอปเพิ่ม |
 | **ใส่ค่า config ของ `mnote-ai` เองใน `ai_firebase_app.dart` ไม่ใช้ `flutterfire configure`** | `flutterfire configure` จะเขียนทับ `firebase_options.dart` ของ project หลัก ค่าพวกนี้เป็นตัวระบุ project ไม่ใช่ความลับ |
-| **รองรับ Android อย่างเดียว** | ทีมทดสอบบน Android ถ้าต้องการ iOS ต้องเพิ่มแอป iOS ใน `mnote-ai` และ options อีกชุด (หัวข้อ 7.5) |
+| **options แยกต่อแพลตฟอร์ม (`optionsFor()`) Android + iOS เว็บและแพลตฟอร์มอื่นไม่รองรับ** | แต่ละแพลตฟอร์มลงทะเบียนเป็นแอปแยกใน `mnote-ai` มี `appId` และ `apiKey` ของตัวเอง แยกเป็นฟังก์ชันจึง test การเลือกได้โดยไม่ต้องรันบนเครื่องจริง |
 | **error ตอนเปิด app `ai` โยน `FirebaseException` ไม่ใช่ `Error`** | `sendMessage` ดัก `on Exception` ถ้าเป็น `Error` จะหลุดจนแอปพัง |
 | **`gemini-3.1-flash-lite` แทน `gemini-3.8-flash`** | ตอบเร็วกว่ามาก และตัวเดิมได้ error จากเซิร์ฟเวอร์ในข้อความแรกบ่อย คุณภาพทดสอบแล้วพอสำหรับสรุปโน้ตและผัง mermaid ไม่ได้ตั้งระดับการคิด (หัวข้อ 8.1) |
 | **`Completer` ใน `send()`** | ให้ `dispose()` ยกเลิก subscription และปลด `send()` ได้ทันที |
@@ -228,6 +228,7 @@ App Check ผูกกับ Firebase app แต่ละตัว token ขอ�
 | ความเสี่ยง | การป้องกัน | หลักฐาน |
 |---|---|---|
 | API key หลุด | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic ค่าใน `ai_firebase_app.dart` (`apiKey`, `appId`, ...) เป็นตัวระบุ project ชนิดเดียวกับ `firebase_options.dart` ไม่ใช่ Gemini key ตัวที่กันคนนอกคือ App Check | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ Gemini key |
+| **GitHub แจ้ง "Secrets detected" ที่ `apiKey` ใน `ai_firebase_app.dart`** | เป็น Firebase config key ไม่ใช่ความลับ (GitHub แยกจากรูปแบบ `AIza` ไม่ได้) ใน Google Cloud Console → Credentials key ของ `mnote-ai` จำกัด API แล้ว (**ไม่มี Gemini API** มี Firebase AI Logic API และ App Check API) คนที่ได้ key ไปเรียก Gemini ตรงไม่ได้ เรียก AI Logic ก็ติด App Check ปิด alert แบบ Won't fix **ห้าม Rotate / Delete key** แอปจะใช้ AI ไม่ได้ | ตรวจ 1 พ.ย. 2026 |
 | **AI กลับไปใช้ project ที่ผูกบัตร** (เผลอเอา config ของ `mnote-8db27` มาใส่) | test ดักว่า `projectId` ต้องไม่ใช่ `mnote-8db27` และชื่อ app ต้องไม่ใช่ `[DEFAULT]` | `ai_firebase_app_test.dart` |
 | คนนอกใช้โควตา (สคริปต์, แอปปลอม, โปรแกรมจำลอง) | App Check: firebase_ai ไม่ส่งคำขอถ้าไม่มี token, release ต้องผ่าน Play Integrity ระดับ Device integrity | ทดสอบบนเครื่องจริง (หัวข้อ 7.3) |
 | ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller | test (Security) |
@@ -252,7 +253,7 @@ App Check ผูกกับ Firebase app แต่ละตัว token ขอ�
 | ที่ (`mnote-ai`)                            | ค่า                                                                                |
 | ------------------------------------------- | ---------------------------------------------------------------------------------- |
 | แผน                                         | **Spark** (ไม่ผูกบัตร) **ห้ามกด Upgrade / ผูกบัตร**                                |
-| แอปที่ลงทะเบียน                             | Android `com.petchauisui.mnote` อย่างเดียว (ไม่มีแอป iOS)                          |
+| แอปที่ลงทะเบียน | Android และ iOS ทั้งคู่ใช้ `com.petchauisui.mnote` |
 | AI Logic → ผู้ให้บริการ                     | **Gemini Developer API** (ไม่ใช่ Vertex AI ซึ่งต้องใช้ Blaze)                      |
 | AI Logic → AI monitoring                    | **ปิด** (อาจเก็บข้อความผู้ใช้และเนื้อหาโน้ตที่แนบไว้ใน log ควรตกลงกับทีมก่อนเปิด)  |
 | App Check → APIs → Firebase AI Logic        | **Enforced** (1 พ.ย. 2026) / Replay protection: **Disabled** (เหตุผลใน 6) |
@@ -309,7 +310,10 @@ Console ของ **`mnote-ai`** → App Check → Apps → แถว android �
 - **อย่าวางในช่อง SHA-256 ของ Play Integrity**
 - ลงทะเบียนใน `mnote-8db27` ไม่ทำให้ AI ใช้ได้ เพราะ AI ไม่ได้อยู่ project นั้นแล้ว
 
-**iOS:** ตอนนี้ `mnote-ai` ไม่มีแอป iOS ลงทะเบียน debug token ไม่ได้ (7.5)
+**iOS (บน Mac เท่านั้น)**
+1. `flutter run` บน iPad หรือรันจาก Xcode (`ios/Runner.xcworkspace`) → เปิดแชท → ส่งข้อความ AI 1 ครั้ง (จะ error)
+2. ใน console ค้น `App Check debug token` → ใช้ตัวที่ขึ้น**หลังส่งข้อความ AI** (อีกตัวเป็นของ `mnote-8db27`)
+3. ลงทะเบียนที่ `mnote-ai` → App Check → Apps → แถว **ios** → Manage debug tokens
 
 **debug token เป็นความลับ** ห้ามใส่ในโค้ด, README, PR หรือแชทกลุ่ม ถ้าล้างข้อมูลแอป ถอนการติดตั้ง หรือรีเซ็ต simulator จะได้รหัสใหม่และต้องลงทะเบียนอีกครั้ง
 
@@ -320,14 +324,10 @@ Console ของ **`mnote-ai`** → App Check → Apps → แถว android �
 | Android `flutter run` (debug) | ได้ | ลงทะเบียน debug token ของเครื่องนั้น (7.4) |
 | Android `flutter run --release` / APK release บนเครื่องจริง | **ได้ทุกเครื่อง** ไม่ต้องลงทะเบียน | ต้อง build จากคอมที่ใส่ SHA-256 ไว้แล้ว (7.3) |
 | Android release บนโปรแกรมจำลอง | ไม่ได้ | ตั้งใจ: ไม่ผ่าน Device integrity |
-| iOS `flutter run` / Xcode (debug) | **ไม่ได้** | `mnote-ai` ยังไม่มีแอป iOS แชตจะขึ้น "เชื่อมต่อผู้ช่วย AI ไม่สำเร็จ" (ดูวิธีเปิดด้านล่าง) |
-| iOS แบบ release / แอปที่แจกคนอื่น | **ไม่ได้** | เหมือนแถวบน และต้องลงทะเบียน App Attest / DeviceCheck ซึ่งต้องมีบัญชี Apple Developer แบบเสียเงิน ทีมยังไม่มี |
+| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token ใน `mnote-ai`** (ยังไม่ได้ทดสอบจริง) | ต้องใช้ Mac ลงทะเบียน token ในแถว ios (7.4) |
+| iOS แบบ release / แอปที่แจกคนอื่น | **ไม่ได้** | ต้องลงทะเบียน App Attest / DeviceCheck ซึ่งต้องมีบัญชี Apple Developer แบบเสียเงิน ทีมยังไม่มี |
 
-**iOS ใช้ AI ไม่ได้ตั้งแต่ย้าย project (1 พ.ย. 2026):** ก่อนหน้านี้ iPad ใช้ได้ด้วย debug token ของ `mnote-8db27` ถ้าจะเปิดให้ iOS (debug) ใช้ได้อีก:
-1. Console `mnote-ai` → Add app → iOS → bundle ID `com.petchauisui.mnote` → ดาวน์โหลด `GoogleService-Info.plist` ไว้**นอกโฟลเดอร์โปรเจกต์** (ห้ามวางทับไฟล์ของ project หลัก)
-2. ใน `ai_firebase_app.dart` เพิ่ม `iosOptions` (ค่า `API_KEY`, `GOOGLE_APP_ID`, `GCM_SENDER_ID`, `PROJECT_ID`, `BUNDLE_ID` จาก plist) และให้ `_initialize()` เลือกตาม `defaultTargetPlatform`
-3. เพิ่ม `providerApple` ใน `activate(...)` ชุดเดียวกับ `main.dart`
-4. ลงทะเบียน debug token ของ iPad ในแถว ios ของ `mnote-ai`
+**build iOS ต้องใช้ Mac:** Xcode มีแค่บน macOS คนที่ใช้ Windows build หรือติดตั้งแอปลง iPhone/iPad ไม่ได้ (ไม่เกี่ยวกับ AI) ในทีมมีแค่ PM ที่มี Mac จึงเป็นคนทดสอบ iOS CI (`flutter build ios --no-codesign`) ยืนยันได้แค่ว่าโค้ด compile ผ่าน
 
 **iOS แจกไม่ได้เป็นข้อจำกัดของ Apple ไม่ใช่ของ AI:** ถ้าไม่มีบัญชี Apple Developer แบบเสียเงิน แอปทั้งตัวก็ติดตั้งลง iPhone ของคนอื่นไม่ได้อยู่แล้ว ถ้าอาจารย์ใช้ iPhone ให้ demo บนแท็บเล็ต Android ของทีม
 
@@ -450,11 +450,11 @@ MarkdownBody(
 
 ## 9. การทดสอบ
 
-**อัตโนมัติ:** test ของผู้ช่วย AI 92 ตัว (แนบโน้ตเพิ่ม 31 ตัว, ย้าย project เพิ่ม 3 ตัว) และ test ทั้งโปรเจกต์ผ่านทั้งหมด `flutter analyze --fatal-infos` และ `dart format --set-exit-if-changed` ไม่มีปัญหา (บน Windows guard test ภาษาไทยของทีมตก 1 ตัวเพราะ path ใช้ `\` บน CI ผ่าน)
+**อัตโนมัติ:** test ของผู้ช่วย AI 95 ตัว (แนบโน้ตเพิ่ม 31 ตัว, ย้าย project เพิ่ม 6 ตัว) และ test ทั้งโปรเจกต์ผ่านทั้งหมด `flutter analyze --fatal-infos` และ `dart format --set-exit-if-changed` ไม่มีปัญหา (บน Windows guard test ภาษาไทยของทีมตก 1 ตัวเพราะ path ใช้ `\` บน CI ผ่าน)
 
 | ไฟล์ | ครอบคลุม |
 |---|---|
-| `ai_firebase_app_test.dart` | ค่า config ครบไม่มีข้อความตัวอย่างค้าง, (Security) ไม่ใช่ project ที่ผูกบัตร (`mnote-8db27`), ชื่อ app ไม่ใช่ `[DEFAULT]` |
+| `ai_firebase_app_test.dart` | ค่า config Android และ iOS ครบไม่มีข้อความตัวอย่างค้าง, (Security) ทุกแพลตฟอร์มไม่ใช่ project ที่ผูกบัตร (`mnote-8db27`), ชื่อ app ไม่ใช่ `[DEFAULT]`, เลือก options ตามแพลตฟอร์ม (เว็บ/Windows ได้ null), iOS มี bundle ID ถูก |
 | `assistant_chat_controller_test.dart` | (#31) ส่ง/รับ, ข้อความว่าง, ส่งซ้ำ, error, ล้าง, dispose, (Security) 2001 ตัวอักษร / ภาษาไทย / ประวัติ 20, ถอยกลับ, คำตอบว่าง / (แนบโน้ต) แนบเป็นค่าเริ่มต้น, ส่งโน้ตจริง, อ่านตอนส่ง, (Security) กด x แล้วไม่ส่งและจำค่า, แนบกลับ, ยังแนบหลังส่ง, (Security) โน้ตว่าง, โน้ตยาวเกินไม่เรียก assistant, (Security) ประวัติไม่มีเนื้อหาโน้ต, ล้มแล้วสถานะการแนบไม่เปลี่ยน, (Security) ที่เห็นตรงกับที่ส่ง 3 สถานะ, `copyWith` เก็บชื่อโน้ต |
 | `assistant_chat_panel_test.dart` | (#31) หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, ล้าง, (Security) ไม่โหลดรูป / maxLength, fullscreen / side sheet, แป้นพิมพ์, เปิดแผงใหม่, คืนข้อความ / (แนบโน้ต) ชิปและแถบความเป็นส่วนตัว, กด x, แนบกลับ, (Security) ชิปตรงกับที่ส่ง, ป้ายบนข้อความ, (Security) โน้ตว่าง, เปิดแผงใหม่ (State ใหม่) ยังจำค่า, ชื่อยาวไม่ล้นจอ, ข้อความเตือนว่า AI อาจผิดพลาด |
 | `assistant_entry_test.dart` | ไม่มี assistant ไม่มีปุ่ม, เปิดบนแท็บเล็ต/มือถือ, บทสนทนายังอยู่, (Security) เปิดแชตไม่ส่งอะไร มีชิปส่งโน้ต กด x ไม่ส่ง เนื้อหาไม่แสดงในแชท, ออกจากหน้าไม่ error, (Security) โน้ตว่างไม่มีชิป |

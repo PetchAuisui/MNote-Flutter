@@ -44,7 +44,8 @@ class AiFirebaseApp {
       );
     }
     // หลัง hot restart ฝั่ง native ยังมี app ชื่อนี้อยู่ สร้างซ้ำจะ error
-    final app = Firebase.apps.where((a) => a.name == appName).firstOrNull ??
+    final app =
+        Firebase.apps.where((a) => a.name == appName).firstOrNull ??
         await Firebase.initializeApp(name: appName, options: androidOptions);
     try {
       // provider ชุดเดียวกับ main.dart: debug ตอนพัฒนา, Play Integrity ตอน release

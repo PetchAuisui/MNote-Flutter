@@ -21,6 +21,30 @@ class AiFirebaseApp {
     projectId: 'mnote-ai',
   );
 
+  /// ค่าจาก GoogleService-Info.plist ของแอป iOS ใน mnote-ai
+  @visibleForTesting
+  static const FirebaseOptions iosOptions = FirebaseOptions(
+    apiKey: 'AIzaSyDS81C2EQAlGtihOTtxo7WjWiRfhtRa05Q',
+    appId: '1:5815891505:ios:dd5ee702caab9c0082c710',
+    messagingSenderId: '5815891505',
+    projectId: 'mnote-ai',
+    iosBundleId: 'com.petchauisui.mnote',
+  );
+
+  /// options ของแพลตฟอร์มที่รองรับ เว็บและแพลตฟอร์มอื่นได้ null
+  @visibleForTesting
+  static FirebaseOptions? optionsFor(
+    TargetPlatform platform, {
+    bool isWeb = false,
+  }) {
+    if (isWeb) return null;
+    return switch (platform) {
+      TargetPlatform.android => androidOptions,
+      TargetPlatform.iOS => iosOptions,
+      _ => null,
+    };
+  }
+
   static Future<FirebaseApp>? _pending;
 
   /// เริ่ม app ตอนส่งข้อความครั้งแรก ไม่ทำให้แอปเปิดช้าลง
@@ -36,23 +60,27 @@ class AiFirebaseApp {
   }
 
   static Future<FirebaseApp> _initialize() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    final options = optionsFor(defaultTargetPlatform, isWeb: kIsWeb);
+    if (options == null) {
       throw FirebaseException(
         plugin: 'firebase_core',
         code: 'ai-not-configured',
-        message: 'AI project is configured for Android only',
+        message: 'AI project is not configured for this platform',
       );
     }
     // หลัง hot restart ฝั่ง native ยังมี app ชื่อนี้อยู่ สร้างซ้ำจะ error
     final app =
         Firebase.apps.where((a) => a.name == appName).firstOrNull ??
-        await Firebase.initializeApp(name: appName, options: androidOptions);
+        await Firebase.initializeApp(name: appName, options: options);
     try {
-      // provider ชุดเดียวกับ main.dart: debug ตอนพัฒนา, Play Integrity ตอน release
+      // provider ชุดเดียวกับ main.dart: debug ตอนพัฒนา, Play Integrity / App Attest ตอน release
       await FirebaseAppCheck.instanceFor(app: app).activate(
         providerAndroid: kDebugMode
             ? const AndroidDebugProvider()
             : const AndroidPlayIntegrityProvider(),
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
       );
     } catch (e) {
       debugPrint('AI App Check activation failed: $e');

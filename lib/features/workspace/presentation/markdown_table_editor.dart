@@ -418,6 +418,12 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       _table.rows[y][x] = cell.text;
       text = _table.format();
     }
+    _writeAtCell(text, y, x);
+  }
+
+  /// Writes [text] with the block's selection on cell ([y], [x])'s selection.
+  void _writeAtCell(String text, int y, int x) {
+    final cell = _cells[y][x];
     final selection = cell.selection.isValid
         ? cell.selection
         : TextSelection.collapsed(offset: cell.text.length);
@@ -451,6 +457,9 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
 
   void _reshape(void Function() change, (int, int) focus) {
     change();
+    // Set now, not when focus lands next frame, so nothing reads a removed
+    // row or column in between.
+    _current = focus;
     final text = _table.format();
     _rebuildCells();
     _write(text, TextSelection.collapsed(offset: text.length));
@@ -511,13 +520,7 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     };
     if (_align(x) == align) return;
     _table.alignments[x] = marker;
-    final text = _table.format();
-    final cell = _cells[y][x].selection;
-    final offset = cell.isValid ? cell.extentOffset : _cells[y][x].text.length;
-    _write(
-      text,
-      TextSelection.collapsed(offset: _table.sourceOffset(y, x, offset)),
-    );
+    _writeAtCell(_table.format(), y, x);
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _cellFocus[y][x].requestFocus();
@@ -600,8 +603,7 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final scheme = Theme.of(context).colorScheme;
     final border = scheme.outlineVariant;
     final (row, column) = _current;
-    // _current may still name a deleted column until focus moves next frame.
-    final columnAlign = _align(_clamp(_current).$2);
+    final columnAlign = _align(column);
     return Focus(
       focusNode: widget.focusNode,
       skipTraversal: true,
@@ -661,7 +663,6 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                     icon: Icon(icon, size: 20),
                     visualDensity: VisualDensity.compact,
                     isSelected: columnAlign == align,
-                    color: columnAlign == align ? scheme.primary : null,
                     onPressed: () => _setAlignment(align),
                   ),
                 const SizedBox(width: 8),

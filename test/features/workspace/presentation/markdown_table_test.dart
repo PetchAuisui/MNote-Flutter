@@ -253,6 +253,35 @@ void main() {
     expect(cellFocused(tester, 1, 1), isFalse);
   });
 
+  testWidgets('align buttons set the current column alignment', (tester) async {
+    final controller = await pumpEditor(
+      tester,
+      '| A | B |\n| --- | --- |\n| 1 | 2 |',
+    );
+    await tester.tap(find.text('2', findRichText: true));
+    await tester.pumpAndSettle();
+    TextAlign cellAlign() => tester
+        .widget<TextField>(find.byKey(const Key('markdown-table-cell-1-1')))
+        .textAlign;
+
+    await tester.tap(find.byKey(const Key('markdown-table-align-center')));
+    await tester.pumpAndSettle();
+    expect(controller.text, '| A | B |\n| --- | :---: |\n| 1 | 2 |');
+    expect(cellAlign(), TextAlign.center);
+    expect(cellFocused(tester, 1, 1), isTrue);
+
+    await tester.tap(find.byKey(const Key('markdown-table-align-right')));
+    await tester.pumpAndSettle();
+    expect(controller.text, '| A | B |\n| --- | ---: |\n| 1 | 2 |');
+    expect(cellAlign(), TextAlign.right);
+
+    await tester.tap(find.byKey(const Key('markdown-table-align-left')));
+    await tester.pumpAndSettle();
+    expect(controller.text, '| A | B |\n| --- | :--- |\n| 1 | 2 |');
+    expect(cellAlign(), TextAlign.left);
+    expect(cellFocused(tester, 1, 1), isTrue);
+  });
+
   testWidgets('a cell missing from a short row maps into the source', (
     tester,
   ) async {

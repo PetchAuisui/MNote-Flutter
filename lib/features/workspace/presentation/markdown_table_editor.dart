@@ -501,6 +501,29 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     }, (y, x.clamp(0, _table.columns - 2)));
   }
 
+  /// Sets the current column's separator marker, keeping the cell focused.
+  void _setAlignment(TextAlign align) {
+    final (y, x) = _current;
+    final marker = switch (align) {
+      TextAlign.center => ':---:',
+      TextAlign.right => '---:',
+      _ => ':---',
+    };
+    if (_align(x) == align) return;
+    _table.alignments[x] = marker;
+    final text = _table.format();
+    final cell = _cells[y][x].selection;
+    final offset = cell.isValid ? cell.extentOffset : _cells[y][x].text.length;
+    _write(
+      text,
+      TextSelection.collapsed(offset: _table.sourceOffset(y, x, offset)),
+    );
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _cellFocus[y][x].requestFocus();
+    });
+  }
+
   /// Enter moves down a row, adding one below the last.
   void _onSubmitted(int y, int x) {
     if (y + 1 < _table.rows.length) {
@@ -577,6 +600,8 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final scheme = Theme.of(context).colorScheme;
     final border = scheme.outlineVariant;
     final (row, column) = _current;
+    // _current may still name a deleted column until focus moves next frame.
+    final columnAlign = _align(_clamp(_current).$2);
     return Focus(
       focusNode: widget.focusNode,
       skipTraversal: true,
@@ -612,6 +637,33 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                   l10n.tableDeleteColumn,
                   _table.columns > 1 ? _deleteColumn : null,
                 ),
+                const SizedBox(width: 8),
+                for (final (align, icon, tooltip) in [
+                  (
+                    TextAlign.left,
+                    Icons.format_align_left,
+                    l10n.tableAlignLeft,
+                  ),
+                  (
+                    TextAlign.center,
+                    Icons.format_align_center,
+                    l10n.tableAlignCenter,
+                  ),
+                  (
+                    TextAlign.right,
+                    Icons.format_align_right,
+                    l10n.tableAlignRight,
+                  ),
+                ])
+                  IconButton(
+                    key: Key('markdown-table-align-${align.name}'),
+                    tooltip: tooltip,
+                    icon: Icon(icon, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: columnAlign == align,
+                    color: columnAlign == align ? scheme.primary : null,
+                    onPressed: () => _setAlignment(align),
+                  ),
                 const SizedBox(width: 8),
                 TextButton.icon(
                   key: const Key('markdown-table-edit-markdown'),

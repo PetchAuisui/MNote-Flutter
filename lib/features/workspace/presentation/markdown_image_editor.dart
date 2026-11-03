@@ -218,26 +218,20 @@ class _MarkdownImageEditorState extends State<MarkdownImageEditor> {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
+                    // Room for the handle while the picture loads, without
+                    // stretching the picture itself, which is measured.
+                    const SizedBox(width: 26, height: 26),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8, right: 8),
-                      // Room for the handle while the picture loads.
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          minWidth: 24,
-                          minHeight: 24,
-                        ),
-                        child: KeyedSubtree(
-                          key: _imageKey,
-                          child: MarkdownImage(
-                            key: const Key('markdown-image-editor-picture'),
-                            uri:
-                                Uri.tryParse(link.src.split('#').first) ??
-                                Uri(),
-                            directory: widget.imageDirectory,
-                            alt: link.alt,
-                            width: size?.width.toDouble(),
-                            height: size?.height?.toDouble(),
-                          ),
+                      child: KeyedSubtree(
+                        key: _imageKey,
+                        child: MarkdownImage(
+                          key: const Key('markdown-image-editor-picture'),
+                          uri: Uri.tryParse(link.src.split('#').first) ?? Uri(),
+                          directory: widget.imageDirectory,
+                          alt: link.alt,
+                          width: size?.width.toDouble(),
+                          height: size?.height?.toDouble(),
                         ),
                       ),
                     ),

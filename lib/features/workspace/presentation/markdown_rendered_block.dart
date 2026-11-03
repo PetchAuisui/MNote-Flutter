@@ -125,8 +125,18 @@ class _DocumentImage extends StatefulWidget {
 }
 
 class _DocumentImageState extends State<_DocumentImage> {
+  /// Files already found, so a picture drawn again (as when its block opens
+  /// for editing) shows at once instead of collapsing while it is looked up.
+  static final _found = <(Uri, String?), File>{};
+
   // Looked up once, not on every rebuild, so the picture does not flicker.
-  late Future<File?> _file = locateDocumentImage(uri, widget.directory);
+  late Future<File?> _file = _locate();
+
+  Future<File?> _locate() async {
+    final file = await locateDocumentImage(uri, widget.directory);
+    if (file != null) _found[(uri, widget.directory)] = file;
+    return file;
+  }
 
   Uri get uri => widget.uri;
   double? get width => widget.width;
@@ -136,7 +146,7 @@ class _DocumentImageState extends State<_DocumentImage> {
   void didUpdateWidget(_DocumentImage old) {
     super.didUpdateWidget(old);
     if (old.uri != widget.uri || old.directory != widget.directory) {
-      _file = locateDocumentImage(uri, widget.directory);
+      _file = _locate();
     }
   }
 
@@ -164,6 +174,7 @@ class _DocumentImageState extends State<_DocumentImage> {
     }
     return FutureBuilder<File?>(
       future: _file,
+      initialData: _found[(uri, widget.directory)],
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) {

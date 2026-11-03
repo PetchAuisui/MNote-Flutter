@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/features/workspace/presentation/export_sheet.dart';
 import 'package:mnote/features/workspace/presentation/markdown_image_size.dart';
@@ -11,6 +14,7 @@ const _png =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 void main() {
+  _keepsScrollWhenOpened();
   group('alt text size', () {
     test('splits the size off the label', () {
       expect(splitImageAlt('cat'), ('cat', null));
@@ -275,5 +279,68 @@ void main() {
       expect(field, findsOneWidget);
       expect(handle(), findsNothing);
     });
+  });
+}
+
+void _keepsScrollWhenOpened() {
+  testWidgets('opening a tall picture keeps the page where it is', (
+    tester,
+  ) async {
+    final directory = (await tester.runAsync(
+      () => Directory.systemTemp.createTemp('mnote-image'),
+    ))!;
+    addTearDown(() => directory.deleteSync(recursive: true));
+    await tester.runAsync(() async {
+      final picture = img.Image(width: 400, height: 1200);
+      await File(
+        '${directory.path}/tall.png',
+      ).writeAsBytes(img.encodePng(picture));
+    });
+    final before = List.filled(30, 'Paragraph').join('\n\n');
+    final controller = TextEditingController(
+      text: '$before\n\n![tall](tall.png)\n\nAfter',
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: MarkdownLiveEditor(
+            controller: controller,
+            onChanged: (_) {},
+            imageDirectory: directory.uri.toString(),
+          ),
+        ),
+      ),
+    );
+    // Let the picture be found and decoded.
+    for (var i = 0; i < 20; i++) {
+      await tester.runAsync(
+        () => Future.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
+    final picture = find.byType(MarkdownImage);
+    expect(tester.getSize(picture).height, greaterThan(500));
+    await tester.scrollUntilVisible(picture, 300);
+    await tester.drag(
+      find.byKey(const Key('markdown-live-preview')),
+      const Offset(0, -400),
+    );
+    await tester.pump();
+    final scroll = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    final offset = scroll.pixels;
+    await tester.tapAt(tester.getCenter(picture));
+    await tester.pump();
+    expect(
+      find.byKey(const Key('markdown-image-resize-handle')),
+      findsOneWidget,
+    );
+    expect(scroll.pixels, closeTo(offset, 1));
+    expect(tester.getSize(picture).height, greaterThan(500));
   });
 }

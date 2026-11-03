@@ -1526,6 +1526,24 @@ abstract class AppLocalizations {
   /// **'ลบคอลัมน์'**
   String get tableDeleteColumn;
 
+  /// No description provided for @tableAlignLeft.
+  ///
+  /// In th, this message translates to:
+  /// **'จัดคอลัมน์ชิดซ้าย'**
+  String get tableAlignLeft;
+
+  /// No description provided for @tableAlignCenter.
+  ///
+  /// In th, this message translates to:
+  /// **'จัดคอลัมน์กึ่งกลาง'**
+  String get tableAlignCenter;
+
+  /// No description provided for @tableAlignRight.
+  ///
+  /// In th, this message translates to:
+  /// **'จัดคอลัมน์ชิดขวา'**
+  String get tableAlignRight;
+
   /// No description provided for @tableEditMarkdown.
   ///
   /// In th, this message translates to:

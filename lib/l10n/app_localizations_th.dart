@@ -791,6 +791,15 @@ class AppLocalizationsTh extends AppLocalizations {
   String get tableDeleteColumn => 'ลบคอลัมน์';
 
   @override
+  String get tableAlignLeft => 'จัดคอลัมน์ชิดซ้าย';
+
+  @override
+  String get tableAlignCenter => 'จัดคอลัมน์กึ่งกลาง';
+
+  @override
+  String get tableAlignRight => 'จัดคอลัมน์ชิดขวา';
+
+  @override
   String get tableEditMarkdown => 'แก้เป็น Markdown';
 
   @override

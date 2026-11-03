@@ -802,6 +802,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tableDeleteColumn => 'Delete column';
 
   @override
+  String get tableAlignLeft => 'Align column left';
+
+  @override
+  String get tableAlignCenter => 'Center column';
+
+  @override
+  String get tableAlignRight => 'Align column right';
+
+  @override
   String get tableEditMarkdown => 'Edit as Markdown';
 
   @override

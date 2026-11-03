@@ -418,6 +418,12 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
       _table.rows[y][x] = cell.text;
       text = _table.format();
     }
+    _writeAtCell(text, y, x);
+  }
+
+  /// Writes [text] with the block's selection on cell ([y], [x])'s selection.
+  void _writeAtCell(String text, int y, int x) {
+    final cell = _cells[y][x];
     final selection = cell.selection.isValid
         ? cell.selection
         : TextSelection.collapsed(offset: cell.text.length);
@@ -451,6 +457,9 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
 
   void _reshape(void Function() change, (int, int) focus) {
     change();
+    // Set now, not when focus lands next frame, so nothing reads a removed
+    // row or column in between.
+    _current = focus;
     final text = _table.format();
     _rebuildCells();
     _write(text, TextSelection.collapsed(offset: text.length));
@@ -499,6 +508,23 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
         row.removeAt(x);
       }
     }, (y, x.clamp(0, _table.columns - 2)));
+  }
+
+  /// Sets the current column's separator marker, keeping the cell focused.
+  void _setAlignment(TextAlign align) {
+    final (y, x) = _current;
+    final marker = switch (align) {
+      TextAlign.center => ':---:',
+      TextAlign.right => '---:',
+      _ => ':---',
+    };
+    if (_align(x) == align) return;
+    _table.alignments[x] = marker;
+    _writeAtCell(_table.format(), y, x);
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _cellFocus[y][x].requestFocus();
+    });
   }
 
   /// Enter moves down a row, adding one below the last.
@@ -577,6 +603,7 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
     final scheme = Theme.of(context).colorScheme;
     final border = scheme.outlineVariant;
     final (row, column) = _current;
+    final columnAlign = _align(column);
     return Focus(
       focusNode: widget.focusNode,
       skipTraversal: true,
@@ -612,6 +639,32 @@ class _MarkdownTableEditorState extends State<MarkdownTableEditor> {
                   l10n.tableDeleteColumn,
                   _table.columns > 1 ? _deleteColumn : null,
                 ),
+                const SizedBox(width: 8),
+                for (final (align, icon, tooltip) in [
+                  (
+                    TextAlign.left,
+                    Icons.format_align_left,
+                    l10n.tableAlignLeft,
+                  ),
+                  (
+                    TextAlign.center,
+                    Icons.format_align_center,
+                    l10n.tableAlignCenter,
+                  ),
+                  (
+                    TextAlign.right,
+                    Icons.format_align_right,
+                    l10n.tableAlignRight,
+                  ),
+                ])
+                  IconButton(
+                    key: Key('markdown-table-align-${align.name}'),
+                    tooltip: tooltip,
+                    icon: Icon(icon, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    isSelected: columnAlign == align,
+                    onPressed: () => _setAlignment(align),
+                  ),
                 const SizedBox(width: 8),
                 TextButton.icon(
                   key: const Key('markdown-table-edit-markdown'),

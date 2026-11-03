@@ -425,5 +425,15 @@
   "firebaseSetupError": "Could not connect to Firebase.\nPlease set up Firebase as described in docs/firebase-setup.md",
   "outlineTitle": "Outline",
   "outlineEmpty": "No headings yet. Start a line with # to add one.",
-  "outlineUntitled": "(Untitled heading)"
+  "outlineUntitled": "(Untitled heading)",
+  "imageResize": "Resize picture",
+  "imageSizeTitle": "Picture size",
+  "imageWidth": "Width",
+  "imageHeight": "Height",
+  "imageLockAspectRatio": "Lock aspect ratio",
+  "imageResetSize": "Reset to original size",
+  "imageOriginalSize": "Original size",
+  "imageDragToResize": "Drag to resize",
+  "imageEditMarkdown": "Edit as Markdown",
+  "apply": "Apply"
 }

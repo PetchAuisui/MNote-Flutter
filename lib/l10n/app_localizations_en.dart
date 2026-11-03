@@ -1419,4 +1419,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outlineUntitled => '(Untitled heading)';
+
+  @override
+  String get imageResize => 'Resize picture';
+
+  @override
+  String get imageSizeTitle => 'Picture size';
+
+  @override
+  String get imageWidth => 'Width';
+
+  @override
+  String get imageHeight => 'Height';
+
+  @override
+  String get imageLockAspectRatio => 'Lock aspect ratio';
+
+  @override
+  String get imageResetSize => 'Reset to original size';
+
+  @override
+  String get imageOriginalSize => 'Original size';
+
+  @override
+  String get imageDragToResize => 'Drag to resize';
+
+  @override
+  String get imageEditMarkdown => 'Edit as Markdown';
+
+  @override
+  String get apply => 'Apply';
 }

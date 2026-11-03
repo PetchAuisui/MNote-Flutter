@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/domain/mnote_bundle.dart';
 import 'package:mnote/features/workspace/presentation/document_page_render.dart';
+import 'package:mnote/features/workspace/presentation/markdown_image_size.dart';
 import 'package:mnote/features/workspace/presentation/markdown_zip_export.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -21,10 +22,10 @@ String stripMarkdown(String markdown) {
   text = text.replaceAll(RegExp(r'```[\s\S]*?```'), '');
   // Remove inline code: `code` -> code
   text = text.replaceAllMapped(RegExp(r'`([^`]+)`'), (m) => m[1] ?? '');
-  // Remove images: ![alt](url) -> alt
+  // Remove images: ![alt|300](url) -> alt
   text = text.replaceAllMapped(
     RegExp(r'!\[([^\]]*)\]\([^)]+\)'),
-    (m) => m[1] ?? '',
+    (m) => splitImageAlt(m[1] ?? '').$1,
   );
   // Remove links: [text](url) -> text
   text = text.replaceAllMapped(

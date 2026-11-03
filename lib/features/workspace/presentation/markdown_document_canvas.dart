@@ -17,7 +17,6 @@ class MarkdownDocumentSurface extends StatelessWidget {
     this.imageDirectory,
     this.onTapLink,
     this.builders,
-    this.underlay,
     this.blockKeys,
     this.textOptions = const DocumentTextOptions(),
   });
@@ -26,8 +25,6 @@ class MarkdownDocumentSurface extends StatelessWidget {
   /// where a block was laid out (the outline uses this to jump to headings).
   final Map<int, GlobalKey>? blockKeys;
 
-  /// Painted on the white page but beneath the text (e.g. highlighter ink).
-  final Widget? underlay;
   final String markdown;
   final double height;
   final bool selectable;
@@ -63,7 +60,6 @@ class MarkdownDocumentSurface extends StatelessWidget {
           width: DocumentPageMetrics.width,
           child: Stack(
             children: [
-              if (underlay != null) Positioned.fill(child: underlay!),
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Theme(

@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.dart';
 import 'package:scribble/scribble.dart';
@@ -452,9 +453,12 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
                     ),
                     imageDirectory: widget.imageDirectory,
                     builders: {'code': MermaidElementBuilder()},
-                    // Highlighter strokes sit beneath the text, so the text
-                    // stays crisp on top of them like a real highlighter.
-                    underlay: InkLayer(notifier: pen, highlighter: true),
+                  ),
+                  // Highlighter strokes multiply onto the page, so the text
+                  // stays crisp like a real highlighter and pictures are
+                  // marked too.
+                  Positioned.fill(
+                    child: InkLayer(notifier: pen, highlighter: true),
                   ),
                   Positioned.fill(
                     child: InkLayer(notifier: pen, highlighter: false),
@@ -1264,8 +1268,8 @@ class InkLayer extends StatelessWidget {
   final bool highlighter;
 
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-    child: ValueListenableBuilder<ScribbleState>(
+  Widget build(BuildContext context) {
+    final sketch = ValueListenableBuilder<ScribbleState>(
       valueListenable: notifier,
       builder: (context, state, _) => ScribbleSketch(
         sketch: Sketch(
@@ -1278,8 +1282,40 @@ class InkLayer extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
+    );
+    return IgnorePointer(
+      child: highlighter ? MultiplyBlend(child: sketch) : sketch,
+    );
+  }
+}
+
+/// Paints [child] with [BlendMode.multiply] onto what is already drawn
+/// beneath it: dark text shows through unchanged while white paper and
+/// pictures take on the colour, as with a real highlighter. The child must
+/// paint into this layer (no repaint boundary of its own).
+class MultiplyBlend extends SingleChildRenderObjectWidget {
+  const MultiplyBlend({super.key, super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderMultiplyBlend();
+}
+
+class _RenderMultiplyBlend extends RenderProxyBox {
+  @override
+  bool get alwaysNeedsCompositing => false;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final child = this.child;
+    if (child == null) return;
+    context.canvas.saveLayer(
+      offset & size,
+      Paint()..blendMode = BlendMode.multiply,
+    );
+    context.paintChild(child, offset);
+    context.canvas.restore();
+  }
 }
 
 SketchLine _constantWidth(SketchLine line) => line.copyWith(

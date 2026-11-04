@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'editor_settings.dart';
 import 'markdown_document_style.dart';
+import 'markdown_image_editor.dart';
+import 'markdown_image_size.dart';
 import 'markdown_outline.dart';
 import 'markdown_rendered_block.dart';
 import 'markdown_table_editor.dart';
@@ -83,6 +85,11 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
 
   /// Shows the active table's Markdown instead of its cells.
   bool _rawTable = false;
+
+  /// The active block was a lone picture when opened, so it shows the picture
+  /// with its size controls. Not switched on while typing, so finishing a
+  /// picture link does not take the text field away.
+  bool _imageBlock = false;
   bool _updating = false;
   late String _source;
   final _localHistory = MarkdownEditHistory();
@@ -335,6 +342,9 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   void _activate(int start, int end, {(int, int)? tableCell}) {
     _tableCell = tableCell;
     _rawTable = false;
+    _imageBlock =
+        MarkdownImageLink.parse(widget.controller.text.substring(start, end)) !=
+        null;
     _updating = true;
     _start = start;
     _end = end;
@@ -350,6 +360,14 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
   }
 
   void _editTableAsMarkdown() => _setRawTable(true);
+
+  void _editImageAsMarkdown() {
+    _focus.requestFocus();
+    setState(() => _imageBlock = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _start != null) _focus.requestFocus();
+    });
+  }
 
   void _editTableAsCells() => _setRawTable(false);
 
@@ -389,6 +407,31 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     );
   }
 
+  /// The Markdown of a lone picture, with a way back to its size controls.
+  Widget _rawImageEditor(Widget field) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Part of the field's tap region, so switching keeps the block open.
+        TextFieldTapRegion(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('markdown-image-edit-picture'),
+              onPressed: () {
+                _focus.requestFocus();
+                setState(() => _imageBlock = true);
+              },
+              icon: const Icon(Icons.photo_size_select_large, size: 18),
+              label: Text(context.l10n.imageResize),
+            ),
+          ),
+        ),
+        field,
+      ],
+    );
+  }
+
   Widget _editor() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -401,6 +444,8 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
     );
     final table =
         !_rawTable && MarkdownTable.parse(_blockController.text) != null;
+    final image =
+        _imageBlock && MarkdownImageLink.parse(_blockController.text) != null;
     final field = TextField(
       key: const Key('markdown-live-block-editor'),
       controller: _blockController,
@@ -430,7 +475,15 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
         clipBehavior: Clip.antiAlias,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-          child: table
+          child: image
+              ? MarkdownImageEditor(
+                  key: ValueKey('markdown-image-editor-$_start'),
+                  controller: _blockController,
+                  focusNode: _focus,
+                  imageDirectory: widget.imageDirectory,
+                  onEditAsMarkdown: _editImageAsMarkdown,
+                )
+              : table
               ? MarkdownTableEditor(
                   key: ValueKey('markdown-table-editor-$_start'),
                   controller: _blockController,
@@ -441,6 +494,8 @@ class _MarkdownLiveEditorState extends State<MarkdownLiveEditor> {
                 )
               : _rawTable
               ? _rawTableEditor(field)
+              : MarkdownImageLink.parse(_blockController.text) != null
+              ? _rawImageEditor(field)
               : field,
         ),
       ),

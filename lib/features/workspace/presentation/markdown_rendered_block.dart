@@ -5,6 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:path_provider/path_provider.dart';
 import 'markdown_document_style.dart';
+import 'markdown_image_size.dart';
 
 class _LineBreakSyntax extends md.InlineSyntax {
   _LineBreakSyntax() : super(r'[ \t]*<[bB][rR]\s*/?>[ \t]*\n?');
@@ -48,11 +49,12 @@ Future<File?> locateDocumentImage(Uri uri, String? directory) async {
   return null;
 }
 
-/// Loads a picture referenced from a note. Relative paths resolve against the
-/// note's folder, then the app documents folder (where pictures land for a note
-/// without a file location). A missing file shows a placeholder, not a gap.
-class _DocumentImage extends StatefulWidget {
-  const _DocumentImage({
+/// Draws a note's picture. With only [width] it keeps its proportions; with
+/// both sides it fills that box. Either way it shrinks, keeping its shape, to
+/// fit a narrower column.
+class MarkdownImage extends StatelessWidget {
+  const MarkdownImage({
+    super.key,
     required this.uri,
     this.directory,
     this.alt,
@@ -67,12 +69,74 @@ class _DocumentImage extends StatefulWidget {
   final double? height;
 
   @override
+  Widget build(BuildContext context) {
+    final width = this.width;
+    final height = this.height;
+    final box = width != null && height != null;
+    final Widget image;
+    if (uri.scheme == 'resource') {
+      image = Image.asset(
+        uri.path,
+        width: box ? null : width,
+        height: box ? null : height,
+        fit: box ? BoxFit.fill : null,
+        errorBuilder: (_, _, _) => const SizedBox(),
+      );
+    } else {
+      image = _DocumentImage(
+        uri: uri,
+        directory: directory,
+        alt: alt,
+        width: box ? null : width,
+        height: box ? null : height,
+        fit: box ? BoxFit.fill : null,
+      );
+    }
+    if (!box) return image;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width),
+      child: AspectRatio(aspectRatio: width / height, child: image),
+    );
+  }
+}
+
+/// Loads a picture referenced from a note. Relative paths resolve against the
+/// note's folder, then the app documents folder (where pictures land for a note
+/// without a file location). A missing file shows a placeholder, not a gap.
+class _DocumentImage extends StatefulWidget {
+  const _DocumentImage({
+    required this.uri,
+    this.directory,
+    this.alt,
+    this.width,
+    this.height,
+    this.fit,
+  });
+
+  final Uri uri;
+  final String? directory;
+  final String? alt;
+  final double? width;
+  final double? height;
+  final BoxFit? fit;
+
+  @override
   State<_DocumentImage> createState() => _DocumentImageState();
 }
 
 class _DocumentImageState extends State<_DocumentImage> {
+  /// Files already found, so a picture drawn again (as when its block opens
+  /// for editing) shows at once instead of collapsing while it is looked up.
+  static final _found = <(Uri, String?), File>{};
+
   // Looked up once, not on every rebuild, so the picture does not flicker.
-  late Future<File?> _file = locateDocumentImage(uri, widget.directory);
+  late Future<File?> _file = _locate();
+
+  Future<File?> _locate() async {
+    final file = await locateDocumentImage(uri, widget.directory);
+    if (file != null) _found[(uri, widget.directory)] = file;
+    return file;
+  }
 
   Uri get uri => widget.uri;
   double? get width => widget.width;
@@ -82,7 +146,7 @@ class _DocumentImageState extends State<_DocumentImage> {
   void didUpdateWidget(_DocumentImage old) {
     super.didUpdateWidget(old);
     if (old.uri != widget.uri || old.directory != widget.directory) {
-      _file = locateDocumentImage(uri, widget.directory);
+      _file = _locate();
     }
   }
 
@@ -93,6 +157,7 @@ class _DocumentImageState extends State<_DocumentImage> {
         uri.toString(),
         width: width,
         height: height,
+        fit: widget.fit,
         errorBuilder: _broken,
       );
     }
@@ -103,11 +168,13 @@ class _DocumentImageState extends State<_DocumentImage> {
         data.contentAsBytes(),
         width: width,
         height: height,
+        fit: widget.fit,
         errorBuilder: _broken,
       );
     }
     return FutureBuilder<File?>(
       future: _file,
+      initialData: _found[(uri, widget.directory)],
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) {
@@ -119,6 +186,7 @@ class _DocumentImageState extends State<_DocumentImage> {
           file,
           width: width,
           height: height,
+          fit: widget.fit,
           errorBuilder: _broken,
         );
       },
@@ -150,9 +218,9 @@ class _DocumentImageState extends State<_DocumentImage> {
   }
 }
 
-/// Draws `img` elements. Pictures stored next to the note go through
-/// [_DocumentImage], which also covers web and `data:` links. App assets
-/// (`resource:`) are drawn here. All honour the `#WIDTHxHEIGHT` size suffix.
+/// Draws `img` elements through [MarkdownImage]. The size comes from the
+/// alt text (`![alt|300x200](src)`), or else the older `#WIDTHxHEIGHT` suffix
+/// on the link.
 class _ImageElementBuilder extends MarkdownElementBuilder {
   _ImageElementBuilder(this.directory);
 
@@ -168,27 +236,20 @@ class _ImageElementBuilder extends MarkdownElementBuilder {
     final parts = (element.attributes['src'] ?? '').split('#');
     final uri = Uri.tryParse(parts.first);
     if (uri == null) return const SizedBox();
-    double? width;
-    double? height;
-    if (parts.length == 2) {
-      final size = parts.last.split('x');
-      if (size.length == 2) {
-        width = double.tryParse(size[0]);
-        height = double.tryParse(size[1]);
+    final (alt, size) = splitImageAlt(element.attributes['alt'] ?? '');
+    double? width = size?.width.toDouble();
+    double? height = size?.height?.toDouble();
+    if (size == null && parts.length == 2) {
+      final suffix = parts.last.split('x');
+      if (suffix.length == 2) {
+        width = double.tryParse(suffix[0]);
+        height = double.tryParse(suffix[1]);
       }
     }
-    if (uri.scheme == 'resource') {
-      return Image.asset(
-        uri.path,
-        width: width,
-        height: height,
-        errorBuilder: (_, _, _) => const SizedBox(),
-      );
-    }
-    return _DocumentImage(
+    return MarkdownImage(
       uri: uri,
       directory: directory,
-      alt: element.attributes['alt'],
+      alt: alt,
       width: width,
       height: height,
     );

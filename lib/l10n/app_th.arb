@@ -763,5 +763,15 @@
   "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md",
   "outlineTitle": "สารบัญ",
   "outlineEmpty": "ยังไม่มีหัวข้อ พิมพ์ # นำหน้าข้อความเพื่อสร้างหัวข้อ",
-  "outlineUntitled": "(ไม่มีชื่อหัวข้อ)"
+  "outlineUntitled": "(ไม่มีชื่อหัวข้อ)",
+  "imageResize": "ปรับขนาดรูป",
+  "imageSizeTitle": "ขนาดรูปภาพ",
+  "imageWidth": "ความกว้าง",
+  "imageHeight": "ความสูง",
+  "imageLockAspectRatio": "ล็อกอัตราส่วน",
+  "imageResetSize": "รีเซ็ตเป็นขนาดเดิม",
+  "imageOriginalSize": "ขนาดเดิม",
+  "imageDragToResize": "ลากเพื่อปรับขนาด",
+  "imageEditMarkdown": "แก้เป็น Markdown",
+  "apply": "ใช้"
 }

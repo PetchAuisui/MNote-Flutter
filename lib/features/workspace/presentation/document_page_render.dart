@@ -92,10 +92,14 @@ class DocumentPageRender {
                       ),
                       imageDirectory: imageDirectory,
                       builders: {'code': _ExportMermaidBuilder()},
-                      underlay: showInk
-                          ? InkLayer(notifier: session.pen, highlighter: true)
-                          : null,
                     ),
+                    if (showInk)
+                      Positioned.fill(
+                        child: InkLayer(
+                          notifier: session.pen,
+                          highlighter: true,
+                        ),
+                      ),
                     if (showInk)
                       Positioned.fill(
                         child: InkLayer(

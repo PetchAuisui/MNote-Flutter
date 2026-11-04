@@ -1406,4 +1406,34 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get outlineUntitled => '(ไม่มีชื่อหัวข้อ)';
+
+  @override
+  String get imageResize => 'ปรับขนาดรูป';
+
+  @override
+  String get imageSizeTitle => 'ขนาดรูปภาพ';
+
+  @override
+  String get imageWidth => 'ความกว้าง';
+
+  @override
+  String get imageHeight => 'ความสูง';
+
+  @override
+  String get imageLockAspectRatio => 'ล็อกอัตราส่วน';
+
+  @override
+  String get imageResetSize => 'รีเซ็ตเป็นขนาดเดิม';
+
+  @override
+  String get imageOriginalSize => 'ขนาดเดิม';
+
+  @override
+  String get imageDragToResize => 'ลากเพื่อปรับขนาด';
+
+  @override
+  String get imageEditMarkdown => 'แก้เป็น Markdown';
+
+  @override
+  String get apply => 'ใช้';
 }

@@ -2653,6 +2653,66 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'(ไม่มีชื่อหัวข้อ)'**
   String get outlineUntitled;
+
+  /// No description provided for @imageResize.
+  ///
+  /// In th, this message translates to:
+  /// **'ปรับขนาดรูป'**
+  String get imageResize;
+
+  /// No description provided for @imageSizeTitle.
+  ///
+  /// In th, this message translates to:
+  /// **'ขนาดรูปภาพ'**
+  String get imageSizeTitle;
+
+  /// No description provided for @imageWidth.
+  ///
+  /// In th, this message translates to:
+  /// **'ความกว้าง'**
+  String get imageWidth;
+
+  /// No description provided for @imageHeight.
+  ///
+  /// In th, this message translates to:
+  /// **'ความสูง'**
+  String get imageHeight;
+
+  /// No description provided for @imageLockAspectRatio.
+  ///
+  /// In th, this message translates to:
+  /// **'ล็อกอัตราส่วน'**
+  String get imageLockAspectRatio;
+
+  /// No description provided for @imageResetSize.
+  ///
+  /// In th, this message translates to:
+  /// **'รีเซ็ตเป็นขนาดเดิม'**
+  String get imageResetSize;
+
+  /// No description provided for @imageOriginalSize.
+  ///
+  /// In th, this message translates to:
+  /// **'ขนาดเดิม'**
+  String get imageOriginalSize;
+
+  /// No description provided for @imageDragToResize.
+  ///
+  /// In th, this message translates to:
+  /// **'ลากเพื่อปรับขนาด'**
+  String get imageDragToResize;
+
+  /// No description provided for @imageEditMarkdown.
+  ///
+  /// In th, this message translates to:
+  /// **'แก้เป็น Markdown'**
+  String get imageEditMarkdown;
+
+  /// No description provided for @apply.
+  ///
+  /// In th, this message translates to:
+  /// **'ใช้'**
+  String get apply;
 }
 
 class _AppLocalizationsDelegate

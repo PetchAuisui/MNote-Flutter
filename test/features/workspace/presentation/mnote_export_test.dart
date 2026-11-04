@@ -81,7 +81,11 @@ void main() {
           home: MarkdownWorkspacePage(
             repository: repo,
             initialDocument: MarkdownDocument.example('old'),
-            mnotePicker: () async => bytes,
+            filePicker: () async => PickedNoteFile.memory(
+              name: 'trip.mnote',
+              uri: Uri.file('/tmp/trip.mnote'),
+              bytes: bytes,
+            ),
           ),
         ),
       ),
@@ -90,11 +94,75 @@ void main() {
 
     await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('toolbar-open-mnote')));
+    await tester.tap(find.byKey(const Key('toolbar-open-file')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('เปิดโน้ต trip แล้ว'), findsOneWidget);
     expect(jsonDecode(utf8.decode(storage.saved['trip.md']!)), jsonDecode(ink));
+  });
+
+  Future<void> openPicked(
+    WidgetTester tester,
+    FakeDocumentRepository repo,
+    PickedNoteFile file,
+  ) async {
+    await tester.pumpWidget(
+      MnoteApp(
+        documentRepository: repo,
+        home: MarkdownWorkspacePage(
+          repository: repo,
+          initialDocument: MarkdownDocument.example('old'),
+          filePicker: () async => file,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('คำสั่งเพิ่มเติม'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('toolbar-open-file')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('the same open item opens a Markdown file in place', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    await openPicked(
+      tester,
+      repo,
+      PickedNoteFile.memory(
+        name: 'guide.md',
+        uri: Uri.file('/tmp/guide.md'),
+        bytes: Uint8List.fromList(utf8.encode('# Guide')),
+      ),
+    );
+
+    expect(repo.openCalls, 1);
+    expect(find.text('เปิดเอกสารแล้ว'), findsOneWidget);
+  });
+
+  testWidgets('a file that is neither Markdown nor .mnote is refused', (
+    tester,
+  ) async {
+    final repo = FakeDocumentRepository();
+    var reads = 0;
+    await openPicked(
+      tester,
+      repo,
+      PickedNoteFile(
+        name: 'holiday.mov',
+        uri: Uri.file('/tmp/holiday.mov'),
+        read: () async {
+          reads += 1;
+          return Uint8List(0);
+        },
+      ),
+    );
+
+    // Refused by name alone, without loading what may be a huge file.
+    expect(reads, 0);
+    expect(repo.openCalls, 0);
+    expect(find.textContaining('เปิดได้เฉพาะไฟล์'), findsOneWidget);
   });
 }
 

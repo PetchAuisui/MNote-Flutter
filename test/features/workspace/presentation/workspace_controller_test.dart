@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
@@ -42,16 +45,18 @@ void main() {
     },
   );
   test('opens a document and changes mode', () async {
-    final repository = FakeDocumentRepository()
-      ..openResult = MarkdownDocument.opened(
-        name: 'guide.md',
-        content: '# Guide',
-        uri: Uri.file('/tmp/guide.md'),
-      );
+    final repository = FakeDocumentRepository();
     final controller = WorkspaceController(repository);
     addTearDown(controller.dispose);
 
-    expect(await controller.openDocument(), isTrue);
+    expect(
+      await controller.openFile(
+        name: 'guide.md',
+        uri: Uri.file('/tmp/guide.md'),
+        bytes: Uint8List.fromList(utf8.encode('# Guide')),
+      ),
+      isTrue,
+    );
     controller.setMode(WorkspaceMode.preview);
 
     expect(controller.document.name, 'guide.md');
@@ -65,7 +70,14 @@ void main() {
     final controller = WorkspaceController(repository);
     addTearDown(controller.dispose);
 
-    expect(await controller.openDocument(), isFalse);
+    expect(
+      await controller.openFile(
+        name: 'guide.md',
+        uri: Uri.file('/tmp/guide.md'),
+        bytes: Uint8List(0),
+      ),
+      isFalse,
+    );
 
     expect(controller.document.name, 'Untitled.md');
     expect(controller.errorMessage, 'อ่านไฟล์ไม่ได้');

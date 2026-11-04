@@ -75,11 +75,17 @@ class WorkspaceController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> openDocument() {
+  Future<bool> openFile({
+    required String name,
+    required Uri uri,
+    required Uint8List bytes,
+  }) {
     return _run(() async {
-      final document = await _repository.open();
-      if (document == null) return false;
-      _document = document;
+      _document = await _repository.openFile(
+        name: name,
+        uri: uri,
+        bytes: bytes,
+      );
       return true;
     });
   }
@@ -87,15 +93,6 @@ class WorkspaceController extends ChangeNotifier {
   Future<bool> save() {
     return _run(() async {
       final document = await _repository.save(_document);
-      if (document == null) return false;
-      _document = document;
-      return true;
-    });
-  }
-
-  Future<bool> saveAs() {
-    return _run(() async {
-      final document = await _repository.saveAs(_document);
       if (document == null) return false;
       _document = document;
       return true;

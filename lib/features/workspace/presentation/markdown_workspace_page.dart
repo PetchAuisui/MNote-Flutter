@@ -43,7 +43,7 @@ class MarkdownWorkspacePage extends StatefulWidget {
     this.imagePicker = const DeviceImagePicker(),
     this.mermaidFileSource = const DeviceMermaidFileSource(),
     this.exportSaver,
-    this.mnotePicker = pickMnoteFile,
+    this.filePicker = pickNoteFile,
     this.assistant = const FirebaseAiAssistant(),
   });
 
@@ -53,8 +53,8 @@ class MarkdownWorkspacePage extends StatefulWidget {
   final MermaidFileSource mermaidFileSource;
   final ExportSaver? exportSaver;
 
-  /// Lets the user choose a `.mnote` file; null when they cancel.
-  final Future<Uint8List?> Function() mnotePicker;
+  /// Lets the user choose a note file to open; null when they cancel.
+  final Future<PickedNoteFile?> Function() filePicker;
 
   /// The mode documents open in: writing unless the user chose typing.
   static WorkspaceMode get defaultMode => EditorSettings.instance.openMode;
@@ -252,14 +252,41 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     return '$name${current.endsWith('.txt') ? '.txt' : '.md'}';
   }
 
-  Future<void> _openDocument() async {
+  /// Opens whatever note file the user picks: a `.mnote` export is imported
+  /// as a new note, a Markdown or text file is opened in place.
+  Future<void> _openFile() async {
+    final file = await widget.filePicker();
+    if (file == null || !mounted) return;
+    final extension = file.name.contains('.')
+        ? file.name.split('.').last.toLowerCase()
+        : '';
+    // Check the name before reading: the picker shows every file, and a
+    // large video picked by mistake should not be loaded just to refuse it.
+    if (extension == MnoteBundle.extension) {
+      final bytes = await file.read();
+      if (!mounted) return;
+      await _openMnote(bytes);
+    } else if (_openableTextExtensions.contains(extension)) {
+      await _openTextFile(file);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.wsUnsupportedFile)));
+    }
+  }
+
+  static const _openableTextExtensions = {'md', 'markdown', 'txt'};
+
+  Future<void> _openTextFile(PickedNoteFile file) async {
     final l = context.l10n;
     _autoSaveTimer?.cancel();
     if (_workspace.document.isDirty) {
       await _workspace.save();
     }
+    final bytes = await file.read();
+    if (!mounted) return;
     final opened = await _runFileAction(
-      _workspace.openDocument,
+      () => _workspace.openFile(name: file.name, uri: file.uri, bytes: bytes),
       successMessage: l.wsOpened,
     );
     if (opened) {
@@ -269,13 +296,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 
   /// Opens a `.mnote` export as a new note with both its Markdown and ink.
-  Future<void> _openMnote() async {
+  Future<void> _openMnote(Uint8List bytes) async {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final storage =
         InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
-    final bytes = await widget.mnotePicker();
-    if (bytes == null || !mounted) return;
     final MnoteBundle bundle;
     try {
       bundle = MnoteBundle.decode(bytes);
@@ -332,13 +357,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _workspace.newDocument();
     _resetInk();
     _resetUndoHistory();
-  }
-
-  Future<void> _saveDocument({bool saveAs = false}) async {
-    await _runFileAction(
-      saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: context.l10n.wsSaved,
-    );
   }
 
   void _resetInk() {
@@ -1366,14 +1384,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
             switch (action) {
               case _DocumentAction.newDocument:
                 _newDocument();
-              case _DocumentAction.openDocument:
-                _openDocument();
-              case _DocumentAction.openMnote:
-                _openMnote();
+              case _DocumentAction.openFile:
+                _openFile();
               case _DocumentAction.importFile:
                 _importTextFile();
-              case _DocumentAction.saveAs:
-                _saveDocument(saveAs: true);
               case _DocumentAction.trash:
                 _moveToTrash();
             }
@@ -1390,23 +1404,13 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
               ),
             ),
             PopupMenuItem(
-              value: _DocumentAction.openDocument,
+              key: Key('toolbar-open-file'),
+              value: _DocumentAction.openFile,
               child: Row(
                 children: [
                   Icon(Icons.folder_open_outlined, size: 20),
                   SizedBox(width: 12),
-                  Expanded(child: Text(context.l10n.openOtherDoc)),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              key: Key('toolbar-open-mnote'),
-              value: _DocumentAction.openMnote,
-              child: Row(
-                children: [
-                  Icon(Icons.draw_outlined, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(child: Text(context.l10n.openMnote)),
+                  Expanded(child: Text(context.l10n.openFile)),
                 ],
               ),
             ),
@@ -1418,16 +1422,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   Icon(Icons.post_add_outlined, size: 20),
                   SizedBox(width: 12),
                   Expanded(child: Text(context.l10n.insertFromFile)),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: _DocumentAction.saveAs,
-              child: Row(
-                children: [
-                  Icon(Icons.save_as_outlined, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(child: Text(context.l10n.saveAs)),
                 ],
               ),
             ),
@@ -1724,20 +1718,38 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   }
 }
 
-enum _DocumentAction {
-  newDocument,
-  openDocument,
-  openMnote,
-  importFile,
-  saveAs,
-  trash,
+enum _DocumentAction { newDocument, openFile, importFile, trash }
+
+/// A file the user picked to open as a note. Its content is read only once
+/// the name shows it is a kind of file Mnote opens.
+class PickedNoteFile {
+  const PickedNoteFile({
+    required this.name,
+    required this.uri,
+    required this.read,
+  });
+
+  /// A file whose content is already in memory.
+  PickedNoteFile.memory({
+    required this.name,
+    required this.uri,
+    required Uint8List bytes,
+  }) : read = (() async => bytes);
+
+  final String name;
+  final Uri uri;
+  final Future<Uint8List> Function() read;
 }
 
-Future<Uint8List?> pickMnoteFile() async {
+/// Picks any file: iOS hides a `.mnote` file behind an extension filter,
+/// because it has no registered type for it, so the extension is checked
+/// after picking instead.
+Future<PickedNoteFile?> pickNoteFile() async {
   final file = await FilePicker.pickFile(
-    dialogTitle: LanguagePreferences.current().openMnote,
+    dialogTitle: LanguagePreferences.current().openFile,
   );
-  return file?.readAsBytes();
+  if (file == null) return null;
+  return PickedNoteFile(name: file.name, uri: file.uri, read: file.readAsBytes);
 }
 
 class _LineNumberPainter extends CustomPainter {

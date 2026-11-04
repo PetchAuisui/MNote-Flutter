@@ -11,12 +11,18 @@ import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.
 import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
+import 'package:mnote/features/workspace/data/device_image_picker.dart';
+import 'ink_pictures_layer.dart';
 import 'ink_session.dart';
+import 'ink_tool.dart';
 import 'ink_storage_scope.dart';
+import 'stylus_actions.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
 import 'mermaid/mermaid_element_builder.dart';
+
+export 'ink_tool.dart';
 
 /// Lets a toolbar outside [InkPage] fit the page to the view width.
 class InkFitController {
@@ -45,6 +51,7 @@ class InkPage extends StatefulWidget {
     this.showToolbar = true,
     this.fitController,
     this.outline,
+    this.imagePicker = const DeviceImagePicker(),
   });
   final InkSession session;
   final String markdown;
@@ -59,6 +66,9 @@ class InkPage extends StatefulWidget {
 
   /// Lets the outline panel jump to headings and follow the visible one.
   final MarkdownOutlineController? outline;
+
+  /// Chooses pictures to place on the page from this page's own toolbar.
+  final DeviceImagePicker imagePicker;
 
   @override
   State<InkPage> createState() => _InkPageState();
@@ -78,9 +88,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   VoidCallback? _jumpStep;
   String? _headingsSource;
   List<MarkdownHeading> _headings = const [];
-  InkTool _tool = InkTool.pen;
-  Color _penColor = const Color(0xFF202124);
-  double _penWidth = 3;
+  StreamSubscription<StylusAction>? _stylus;
   bool get _touch =>
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;
@@ -92,7 +100,11 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     super.initState();
     _storage = widget.fileStorage ?? const DeviceInkFileStorage();
     widget.session.pen.addListener(_onPenChanged);
+    // Moving or adding a picture changes the session, not the pen.
+    widget.session.addListener(_onPenChanged);
+    widget.session.visibleCenter = _visibleCenter;
     EditorSettings.instance.addListener(_onEditorSettingsChanged);
+    _stylus = StylusActions.instance.actions.listen(_onStylusAction);
     _attachTransform();
   }
 
@@ -118,7 +130,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _autoLoadInkIfAvailable() async {
-    if (widget.session.pen.currentSketch.lines.isEmpty) {
+    if (!widget.session.hasContent) {
       final bytes = await _storage.autoLoad(name: widget.name);
       if (bytes != null && mounted) {
         try {
@@ -148,7 +160,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _transform.addListener(_clampHorizontal);
     _transform.addListener(_trackActiveHeading);
     widget.outline?.attach(_scrollToOffset);
-    widget.fitController?.attach(_fit);
+    widget.fitController?.attach(_fitWidth);
   }
 
   @override
@@ -159,8 +171,8 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       widget.outline?.attach(_scrollToOffset);
     }
     if (oldWidget.fitController != widget.fitController) {
-      oldWidget.fitController?.detach(_fit);
-      widget.fitController?.attach(_fit);
+      oldWidget.fitController?.detach(_fitWidth);
+      widget.fitController?.attach(_fitWidth);
     }
     if (oldWidget.transformationController != widget.transformationController) {
       _transform.removeListener(_clampHorizontal);
@@ -175,10 +187,11 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
+    _stylus?.cancel();
     _transform.removeListener(_clampHorizontal);
     _transform.removeListener(_trackActiveHeading);
     widget.outline?.detach(_scrollToOffset);
-    widget.fitController?.detach(_fit);
+    widget.fitController?.detach(_fitWidth);
     _scrollAnimation.dispose();
     _autoSaveInkTimer?.cancel();
     if (widget.session.isDirty) {
@@ -196,6 +209,10 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
           });
     }
     widget.session.pen.removeListener(_onPenChanged);
+    widget.session.removeListener(_onPenChanged);
+    if (widget.session.visibleCenter == _visibleCenter) {
+      widget.session.visibleCenter = null;
+    }
     EditorSettings.instance.removeListener(_onEditorSettingsChanged);
     if (_ownsTransform) {
       _transform.dispose();
@@ -287,11 +304,20 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// The "fit width" button: the page fills the view edge to edge, zooming
+  /// in when the view is wider than the page.
+  void _fitWidth() => _fit(fill: true);
+
   /// Fits the page to the view width while keeping the part of the page in
   /// the middle of the view where it is, instead of jumping back to the top.
-  void _fit() {
-    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
-    final dx = _viewportWidth > InkSession.pageWidth
+  /// Unless [fill], a view wider than the page shows it at its own size, as
+  /// the Markdown modes do, so text stays put when switching modes.
+  void _fit({bool fill = false}) {
+    final scale = (_viewportWidth / InkSession.pageWidth).clamp(
+      0.1,
+      fill ? 4.0 : 1.0,
+    );
+    final dx = !fill && _viewportWidth > InkSession.pageWidth
         ? (_viewportWidth - InkSession.pageWidth) / 2
         : 0.0;
     final current = _transform.value;
@@ -323,54 +349,30 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       ..setTranslationRaw(target, value.getTranslation().y, 0);
   }
 
-  void _selectTool(InkTool tool) {
-    final pen = widget.session.pen;
-    setState(() => _tool = tool);
-    switch (tool) {
-      case InkTool.pen:
-        pen
-          ..setColor(_penColor)
-          ..setStrokeWidth(_penWidth);
-      case InkTool.highlighter:
-        pen
-          ..setColor(InkSession.highlightInk(widget.session.highlightColor))
-          ..setStrokeWidth(widget.session.highlightWidth);
-      case InkTool.eraser:
-        pen
-          ..setEraser()
-          ..setStrokeWidth(28);
-    }
+  // This page is on screen whenever its ink is being edited, so it answers
+  // stylus gestures whichever toolbar is showing.
+  void _onStylusAction(StylusAction action) =>
+      widget.session.applyStylusAction(action);
+
+  /// The page point in the middle of the screen.
+  Offset _visibleCenter() {
+    final scene = MatrixUtils.transformPoint(
+      Matrix4.inverted(_transform.value),
+      Offset(_viewportWidth / 2, _viewportHeight / 2),
+    );
+    return Offset(
+      scene.dx.clamp(0, InkSession.pageWidth),
+      scene.dy.clamp(0, widget.session.height),
+    );
   }
 
-  void _selectColor(Color color) {
-    if (_tool == InkTool.highlighter) {
-      widget.session.selectHighlight(color: color);
-      widget.session.pen.setColor(InkSession.highlightInk(color));
-      return;
-    }
-    setState(() {
-      _penColor = color;
-      _tool = InkTool.pen;
-    });
-    widget.session.pen
-      ..setColor(color)
-      ..setStrokeWidth(_penWidth);
-  }
-
-  void _selectWidth(double width) {
-    if (_tool == InkTool.highlighter) {
-      widget.session.selectHighlight(width: width);
-      widget.session.pen.setStrokeWidth(width);
-      return;
-    }
-    setState(() {
-      _penWidth = width;
-      _tool = InkTool.pen;
-    });
-    widget.session.pen
-      ..setColor(_penColor)
-      ..setStrokeWidth(width);
-  }
+  Future<void> _addPicture() => insertInkPicture(
+    context: context,
+    session: widget.session,
+    picker: widget.imagePicker,
+    imageDirectory: widget.imageDirectory,
+    center: _visibleCenter(),
+  );
 
   Future<void> _clearInk() async {
     if (widget.session.pen.currentSketch.lines.isEmpty) return;
@@ -423,55 +425,107 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
             final size = _pageKey.currentContext?.size;
             if (size != null) widget.session.grow(size.height);
           });
-          return InteractiveViewer(
-            transformationController: _transform,
-            constrained: false,
-            alignment: Alignment.topLeft,
-            // InteractiveViewer won't zoom out past the point where the page
-            // fills the viewport. On a viewport wider than the page that
-            // stops the zoom short of the fitted state, so leave the sides
-            // open; _clampHorizontal keeps the page centred or edge-clamped.
-            boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
-            minScale: 0.1,
-            maxScale: 4,
-            panEnabled: !_touch,
-            scaleEnabled: !_touch,
-            // InteractiveViewer already scales the complete page. Keep
-            // Scribble's scale at 1 so stroke width is not scaled twice.
-            child: SizedBox(
-              width: InkSession.pageWidth,
-              child: Stack(
-                key: _pageKey,
-                children: [
-                  MarkdownDocumentSurface(
-                    markdown: widget.markdown,
-                    height: widget.session.height,
-                    selectable: false,
-                    blockKeys: widget.outline == null ? null : _blockKeys,
-                    textOptions: widget.session.layoutFor(
-                      EditorSettings.instance.textOptions,
+          // The gray backdrop and the page's border and shadow show where
+          // ink can go; nothing outside the page is drawable.
+          return ColoredBox(
+            key: const Key('ink-page-backdrop'),
+            color: _backdropColor,
+            child: InteractiveViewer(
+              transformationController: _transform,
+              constrained: false,
+              alignment: Alignment.topLeft,
+              // InteractiveViewer won't zoom out past the point where the page
+              // fills the viewport. On a viewport wider than the page that
+              // stops the zoom short of the fitted state, so leave the sides
+              // open; _clampHorizontal keeps the page centred or edge-clamped.
+              boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
+              minScale: 0.1,
+              maxScale: 4,
+              // Fingers draw when touch drawing is on, except while pictures
+              // are being arranged.
+              panEnabled: !_touch || widget.session.movingPictures,
+              scaleEnabled: !_touch || widget.session.movingPictures,
+              // InteractiveViewer already scales the complete page. Keep
+              // Scribble's scale at 1 so stroke width is not scaled twice.
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x29000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 2),
                     ),
-                    imageDirectory: widget.imageDirectory,
-                    builders: {'code': MermaidElementBuilder()},
+                  ],
+                ),
+                child: SizedBox(
+                  width: InkSession.pageWidth,
+                  child: Stack(
+                    key: _pageKey,
+                    children: [
+                      MarkdownDocumentSurface(
+                        markdown: widget.markdown,
+                        height: widget.session.height,
+                        selectable: false,
+                        blockKeys: widget.outline == null ? null : _blockKeys,
+                        textOptions: widget.session.layoutFor(
+                          EditorSettings.instance.textOptions,
+                        ),
+                        imageDirectory: widget.imageDirectory,
+                        builders: {'code': MermaidElementBuilder()},
+                      ),
+                      if (widget.session.pictures.isNotEmpty)
+                        Positioned.fill(
+                          child: InkPicturesLayer(
+                            pictures: widget.session.pictures,
+                            imageDirectory: widget.imageDirectory,
+                          ),
+                        ),
+                      // Highlighter strokes multiply onto the page, so the text
+                      // stays crisp like a real highlighter and pictures are
+                      // marked too.
+                      Positioned.fill(
+                        child: InkLayer(notifier: pen, highlighter: true),
+                      ),
+                      Positioned.fill(
+                        child: InkLayer(notifier: pen, highlighter: false),
+                      ),
+                      // Receives the pointer input; the layers above and beneath
+                      // the text do the drawing.
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          ignoring: widget.session.movingPictures,
+                          child: Opacity(
+                            opacity: 0,
+                            child: Scribble(notifier: pen, drawPen: false),
+                          ),
+                        ),
+                      ),
+                      const Positioned.fill(
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            key: Key('ink-page-border'),
+                            decoration: BoxDecoration(
+                              border: Border.fromBorderSide(
+                                BorderSide(color: _pageBorderColor, width: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (widget.session.movingPictures)
+                        Positioned.fill(
+                          child: ListenableBuilder(
+                            listenable: _transform,
+                            builder: (context, _) => InkPictureEditor(
+                              session: widget.session,
+                              pageKey: _pageKey,
+                              scale: _transform.value.getMaxScaleOnAxis(),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  // Highlighter strokes multiply onto the page, so the text
-                  // stays crisp like a real highlighter and pictures are
-                  // marked too.
-                  Positioned.fill(
-                    child: InkLayer(notifier: pen, highlighter: true),
-                  ),
-                  Positioned.fill(
-                    child: InkLayer(notifier: pen, highlighter: false),
-                  ),
-                  // Receives the pointer input; the layers above and beneath
-                  // the text do the drawing.
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0,
-                      child: Scribble(notifier: pen, drawPen: false),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -482,39 +536,17 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       }
       return Column(
         children: [
-          InkToolbar(
-            selectedTool: _tool,
-            penColor: _tool == InkTool.highlighter
-                ? widget.session.highlightColor
-                : _penColor,
-            penWidth: _tool == InkTool.highlighter
-                ? widget.session.highlightWidth
-                : _penWidth,
+          InkToolbar.forSession(
+            session: widget.session,
             touchEnabled: _touch,
-            onToolSelected: _selectTool,
-            onColorSelected: _selectColor,
-            onWidthSelected: _selectWidth,
-            colorPresets: _tool == InkTool.highlighter
-                ? widget.session.highlightPresets
-                : widget.session.colorPresets,
-            widthPresets: _tool == InkTool.highlighter
-                ? widget.session.highlightWidthPresets
-                : widget.session.widthPresets,
-            onColorPresetChanged: _tool == InkTool.highlighter
-                ? widget.session.setHighlightPreset
-                : widget.session.setColorPreset,
-            onWidthPresetChanged: _tool == InkTool.highlighter
-                ? widget.session.setHighlightWidthPreset
-                : widget.session.setWidthPreset,
-            onUndo: pen.canUndo ? pen.undo : null,
-            onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,
+            onAddPicture: _addPicture,
             onTouchChanged: () {
               pen.setAllowedPointersMode(
                 _touch ? ScribblePointerMode.penOnly : ScribblePointerMode.all,
               );
             },
-            onFit: _fit,
+            onFit: _fitWidth,
           ),
           Expanded(child: canvas),
         ],
@@ -523,7 +555,11 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   );
 }
 
-enum InkTool { pen, highlighter, eraser }
+/// Behind the page while drawing, so the white page stands out.
+const _backdropColor = Color(0xFFE8EAED);
+
+/// Edge of the drawable page.
+const _pageBorderColor = Color(0xFFADB1B8);
 
 class _InkHistoryDock extends StatelessWidget {
   const _InkHistoryDock({required this.onUndo, required this.onRedo});
@@ -584,7 +620,51 @@ class InkToolbar extends StatelessWidget {
     required this.onClear,
     required this.onTouchChanged,
     required this.onFit,
+    required this.eraseWholeStroke,
+    required this.onEraserModeChanged,
+    required this.onAddPicture,
+    required this.onDeletePicture,
   });
+
+  /// A toolbar for [session]'s tools; the caller supplies what depends on
+  /// the page showing it.
+  factory InkToolbar.forSession({
+    Key? key,
+    required InkSession session,
+    required bool touchEnabled,
+    required VoidCallback? onClear,
+    required VoidCallback onAddPicture,
+    required VoidCallback onTouchChanged,
+    required VoidCallback onFit,
+  }) {
+    final pen = session.pen;
+    final picture = session.selectedPicture;
+    return InkToolbar(
+      key: key,
+      selectedTool: session.tool,
+      penColor: session.toolColor,
+      penWidth: session.toolWidth,
+      touchEnabled: touchEnabled,
+      onToolSelected: session.selectTool,
+      onColorSelected: session.selectToolColor,
+      onWidthSelected: session.selectToolWidth,
+      colorPresets: session.toolColorPresets,
+      widthPresets: session.toolWidthPresets,
+      onColorPresetChanged: session.setToolColorPreset,
+      onWidthPresetChanged: session.setToolWidthPreset,
+      onUndo: pen.canUndo ? pen.undo : null,
+      onRedo: pen.canRedo ? pen.redo : null,
+      onClear: onClear,
+      onTouchChanged: onTouchChanged,
+      onFit: onFit,
+      eraseWholeStroke: session.eraseWholeStroke,
+      onEraserModeChanged: session.setEraseWholeStroke,
+      onAddPicture: onAddPicture,
+      onDeletePicture: picture == null
+          ? null
+          : () => session.removePicture(picture),
+    );
+  }
 
   final InkTool selectedTool;
   final Color penColor;
@@ -602,6 +682,16 @@ class InkToolbar extends StatelessWidget {
   final VoidCallback? onClear;
   final VoidCallback onTouchChanged;
   final VoidCallback onFit;
+
+  /// Shown in place of colors and widths while the eraser is selected.
+  final bool eraseWholeStroke;
+  final ValueChanged<bool> onEraserModeChanged;
+
+  /// Shown in place of colors and widths while the picture tool is selected.
+  final VoidCallback onAddPicture;
+
+  /// Deletes the selected picture; null when none is selected.
+  final VoidCallback? onDeletePicture;
 
   @override
   Widget build(BuildContext context) {
@@ -669,53 +759,88 @@ class InkToolbar extends StatelessWidget {
                                   onPressed: () =>
                                       onToolSelected(InkTool.eraser),
                                 ),
+                                _toolButton(
+                                  key: const Key('ink-picture-tool'),
+                                  tooltip: context.l10n.inkPictureTool,
+                                  icon: const Icon(Icons.image_outlined),
+                                  selectedIcon: const Icon(Icons.image),
+                                  selected: selectedTool == InkTool.picture,
+                                  // Choosing the tool goes straight to
+                                  // picking a picture to add.
+                                  onPressed: () {
+                                    onToolSelected(InkTool.picture);
+                                    onAddPicture();
+                                  },
+                                ),
                               ],
                             ),
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
                               key: const Key('ink-style-group'),
                               label: context.l10n.inkGroupStroke,
-                              children: [
-                                for (var i = 0; i < colorPresets.length; i++)
-                                  _ColorSwatchButton(
-                                    key: Key('ink-color-preset-$i'),
-                                    color: colorPresets[i],
-                                    selected: colorPresets[i] == penColor,
-                                    onTap: () => colorPresets[i] == penColor
-                                        ? _editColor(context, i)
-                                        : onColorSelected(colorPresets[i]),
-                                    onLongPress: () => _editColor(context, i),
-                                  ),
-                                IconButton(
-                                  key: const Key('ink-color'),
-                                  tooltip: context.l10n.inkChangeColor,
-                                  icon: const Icon(Icons.palette_outlined),
-                                  onPressed: () {
-                                    final selected = colorPresets.indexOf(
-                                      penColor,
-                                    );
-                                    _editColor(
-                                      context,
-                                      selected < 0
-                                          ? colorPresets.length - 1
-                                          : selected,
-                                      initial: penColor,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 4),
-                                for (var i = 0; i < widthPresets.length; i++)
-                                  _WidthPresetButton(
-                                    key: Key('ink-width-preset-$i'),
-                                    width: widthPresets[i],
-                                    color: penColor,
-                                    selected: widthPresets[i] == penWidth,
-                                    onTap: () => widthPresets[i] == penWidth
-                                        ? _editWidth(context, i)
-                                        : onWidthSelected(widthPresets[i]),
-                                    onLongPress: () => _editWidth(context, i),
-                                  ),
-                              ],
+                              children: selectedTool == InkTool.eraser
+                                  ? _eraserModes(context)
+                                  : selectedTool == InkTool.picture
+                                  ? _pictureActions(context)
+                                  : [
+                                      for (
+                                        var i = 0;
+                                        i < colorPresets.length;
+                                        i++
+                                      )
+                                        _ColorSwatchButton(
+                                          key: Key('ink-color-preset-$i'),
+                                          color: colorPresets[i],
+                                          selected: colorPresets[i] == penColor,
+                                          onTap: () =>
+                                              colorPresets[i] == penColor
+                                              ? _editColor(context, i)
+                                              : onColorSelected(
+                                                  colorPresets[i],
+                                                ),
+                                          onLongPress: () =>
+                                              _editColor(context, i),
+                                        ),
+                                      IconButton(
+                                        key: const Key('ink-color'),
+                                        tooltip: context.l10n.inkChangeColor,
+                                        icon: const Icon(
+                                          Icons.palette_outlined,
+                                        ),
+                                        onPressed: () {
+                                          final selected = colorPresets.indexOf(
+                                            penColor,
+                                          );
+                                          _editColor(
+                                            context,
+                                            selected < 0
+                                                ? colorPresets.length - 1
+                                                : selected,
+                                            initial: penColor,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(width: 4),
+                                      for (
+                                        var i = 0;
+                                        i < widthPresets.length;
+                                        i++
+                                      )
+                                        _WidthPresetButton(
+                                          key: Key('ink-width-preset-$i'),
+                                          width: widthPresets[i],
+                                          color: penColor,
+                                          selected: widthPresets[i] == penWidth,
+                                          onTap: () =>
+                                              widthPresets[i] == penWidth
+                                              ? _editWidth(context, i)
+                                              : onWidthSelected(
+                                                  widthPresets[i],
+                                                ),
+                                          onLongPress: () =>
+                                              _editWidth(context, i),
+                                        ),
+                                    ],
                             ),
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
@@ -794,6 +919,39 @@ class InkToolbar extends StatelessWidget {
     );
   }
 
+  List<Widget> _eraserModes(BuildContext context) => [
+    _LabeledToolButton(
+      key: const Key('ink-eraser-partial'),
+      icon: Icons.auto_fix_normal,
+      label: context.l10n.inkErasePartial,
+      selected: !eraseWholeStroke,
+      onTap: () => onEraserModeChanged(false),
+    ),
+    _LabeledToolButton(
+      key: const Key('ink-eraser-whole'),
+      icon: Icons.gesture,
+      label: context.l10n.inkEraseWhole,
+      selected: eraseWholeStroke,
+      onTap: () => onEraserModeChanged(true),
+    ),
+  ];
+
+  List<Widget> _pictureActions(BuildContext context) => [
+    _LabeledToolButton(
+      key: const Key('ink-add-picture'),
+      icon: Icons.add_photo_alternate_outlined,
+      label: context.l10n.inkAddPicture,
+      selected: false,
+      onTap: onAddPicture,
+    ),
+    IconButton(
+      key: const Key('ink-delete-picture'),
+      tooltip: context.l10n.inkDeletePicture,
+      onPressed: onDeletePicture,
+      icon: const Icon(Icons.delete_outline),
+    ),
+  ];
+
   Widget _toolButton({
     required Key key,
     required String tooltip,
@@ -834,6 +992,60 @@ class InkToolbar extends StatelessWidget {
     if (picked == null) return;
     onWidthPresetChanged(index, picked);
     onWidthSelected(picked);
+  }
+}
+
+class _LabeledToolButton extends StatelessWidget {
+  const _LabeledToolButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = selected
+        ? colors.onPrimaryContainer
+        : colors.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Material(
+          color: selected ? colors.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 20, color: foreground),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: foreground),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -996,51 +1208,112 @@ class _CustomColorDialog extends StatefulWidget {
 class _CustomColorDialogState extends State<_CustomColorDialog> {
   late HSVColor _hsv = HSVColor.fromColor(widget.initial);
 
+  /// Ready-made colors: tap one and you're done. Grays and browns, then the
+  /// main hues in regular, dark and light shades.
+  static const _palette = <Color>[
+    Color(0xFF000000),
+    Color(0xFF424242),
+    Color(0xFF757575),
+    Color(0xFFBDBDBD),
+    Color(0xFFFFFFFF),
+    Color(0xFF5D4037),
+    Color(0xFF8D6E63),
+    Color(0xFFD7CCC8),
+    Color(0xFFF44336),
+    Color(0xFFFF9800),
+    Color(0xFFFFEB3B),
+    Color(0xFF4CAF50),
+    Color(0xFF009688),
+    Color(0xFF2196F3),
+    Color(0xFF3F51B5),
+    Color(0xFF9C27B0),
+    Color(0xFFB71C1C),
+    Color(0xFFE65100),
+    Color(0xFFF9A825),
+    Color(0xFF1B5E20),
+    Color(0xFF004D40),
+    Color(0xFF0D47A1),
+    Color(0xFF1A237E),
+    Color(0xFF4A148C),
+    Color(0xFFEF9A9A),
+    Color(0xFFFFCC80),
+    Color(0xFFFFF59D),
+    Color(0xFFA5D6A7),
+    Color(0xFF80CBC4),
+    Color(0xFF90CAF9),
+    Color(0xFF9FA8DA),
+    Color(0xFFCE93D8),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final color = _hsv.toColor();
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
       title: Text(context.l10n.inkCustomColor),
       content: SizedBox(
         width: 320,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              key: const Key('ink-color-preview'),
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                key: const Key('ink-color-preview'),
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _slider(
-              context.l10n.inkHue,
-              _hsv.hue,
-              360,
-              (v) => _hsv = _hsv.withHue(v),
-              key: const Key('ink-color-hue'),
-              activeColor: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
-            ),
-            _slider(
-              context.l10n.inkSaturation,
-              _hsv.saturation,
-              1,
-              (v) => _hsv = _hsv.withSaturation(v),
-              key: const Key('ink-color-saturation'),
-            ),
-            _slider(
-              context.l10n.inkBrightness,
-              _hsv.value,
-              1,
-              (v) => _hsv = _hsv.withValue(v),
-              key: const Key('ink-color-value'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var i = 0; i < _palette.length; i++)
+                    _paletteSwatch(context, i, color),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                context.l10n.inkFineTune,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              _slider(
+                context.l10n.inkHue,
+                _hsv.hue,
+                360,
+                (v) => _hsv = _hsv.withHue(v),
+                key: const Key('ink-color-hue'),
+                track: [
+                  for (var h = 0; h <= 360; h += 60)
+                    HSVColor.fromAHSV(1, h.toDouble(), 1, 1).toColor(),
+                ],
+              ),
+              _slider(
+                context.l10n.inkSaturation,
+                _hsv.saturation,
+                1,
+                (v) => _hsv = _hsv.withSaturation(v),
+                key: const Key('ink-color-saturation'),
+                track: [
+                  _hsv.withSaturation(0).toColor(),
+                  _hsv.withSaturation(1).toColor(),
+                ],
+              ),
+              _slider(
+                context.l10n.inkBrightness,
+                _hsv.value,
+                1,
+                (v) => _hsv = _hsv.withValue(v),
+                key: const Key('ink-color-value'),
+                track: [const Color(0xFF000000), _hsv.withValue(1).toColor()],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -1057,27 +1330,111 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     );
   }
 
+  Widget _paletteSwatch(BuildContext context, int index, Color current) {
+    final swatch = _palette[index];
+    final selected = swatch.toARGB32() == current.toARGB32();
+    final onSwatch = swatch.computeLuminance() > 0.5
+        ? Colors.black
+        : Colors.white;
+    return InkResponse(
+      key: Key('ink-color-palette-$index'),
+      radius: 20,
+      onTap: () => setState(() => _hsv = HSVColor.fromColor(swatch)),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: swatch,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: selected ? Icon(Icons.check, size: 18, color: onSwatch) : null,
+      ),
+    );
+  }
+
   Widget _slider(
     String label,
     double value,
     double max,
     void Function(double) apply, {
     required Key key,
-    Color? activeColor,
+    required List<Color> track,
   }) => Row(
     children: [
       SizedBox(width: 72, child: Text(label)),
       Expanded(
-        child: Slider(
-          key: key,
-          value: value.clamp(0, max),
-          max: max,
-          activeColor: activeColor,
-          onChanged: (v) => setState(() => apply(v)),
+        child: SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 12,
+            trackShape: _GradientTrackShape(track),
+            thumbColor: Colors.white,
+            overlayColor: Colors.black12,
+            thumbShape: const RoundSliderThumbShape(
+              enabledThumbRadius: 11,
+              elevation: 3,
+            ),
+          ),
+          child: Slider(
+            key: key,
+            value: value.clamp(0, max),
+            max: max,
+            onChanged: (v) => setState(() => apply(v)),
+          ),
         ),
       ),
     ],
   );
+}
+
+/// A slider track that shows what each position looks like, so dragging
+/// the thumb isn't guesswork.
+class _GradientTrackShape extends SliderTrackShape with BaseSliderTrackShape {
+  const _GradientTrackShape(this.colors);
+
+  final List<Color> colors;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+    required TextDirection textDirection,
+  }) {
+    final rect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(rect.height / 2),
+    );
+    context.canvas
+      ..drawRRect(
+        rrect,
+        Paint()..shader = LinearGradient(colors: colors).createShader(rect),
+      )
+      ..drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = const Color(0x1F000000),
+      );
+  }
 }
 
 class _CustomWidthDialog extends StatefulWidget {

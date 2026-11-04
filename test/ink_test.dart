@@ -12,6 +12,7 @@ import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
 import 'package:mnote/features/workspace/presentation/ink_page.dart';
+import 'package:mnote/features/workspace/presentation/ink_pen.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
 import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/features/workspace/presentation/markdown_workspace_page.dart';
@@ -85,6 +86,27 @@ void main() {
     expect(inkStyle.codeblockDecoration, previewStyle.codeblockDecoration);
     expect(DocumentPageMetrics.width, 1008);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ink page shows a border where writing is possible', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.pumpAndSettle();
+    final border = find.byKey(const Key('ink-page-border'));
+    expect(border, findsOneWidget);
+    expect(tester.getSize(border).width, InkSession.pageWidth);
+    expect(
+      tester
+          .widget<ColoredBox>(find.byKey(const Key('ink-page-backdrop')))
+          .color,
+      isNot(Colors.white),
+    );
   });
 
   testWidgets('stylus draws on the transformed page and undo removes ink', (
@@ -229,6 +251,18 @@ void main() {
       tester.widget<IconButton>(find.byKey(const Key('ink-eraser'))).isSelected,
       isTrue,
     );
+    // The eraser offers its two modes in place of colors and widths.
+    expect(find.byKey(const Key('ink-color-preset-0')), findsNothing);
+    expect(find.byKey(const Key('ink-width-preset-0')), findsNothing);
+    final inkPen = pen as InkPenNotifier;
+    expect(inkPen.eraseWholeStroke, isFalse);
+    await tester.tap(find.byKey(const Key('ink-eraser-whole')));
+    await tester.pump();
+    expect(inkPen.eraseWholeStroke, isTrue);
+    await tester.tap(find.byKey(const Key('ink-eraser-partial')));
+    await tester.pump();
+    expect(inkPen.eraseWholeStroke, isFalse);
+    expect(pen.value, isA<Erasing>());
 
     await tester.tap(find.byKey(const Key('ink-highlighter')));
     await tester.pump();
@@ -357,6 +391,154 @@ void main() {
     await tester.tap(find.byKey(const Key('ink-color-apply')));
     await tester.pumpAndSettle();
     expect(session.colorPresets[0], isNot(before));
+  });
+
+  testWidgets('custom color dialog picks a ready-made color with one tap', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byKey(const Key('ink-color-preset-0')));
+    await tester.pumpAndSettle();
+    // Index 13 is the bright blue swatch.
+    await tester.tap(find.byKey(const Key('ink-color-palette-13')));
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('ink-color-palette-13')),
+        matching: find.byIcon(Icons.check),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('ink-color-apply')));
+    await tester.pumpAndSettle();
+    expect(session.colorPresets[0].toARGB32(), 0xFF2196F3);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('eraser rubs out only the part of a stroke it covers', () {
+    final line = SketchLine(
+      color: 0xFF000000,
+      width: 2,
+      points: [for (var x = 0; x <= 100; x += 2) Point(x.toDouble(), 0)],
+    );
+    // Sweep down across the middle of the stroke.
+    final pieces = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(50, -30),
+      const Offset(50, 30),
+      5,
+    );
+    expect(pieces, hasLength(2));
+    expect(pieces.first.points.first.x, 0);
+    expect(pieces.first.points.last.x, lessThan(45));
+    expect(pieces.last.points.first.x, greaterThan(55));
+    expect(pieces.last.points.last.x, 100);
+
+    final untouched = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(50, 40),
+      const Offset(60, 40),
+      5,
+    );
+    expect(untouched.single, same(line));
+
+    final wiped = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(-10, 0),
+      const Offset(110, 0),
+      5,
+    );
+    expect(wiped, isEmpty);
+  });
+
+  test('eraser cuts a fast stroke between its far-apart points', () {
+    // Two points 100px apart: the ink between them must still be erasable.
+    final line = SketchLine(
+      color: 0xFF000000,
+      width: 2,
+      points: [const Point(0, 0), const Point(100, 0)],
+    );
+    final pieces = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(50, -30),
+      const Offset(50, 30),
+      5,
+    );
+    expect(pieces, hasLength(2));
+    expect(pieces.first.points.first.x, 0);
+    // Each cut ends close to the edge of the eraser.
+    expect(pieces.first.points.last.x, inInclusiveRange(40, 44.1));
+    expect(pieces.last.points.first.x, inInclusiveRange(55.9, 60));
+    expect(pieces.last.points.last.x, 100);
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, -30),
+        const Offset(50, 30),
+        5,
+        wholeStroke: true,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('pieces of an even-width highlight stay even', () {
+    // Highlights keep an even width by giving the first point a different
+    // pressure from the rest; every piece must keep that difference.
+    final line = SketchLine(
+      color: 0x80FFD54F,
+      width: 18,
+      points: [
+        const Point(0, 0),
+        for (var x = 4; x <= 200; x += 4)
+          Point(x.toDouble(), 0, pressure: 0.5001),
+      ],
+    );
+    final pieces = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(100, -40),
+      const Offset(100, 40),
+      6,
+    );
+    expect(pieces, hasLength(2));
+    for (final piece in pieces) {
+      final first = piece.points.first.pressure;
+      expect(piece.points.any((p) => p.pressure != first), isTrue);
+    }
+  });
+
+  test('whole-stroke eraser deletes any stroke it touches', () {
+    final line = SketchLine(
+      color: 0xFF000000,
+      width: 2,
+      points: [for (var x = 0; x <= 100; x += 2) Point(x.toDouble(), 0)],
+    );
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, -30),
+        const Offset(50, 30),
+        5,
+        wholeStroke: true,
+      ),
+      isEmpty,
+    );
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, 40),
+        const Offset(60, 40),
+        5,
+        wholeStroke: true,
+      ).single,
+      same(line),
+    );
   });
 
   testWidgets('highlighter keeps its own colors, separate from the pen', (

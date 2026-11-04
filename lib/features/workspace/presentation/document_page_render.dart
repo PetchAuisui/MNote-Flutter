@@ -16,6 +16,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'editor_settings.dart';
 import 'ink_page.dart';
+import 'ink_pictures_layer.dart';
 import 'ink_session.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_rendered_block.dart';
@@ -63,9 +64,18 @@ class DocumentPageRender {
         // Unreadable ink: export the text on its own.
       }
     }
-    await _precacheImages(context, markdown, imageDirectory);
+    await _precacheImages(
+      context,
+      [
+        markdown,
+        // Pictures placed on the ink page load the same way.
+        if (includeInk)
+          for (final p in session.pictures) '![](${p.src})',
+      ].join('\n\n'),
+      imageDirectory,
+    );
 
-    final showInk = includeInk && session.hasInk;
+    final showInk = includeInk && session.hasContent;
     final boundaryKey = GlobalKey();
     final blockKeys = <int, GlobalKey>{};
     final entry = OverlayEntry(
@@ -93,6 +103,13 @@ class DocumentPageRender {
                       imageDirectory: imageDirectory,
                       builders: {'code': _ExportMermaidBuilder()},
                     ),
+                    if (showInk && session.pictures.isNotEmpty)
+                      Positioned.fill(
+                        child: InkPicturesLayer(
+                          pictures: session.pictures,
+                          imageDirectory: imageDirectory,
+                        ),
+                      ),
                     if (showInk)
                       Positioned.fill(
                         child: InkLayer(
@@ -160,6 +177,9 @@ class DocumentPageRender {
   /// Ink can reach below the text, so the page must be at least this tall.
   static double _inkExtent(InkSession session) {
     var extent = 0.0;
+    for (final picture in session.pictures) {
+      extent = math.max(extent, picture.rect.bottom);
+    }
     for (final line in session.pen.currentSketch.lines) {
       for (final point in line.points) {
         extent = math.max(extent, point.y + line.width);

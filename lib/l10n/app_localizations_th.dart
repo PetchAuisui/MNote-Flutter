@@ -1107,7 +1107,22 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkHighlighter => 'ปากกาไฮไลต์';
 
   @override
-  String get inkEraser => 'ยางลบทั้งเส้น';
+  String get inkEraser => 'ยางลบ';
+
+  @override
+  String get inkEraseWhole => 'ลบทั้งเส้น';
+
+  @override
+  String get inkErasePartial => 'ลบทีละนิด';
+
+  @override
+  String get inkPictureTool => 'รูปภาพ';
+
+  @override
+  String get inkAddPicture => 'เพิ่มรูป';
+
+  @override
+  String get inkDeletePicture => 'ลบรูป';
 
   @override
   String get inkGroupStroke => 'รูปแบบเส้น';
@@ -1125,7 +1140,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkPencilOnly => 'Apple Pencil เขียน · นิ้วเลื่อนหน้า';
 
   @override
-  String get inkFitWidth => 'พอดีความกว้าง';
+  String get inkFitWidth => 'ความกว้างพอดี';
 
   @override
   String get inkGroupManage => 'จัดการหมึก';
@@ -1147,6 +1162,9 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get inkBrightness => 'ความสว่าง';
+
+  @override
+  String get inkFineTune => 'ปรับละเอียด';
 
   @override
   String get ok => 'ตกลง';

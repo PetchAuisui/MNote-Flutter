@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:mnote/models/note_item.dart';
 import 'package:mnote/app/mnote_app.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -418,42 +419,54 @@ void main() {
     expect(find.textContaining('keep me'), findsWidgets);
   });
 
-  testWidgets('writing-mode fit width keeps the scroll position', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1200, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    MarkdownWorkspacePage.defaultMode = WorkspaceMode.ink;
-    addTearDown(() => MarkdownWorkspacePage.defaultMode = WorkspaceMode.split);
-    final repo = FakeDocumentRepository();
-    await tester.pumpWidget(
-      MnoteApp(
-        documentRepository: repo,
-        home: MarkdownWorkspacePage(
-          repository: repo,
-          initialDocument: MarkdownDocument.example(
-            List.filled(200, 'Line of text').join('\n\n'),
+  testWidgets(
+    'writing-mode fit width fills the view and keeps the scroll position',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      MarkdownWorkspacePage.defaultMode = WorkspaceMode.ink;
+      addTearDown(
+        () => MarkdownWorkspacePage.defaultMode = WorkspaceMode.split,
+      );
+      final repo = FakeDocumentRepository();
+      await tester.pumpWidget(
+        MnoteApp(
+          documentRepository: repo,
+          home: MarkdownWorkspacePage(
+            repository: repo,
+            initialDocument: MarkdownDocument.example(
+              List.filled(200, 'Line of text').join('\n\n'),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    final transform = tester
-        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
-        .transformationController!;
-    final fitted = transform.value.clone();
-    transform.value = fitted.clone()
-      ..setTranslationRaw(fitted.getTranslation().x, -2000, 0);
-    await tester.pump();
+      final transform = tester
+          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+          .transformationController!;
+      final fitted = transform.value.clone();
+      transform.value = fitted.clone()
+        ..setTranslationRaw(fitted.getTranslation().x, -2000, 0);
+      await tester.pump();
 
-    await tester.tap(find.byKey(const Key('ink-fit')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('ink-fit')));
+      await tester.pumpAndSettle();
 
-    expect(transform.value.getTranslation().y, closeTo(-2000, 0.5));
-  });
+      // The page now fills the view edge to edge, and the part of the page in
+      // the middle of the view stays there.
+      final view = tester.getSize(find.byType(InteractiveViewer));
+      final scale = transform.value.getMaxScaleOnAxis();
+      expect(DocumentPageMetrics.width * scale, closeTo(view.width, 0.5));
+      expect(transform.value.getTranslation().x, closeTo(0, 0.5));
+      final before = (view.height / 2 + 2000) / fitted.getMaxScaleOnAxis();
+      final after =
+          (view.height / 2 - transform.value.getTranslation().y) / scale;
+      expect(after, closeTo(before, 0.5));
+    },
+  );
 
   testWidgets('a new note in writing mode starts at the top', (tester) async {
     tester.view.physicalSize = const Size(1200, 1600);

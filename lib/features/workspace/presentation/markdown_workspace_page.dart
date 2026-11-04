@@ -31,6 +31,7 @@ import 'markdown_live_editor.dart';
 import 'markdown_outline_panel.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
+import 'ink_pictures_layer.dart';
 import 'ink_session.dart';
 import 'export_sheet.dart';
 
@@ -88,9 +89,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   bool _isEditingTitle = false;
   InkSession _ink = InkSession();
   late final TransformationController _inkTransform;
-  InkTool _inkTool = InkTool.pen;
-  Color _inkPenColor = const Color(0xFF202124);
-  double _inkPenWidth = 3;
   bool _inkTouch = InkSettings.instance.fingerDrawing;
   final _inkFit = InkFitController();
 
@@ -873,7 +871,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// The ink to export. The ink page loads saved ink only once it is shown,
   /// so in another mode the session is still empty and the saved copy is used.
   Future<String?> _currentInkSnapshot() async {
-    if (_ink.pen.currentSketch.lines.isNotEmpty) return _ink.encode();
+    if (_ink.hasContent) return _ink.encode();
     final storage =
         InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
     final bytes = await storage.autoLoad(name: _workspace.document.name);
@@ -1548,55 +1546,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
-  void _selectInkTool(InkTool tool) {
-    setState(() => _inkTool = tool);
-    final pen = _ink.pen;
-    switch (tool) {
-      case InkTool.pen:
-        pen
-          ..setColor(_inkPenColor)
-          ..setStrokeWidth(_inkPenWidth);
-      case InkTool.highlighter:
-        pen
-          ..setColor(InkSession.highlightInk(_ink.highlightColor))
-          ..setStrokeWidth(_ink.highlightWidth);
-      case InkTool.eraser:
-        pen
-          ..setEraser()
-          ..setStrokeWidth(28);
-    }
-  }
-
-  void _selectInkColor(Color color) {
-    if (_inkTool == InkTool.highlighter) {
-      _ink.selectHighlight(color: color);
-      _ink.pen.setColor(InkSession.highlightInk(color));
-      return;
-    }
-    setState(() {
-      _inkPenColor = color;
-      _inkTool = InkTool.pen;
-    });
-    _ink.pen
-      ..setColor(color)
-      ..setStrokeWidth(_inkPenWidth);
-  }
-
-  void _selectInkWidth(double width) {
-    if (_inkTool == InkTool.highlighter) {
-      _ink.selectHighlight(width: width);
-      _ink.pen.setStrokeWidth(width);
-      return;
-    }
-    setState(() {
-      _inkPenWidth = width;
-      _inkTool = InkTool.pen;
-    });
-    _ink.pen
-      ..setColor(_inkPenColor)
-      ..setStrokeWidth(width);
-  }
-
   void _toggleInkTouch() {
     setState(() => _inkTouch = !_inkTouch);
     _ink.pen.setAllowedPointersMode(
@@ -1630,35 +1579,21 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   Widget _buildInkToolbar() {
     return ListenableBuilder(
       listenable: _ink,
-      builder: (context, _) => InkToolbar(
-        selectedTool: _inkTool,
-        penColor: _inkTool == InkTool.highlighter
-            ? _ink.highlightColor
-            : _inkPenColor,
-        penWidth: _inkTool == InkTool.highlighter
-            ? _ink.highlightWidth
-            : _inkPenWidth,
+      builder: (context, _) => InkToolbar.forSession(
+        session: _ink,
         touchEnabled: _inkTouch,
-        onToolSelected: _selectInkTool,
-        onColorSelected: _selectInkColor,
-        onWidthSelected: _selectInkWidth,
-        colorPresets: _inkTool == InkTool.highlighter
-            ? _ink.highlightPresets
-            : _ink.colorPresets,
-        widthPresets: _inkTool == InkTool.highlighter
-            ? _ink.highlightWidthPresets
-            : _ink.widthPresets,
-        onColorPresetChanged: _inkTool == InkTool.highlighter
-            ? _ink.setHighlightPreset
-            : _ink.setColorPreset,
-        onWidthPresetChanged: _inkTool == InkTool.highlighter
-            ? _ink.setHighlightWidthPreset
-            : _ink.setWidthPreset,
-        onUndo: _ink.pen.canUndo ? _ink.pen.undo : null,
-        onRedo: _ink.pen.canRedo ? _ink.pen.redo : null,
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
         onFit: _inkFit.fit,
+        onAddPicture: () => insertInkPicture(
+          context: context,
+          session: _ink,
+          picker: widget.imagePicker,
+          imageDirectory: _imageDirectory,
+          center:
+              _ink.visibleCenter?.call() ??
+              const Offset(InkSession.pageWidth / 2, 400),
+        ),
       ),
     );
   }

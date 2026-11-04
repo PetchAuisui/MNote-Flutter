@@ -1,0 +1,269 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/workspace/data/device_image_picker.dart';
+import 'package:mnote/features/workspace/data/ink_file_storage.dart';
+import 'package:mnote/features/workspace/presentation/ink_page.dart';
+import 'package:mnote/features/workspace/presentation/ink_picture.dart';
+import 'package:mnote/features/workspace/presentation/ink_session.dart';
+import 'package:mnote/features/workspace/presentation/stylus_actions.dart';
+import 'package:mnote/l10n/app_localizations.dart';
+import 'package:scribble/scribble.dart';
+
+class _Picker extends DeviceImagePicker {
+  const _Picker();
+
+  @override
+  Future<MarkdownImageReference?> pick({Uri? documentDirectory}) async =>
+      MarkdownImageReference(
+        alt: 'cat',
+        uri: Uri(pathSegments: ['images', 'cat-0001.png']),
+      );
+}
+
+class _Storage implements InkFileStorage {
+  @override
+  Future<bool> autoSave({
+    required String name,
+    required Uint8List bytes,
+  }) async => true;
+
+  @override
+  Future<Uint8List?> autoLoad({required String name}) async => null;
+
+  @override
+  Future<void> deleteAll() async {}
+
+  @override
+  Future<List<String>> listNames() async => const [];
+
+  @override
+  Future<Uint8List?> open() async => null;
+
+  @override
+  Future<bool> save({required String name, required Uint8List bytes}) async =>
+      true;
+}
+
+Widget _page(InkSession session) => MaterialApp(
+  locale: const Locale('en'),
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: Scaffold(
+    body: InkPage(
+      session: session,
+      markdown: '# Notes',
+      name: 'notes.md',
+      fileStorage: _Storage(),
+      imagePicker: const _Picker(),
+    ),
+  ),
+);
+
+void main() {
+  test('pictures are kept on the page and survive saving', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    expect(session.isDirty, isFalse);
+    final picture = session.addPicture(
+      'images/cat.png',
+      size: const Size(2000, 1000),
+      center: const Offset(500, 300),
+    );
+    // Wide pictures start at half the page width, keeping their shape.
+    expect(picture.rect.width, InkSession.pageWidth / 2);
+    expect(picture.rect.height, InkSession.pageWidth / 4);
+    expect(session.selectedPicture, picture.id);
+    expect(session.hasContent, isTrue);
+    expect(session.hasInk, isFalse);
+    expect(session.isDirty, isTrue);
+
+    session.placePicture(picture.id, const Rect.fromLTWH(-50, -50, 100, 80));
+    expect(session.pictures.single.rect, const Rect.fromLTWH(0, 0, 100, 80));
+    session.placePicture(
+      picture.id,
+      const Rect.fromLTWH(InkSession.pageWidth - 10, 0, 100, 80),
+    );
+    expect(session.pictures.single.rect.right, InkSession.pageWidth);
+
+    final snapshot = session.encode();
+    session.markSaved(snapshot);
+    expect(session.isDirty, isFalse);
+    expect(InkPicture.sourcesIn(jsonDecode(snapshot)), {'images/cat.png'});
+
+    final reloaded = InkSession()..load(snapshot);
+    addTearDown(reloaded.dispose);
+    expect(reloaded.pictures.single.rect, session.pictures.single.rect);
+    expect(reloaded.pictures.single.src, 'images/cat.png');
+    expect(reloaded.isDirty, isFalse);
+
+    session.removePicture(picture.id);
+    expect(session.pictures, isEmpty);
+    expect(session.selectedPicture, isNull);
+    expect(session.isDirty, isTrue);
+  });
+
+  test('pictures keep their shape however they are clamped', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final banner = session.addPicture(
+      'images/banner.png',
+      size: const Size(2000, 100),
+      center: const Offset(500, 300),
+    );
+    expect(banner.rect.width / banner.rect.height, closeTo(20, 0.001));
+    expect(banner.rect.height, greaterThanOrEqualTo(InkPicture.minSide));
+    expect(banner.rect.width, lessThanOrEqualTo(InkSession.pageWidth));
+
+    session.placePicture(banner.id, const Rect.fromLTWH(0, 0, 100, 5));
+    final shrunk = session.pictures.single.rect;
+    expect(shrunk.width / shrunk.height, closeTo(20, 0.001));
+
+    session.placePicture(banner.id, const Rect.fromLTWH(0, 0, 4000, 200));
+    final grown = session.pictures.single.rect;
+    expect(grown.width, InkSession.pageWidth);
+    expect(grown.width / grown.height, closeTo(20, 0.001));
+  });
+
+  test('the session owns the tool, so every toolbar agrees', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    session.selectTool(InkTool.highlighter);
+    expect(session.toolColorPresets, same(session.highlightPresets));
+    session.selectToolColor(session.highlightPresets[1]);
+    expect(session.tool, InkTool.highlighter);
+    expect(session.highlightColor, session.highlightPresets[1]);
+
+    session.selectTool(InkTool.picture);
+    expect(session.movingPictures, isTrue);
+    session.selectToolWidth(6);
+    expect(session.tool, InkTool.pen);
+    expect(session.penWidth, 6);
+    expect(session.movingPictures, isFalse);
+    expect(session.pen.value.selectedWidth, 6);
+
+    session.applyStylusAction(StylusAction.switchEraser);
+    expect(session.tool, InkTool.eraser);
+    session.applyStylusAction(StylusAction.switchEraser);
+    expect(session.tool, InkTool.pen);
+  });
+
+  test('ink files with unsafe pictures are refused', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final data = jsonDecode(session.encode()) as Map<String, dynamic>;
+    data['pictures'] = [
+      {'id': 'a', 'src': '../secret.png', 'x': 0, 'y': 0, 'w': 10, 'h': 10},
+    ];
+    expect(() => session.load(jsonEncode(data)), throwsFormatException);
+    data['pictures'] = [
+      {'id': 'a', 'src': 'images/a.png', 'x': -5, 'y': 0, 'w': 10, 'h': 10},
+    ];
+    expect(() => session.load(jsonEncode(data)), throwsFormatException);
+    expect(InkPicture.sourcesIn({'pictures': 'nope'}), isEmpty);
+  });
+
+  testWidgets('picture tool adds, moves, resizes and deletes pictures', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_page(session));
+    await tester.pumpAndSettle();
+
+    // Choosing the tool opens the picker and adds the picture straight away.
+    await tester.tap(find.byKey(const Key('ink-picture-tool')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pumpAndSettle();
+    expect(session.movingPictures, isTrue);
+    expect(find.byKey(const Key('ink-color-preset-0')), findsNothing);
+    expect(
+      tester
+          .widget<IgnorePointer>(
+            find
+                .ancestor(
+                  of: find.byType(Scribble),
+                  matching: find.byType(IgnorePointer),
+                )
+                .first,
+          )
+          .ignoring,
+      isTrue,
+    );
+
+    final picture = session.pictures.single;
+    expect(picture.src, 'images/cat-0001.png');
+    expect(session.selectedPicture, picture.id);
+
+    final drag = find.byKey(Key('ink-picture-drag-${picture.id}'));
+    final before = session.pictures.single.rect;
+    await tester.drag(drag, const Offset(60, 40));
+    await tester.pumpAndSettle();
+    final moved = session.pictures.single.rect;
+    expect(moved.left, greaterThan(before.left));
+    expect(moved.top, greaterThan(before.top));
+    expect(moved.size, before.size);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('ink-picture-resize'))),
+    );
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump();
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final resized = session.pictures.single.rect;
+    expect(resized.width, greaterThan(moved.width));
+    expect(
+      resized.width / resized.height,
+      closeTo(before.width / before.height, 0.01),
+    );
+
+    // Pinching on the picture resizes it rather than zooming the page.
+    final center = tester.getCenter(drag);
+    final pageScale = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!
+        .value
+        .getMaxScaleOnAxis();
+    final a = await tester.startGesture(center - const Offset(30, 0));
+    final b = await tester.startGesture(center + const Offset(30, 0));
+    for (var i = 0; i < 4; i++) {
+      await a.moveBy(const Offset(-10, 0));
+      await b.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+    final pinched = session.pictures.single.rect;
+    expect(pinched.width, greaterThan(resized.width));
+    expect(
+      tester
+          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+          .transformationController!
+          .value
+          .getMaxScaleOnAxis(),
+      pageScale,
+    );
+
+    // The pinched picture now reaches past the screen, so delete it from
+    // the toolbar.
+    await tester.tap(find.byKey(const Key('ink-delete-picture')));
+    await tester.pumpAndSettle();
+    expect(session.pictures, isEmpty);
+
+    await tester.tap(find.byKey(const Key('ink-pen')));
+    await tester.pumpAndSettle();
+    expect(session.movingPictures, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+}

@@ -24,6 +24,10 @@ abstract interface class InkFileStorage {
 class DeviceInkFileStorage implements InkFileStorage {
   const DeviceInkFileStorage();
 
+  /// The file that holds the ink of the note [name] inside [directory].
+  static File fileIn(Directory directory, String name) =>
+      File('${directory.path}/$name$_suffix');
+
   @override
   Future<bool> save({required String name, required Uint8List bytes}) async {
     final uri = await FilePicker.saveFile(
@@ -51,7 +55,7 @@ class DeviceInkFileStorage implements InkFileStorage {
   }) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final file = File('${appDir.path}/$name.ink.json');
+      final file = fileIn(appDir, name);
       await file.writeAsBytes(bytes, flush: true);
       return true;
     } catch (_) {
@@ -63,7 +67,7 @@ class DeviceInkFileStorage implements InkFileStorage {
   Future<Uint8List?> autoLoad({required String name}) async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final file = File('${appDir.path}/$name.ink.json');
+      final file = fileIn(appDir, name);
       if (await file.exists()) {
         return await file.readAsBytes();
       }

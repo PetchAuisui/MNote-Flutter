@@ -17,6 +17,7 @@ import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
+import 'package:mnote/features/workspace/data/ink_picture_index.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/models/note_item.dart';
@@ -114,11 +115,20 @@ class _MnoteAppState extends State<MnoteApp> {
       network: widget.networkMonitor,
     );
     ink?.policy = repository.allowsInk;
-    images?.notes = () async => [
+    images?.notes = () async {
+      final notes = <String>[];
       for (final doc
-          in (await local.loadMetadata())?.documents ?? const <DocumentItem>[])
-        if (doc.syncMode != SyncMode.never && !doc.isTrash) doc.content,
-    ];
+          in (await local.loadMetadata())?.documents ??
+              const <DocumentItem>[]) {
+        if (doc.syncMode == SyncMode.never || doc.isTrash) continue;
+        notes.add(doc.content);
+        // Pictures placed on the ink page live in the ink file, not the text.
+        for (final src in await _inkPictures.sourcesFor(doc.name)) {
+          notes.add('![]($src)');
+        }
+      }
+      return notes;
+    };
     return repository;
   }
 
@@ -145,6 +155,7 @@ class _MnoteAppState extends State<MnoteApp> {
 
   // Built once: they own Firestore listeners, so rebuilding the app widget
   // must not create (and leak) new ones.
+  final _inkPictures = InkPictureIndex();
   late final SyncSettings _syncSettings = widget.syncSettings ?? SyncSettings();
   late final SyncedInkFileStorage? _ink = _syncedInk();
   late final SyncedImageFiles? _images = _syncedImages();

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -5,6 +6,10 @@ import 'package:flutter/painting.dart';
 import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
+import 'ink_pen.dart';
+import 'ink_picture.dart';
+import 'ink_tool.dart';
+import 'stylus_actions.dart';
 import 'ink_settings.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_document_style.dart';
@@ -13,7 +18,7 @@ import 'markdown_document_style.dart';
 class InkSession extends ChangeNotifier {
   static const pageWidth = DocumentPageMetrics.width;
   double height = DocumentPageMetrics.initialHeight;
-  late final ScribbleNotifier pen = ScribbleNotifier(
+  late final InkPenNotifier pen = InkPenNotifier(
     allowedPointersMode: InkSettings.instance.fingerDrawing
         ? ScribblePointerMode.all
         : ScribblePointerMode.penOnly,
@@ -41,6 +46,15 @@ class InkSession extends ChangeNotifier {
   Color highlightColor = const Color(0xFFFFD54F);
   double highlightWidth = 18;
 
+  /// Whether the eraser deletes whole strokes rather than only what it covers.
+  bool get eraseWholeStroke => pen.eraseWholeStroke;
+
+  void setEraseWholeStroke(bool whole) {
+    if (pen.eraseWholeStroke == whole) return;
+    pen.eraseWholeStroke = whole;
+    notifyListeners();
+  }
+
   static Color highlightInk(Color color) => color.withValues(alpha: 0.5);
 
   void setHighlightPreset(int index, Color color) {
@@ -63,6 +77,170 @@ class InkSession extends ChangeNotifier {
 
   /// Whether anything has been drawn on the page.
   bool get hasInk => pen.currentSketch.lines.isNotEmpty;
+
+  final List<InkPicture> _pictures = [];
+
+  /// Pictures placed freely on the page, beneath the ink, bottom first.
+  List<InkPicture> get pictures => List.unmodifiable(_pictures);
+
+  /// The picture being moved or resized, if any.
+  String? selectedPicture;
+
+  /// Whether the picture tool is on: pictures can be moved and resized, and
+  /// the pen is paused.
+  bool get movingPictures => tool == InkTool.picture;
+
+  /// The selected tool. Kept here, not in the page showing the ink, so every
+  /// toolbar for this session agrees on it.
+  InkTool get tool => _tool;
+  InkTool _tool = InkTool.pen;
+  InkTool _previousTool = InkTool.pen;
+
+  /// The pen's own color and width (the highlighter keeps its own).
+  Color get penColor => _penColor;
+  Color _penColor = const Color(0xFF202124);
+  double get penWidth => _penWidth;
+  double _penWidth = 3;
+
+  bool get _highlighting => _tool == InkTool.highlighter;
+
+  /// Color and width of the tool in hand, for the toolbar.
+  Color get toolColor => _highlighting ? highlightColor : _penColor;
+  double get toolWidth => _highlighting ? highlightWidth : _penWidth;
+  List<Color> get toolColorPresets =>
+      _highlighting ? highlightPresets : colorPresets;
+  List<double> get toolWidthPresets =>
+      _highlighting ? highlightWidthPresets : widthPresets;
+
+  void setToolColorPreset(int index, Color color) => _highlighting
+      ? setHighlightPreset(index, color)
+      : setColorPreset(index, color);
+
+  void setToolWidthPreset(int index, double width) => _highlighting
+      ? setHighlightWidthPreset(index, width)
+      : setWidthPreset(index, width);
+
+  void selectTool(InkTool tool) {
+    if (tool != _tool) _previousTool = _tool;
+    _tool = tool;
+    if (tool != InkTool.picture) selectedPicture = null;
+    switch (tool) {
+      case InkTool.pen:
+        pen
+          ..setColor(_penColor)
+          ..setStrokeWidth(_penWidth);
+      case InkTool.highlighter:
+        pen
+          ..setColor(highlightInk(highlightColor))
+          ..setStrokeWidth(highlightWidth);
+      case InkTool.eraser:
+        pen
+          ..setEraser()
+          ..setStrokeWidth(InkPenNotifier.eraserRadius);
+      case InkTool.picture:
+        break;
+    }
+    notifyListeners();
+  }
+
+  /// Picks a color for the highlighter while it's in hand, else for the pen
+  /// (switching to it).
+  void selectToolColor(Color color) {
+    if (_highlighting) {
+      selectHighlight(color: color);
+      pen.setColor(highlightInk(color));
+      return;
+    }
+    _penColor = color;
+    selectTool(InkTool.pen);
+  }
+
+  /// Picks a width for the highlighter while it's in hand, else for the pen
+  /// (switching to it).
+  void selectToolWidth(double width) {
+    if (_highlighting) {
+      selectHighlight(width: width);
+      pen.setStrokeWidth(width);
+      return;
+    }
+    _penWidth = width;
+    selectTool(InkTool.pen);
+  }
+
+  /// Does what a stylus gesture (Apple Pencil double-tap or squeeze) asked.
+  void applyStylusAction(StylusAction action) {
+    final next = toolAfterStylusAction(
+      action,
+      current: _tool,
+      previous: _previousTool,
+    );
+    if (next != null) selectTool(next);
+  }
+
+  /// The page point at the middle of what's on screen, set by the page that
+  /// shows this session, so new pictures land where the person is looking.
+  Offset Function()? visibleCenter;
+
+  /// Whether the page has ink or pictures on it.
+  bool get hasContent => hasInk || _pictures.isNotEmpty;
+
+  int _pictureSerial = 0;
+
+  /// Places the picture at [src] (natural size [size]) centred on [center],
+  /// shrunk to at most half the page width, and selects it.
+  InkPicture addPicture(
+    String src, {
+    required Size size,
+    required Offset center,
+  }) {
+    final scale = size.width > pageWidth / 2 ? pageWidth / 2 / size.width : 1.0;
+    // fitOnPage enlarges tiny pictures, keeping their shape.
+    final width = size.width * scale;
+    final height = size.height * scale;
+    final picture = InkPicture(
+      id: '${DateTime.now().microsecondsSinceEpoch}-${_pictureSerial++}',
+      src: src,
+      rect: () {
+        final rect = Rect.fromCenter(
+          center: center,
+          width: width,
+          height: height,
+        );
+        return InkPicture.fitOnPage(
+          rect,
+          pageWidth,
+          math.max(this.height, rect.bottom),
+        );
+      }(),
+    );
+    _pictures.add(picture);
+    selectedPicture = picture.id;
+    grow(picture.rect.bottom);
+    notifyListeners();
+    return picture;
+  }
+
+  /// Moves or resizes a picture, keeping it on the page.
+  void placePicture(String id, Rect rect) {
+    final i = _pictures.indexWhere((p) => p.id == id);
+    if (i < 0) return;
+    _pictures[i] = _pictures[i].copyWith(
+      rect: InkPicture.fitOnPage(rect, pageWidth, height),
+    );
+    notifyListeners();
+  }
+
+  void removePicture(String id) {
+    _pictures.removeWhere((p) => p.id == id);
+    if (selectedPicture == id) selectedPicture = null;
+    notifyListeners();
+  }
+
+  void selectPicture(String? id) {
+    if (selectedPicture == id) return;
+    selectedPicture = id;
+    notifyListeners();
+  }
 
   /// How the page text must be laid out under this ink. Ink is drawn at fixed
   /// positions, so once a page has ink its text keeps the size, line height
@@ -105,7 +283,14 @@ class InkSession extends ChangeNotifier {
     );
   }
 
-  String _savedSketch = jsonEncode(const Sketch(lines: []).toJson());
+  String _saved = _savedState(const Sketch(lines: []).toJson(), const []);
+
+  static String _savedState(Object? sketch, Object? pictures) =>
+      jsonEncode({'sketch': sketch, 'pictures': pictures ?? const []});
+
+  List<Map<String, Object>> get _picturesJson => [
+    for (final p in _pictures) p.toJson(),
+  ];
 
   void setColorPreset(int index, Color color) {
     colorPresets[index] = color;
@@ -175,7 +360,8 @@ class InkSession extends ChangeNotifier {
     }
   }
 
-  bool get isDirty => jsonEncode(pen.currentSketch.toJson()) != _savedSketch;
+  bool get isDirty =>
+      _savedState(pen.currentSketch.toJson(), _picturesJson) != _saved;
 
   void grow(double value) {
     if (!value.isFinite || value <= height) return;
@@ -189,6 +375,7 @@ class InkSession extends ChangeNotifier {
     'width': pageWidth,
     'height': height,
     'sketch': pen.currentSketch.toJson(),
+    if (_pictures.isNotEmpty) 'pictures': _picturesJson,
     if (hasInk && _layout != null)
       'layout': {
         'size': _layout!.bodySize,
@@ -199,7 +386,7 @@ class InkSession extends ChangeNotifier {
 
   void markSaved(String snapshot) {
     final data = jsonDecode(snapshot) as Map<String, dynamic>;
-    _savedSketch = jsonEncode(data['sketch']);
+    _saved = _savedState(data['sketch'], data['pictures']);
     notifyListeners();
   }
 
@@ -235,12 +422,24 @@ class InkSession extends ChangeNotifier {
         }
       }
     }
+    final pictures = data['pictures'];
+    if (pictures != null && pictures is! List) {
+      throw const FormatException('Invalid ink pictures');
+    }
+    final loadedPictures = [
+      for (final p in (pictures as List?) ?? const [])
+        InkPicture.fromJson(p, pageWidth: pageWidth, pageHeight: extent),
+    ];
     height = extent;
     pen.setSketch(sketch: sketch);
+    _pictures
+      ..clear()
+      ..addAll(loadedPictures);
+    selectedPicture = null;
     _layout = sketch.lines.isEmpty
         ? null
         : _decodeLayout(data['layout']) ?? const DocumentTextOptions();
-    _savedSketch = jsonEncode(sketch.toJson());
+    _saved = _savedState(sketch.toJson(), _picturesJson);
     notifyListeners();
   }
 

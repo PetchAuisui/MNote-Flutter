@@ -2111,8 +2111,38 @@ abstract class AppLocalizations {
   /// No description provided for @inkEraser.
   ///
   /// In th, this message translates to:
-  /// **'ยางลบทั้งเส้น'**
+  /// **'ยางลบ'**
   String get inkEraser;
+
+  /// No description provided for @inkEraseWhole.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบทั้งเส้น'**
+  String get inkEraseWhole;
+
+  /// No description provided for @inkErasePartial.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบทีละนิด'**
+  String get inkErasePartial;
+
+  /// No description provided for @inkPictureTool.
+  ///
+  /// In th, this message translates to:
+  /// **'รูปภาพ'**
+  String get inkPictureTool;
+
+  /// No description provided for @inkAddPicture.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มรูป'**
+  String get inkAddPicture;
+
+  /// No description provided for @inkDeletePicture.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบรูป'**
+  String get inkDeletePicture;
 
   /// No description provided for @inkGroupStroke.
   ///
@@ -2147,7 +2177,7 @@ abstract class AppLocalizations {
   /// No description provided for @inkFitWidth.
   ///
   /// In th, this message translates to:
-  /// **'พอดีความกว้าง'**
+  /// **'ความกว้างพอดี'**
   String get inkFitWidth;
 
   /// No description provided for @inkGroupManage.
@@ -2191,6 +2221,12 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'ความสว่าง'**
   String get inkBrightness;
+
+  /// No description provided for @inkFineTune.
+  ///
+  /// In th, this message translates to:
+  /// **'ปรับละเอียด'**
+  String get inkFineTune;
 
   /// No description provided for @ok.
   ///

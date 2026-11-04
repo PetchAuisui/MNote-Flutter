@@ -424,55 +424,84 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
             final size = _pageKey.currentContext?.size;
             if (size != null) widget.session.grow(size.height);
           });
-          return InteractiveViewer(
-            transformationController: _transform,
-            constrained: false,
-            alignment: Alignment.topLeft,
-            // InteractiveViewer won't zoom out past the point where the page
-            // fills the viewport. On a viewport wider than the page that
-            // stops the zoom short of the fitted state, so leave the sides
-            // open; _clampHorizontal keeps the page centred or edge-clamped.
-            boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
-            minScale: 0.1,
-            maxScale: 4,
-            panEnabled: !_touch,
-            scaleEnabled: !_touch,
-            // InteractiveViewer already scales the complete page. Keep
-            // Scribble's scale at 1 so stroke width is not scaled twice.
-            child: SizedBox(
-              width: InkSession.pageWidth,
-              child: Stack(
-                key: _pageKey,
-                children: [
-                  MarkdownDocumentSurface(
-                    markdown: widget.markdown,
-                    height: widget.session.height,
-                    selectable: false,
-                    blockKeys: widget.outline == null ? null : _blockKeys,
-                    textOptions: widget.session.layoutFor(
-                      EditorSettings.instance.textOptions,
+          // The gray backdrop and the page's border and shadow show where
+          // ink can go; nothing outside the page is drawable.
+          return ColoredBox(
+            key: const Key('ink-page-backdrop'),
+            color: _backdropColor,
+            child: InteractiveViewer(
+              transformationController: _transform,
+              constrained: false,
+              alignment: Alignment.topLeft,
+              // InteractiveViewer won't zoom out past the point where the page
+              // fills the viewport. On a viewport wider than the page that
+              // stops the zoom short of the fitted state, so leave the sides
+              // open; _clampHorizontal keeps the page centred or edge-clamped.
+              boundaryMargin: const EdgeInsets.symmetric(horizontal: 10000),
+              minScale: 0.1,
+              maxScale: 4,
+              panEnabled: !_touch,
+              scaleEnabled: !_touch,
+              // InteractiveViewer already scales the complete page. Keep
+              // Scribble's scale at 1 so stroke width is not scaled twice.
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x29000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 2),
                     ),
-                    imageDirectory: widget.imageDirectory,
-                    builders: {'code': MermaidElementBuilder()},
+                  ],
+                ),
+                child: SizedBox(
+                  width: InkSession.pageWidth,
+                  child: Stack(
+                    key: _pageKey,
+                    children: [
+                      MarkdownDocumentSurface(
+                        markdown: widget.markdown,
+                        height: widget.session.height,
+                        selectable: false,
+                        blockKeys: widget.outline == null ? null : _blockKeys,
+                        textOptions: widget.session.layoutFor(
+                          EditorSettings.instance.textOptions,
+                        ),
+                        imageDirectory: widget.imageDirectory,
+                        builders: {'code': MermaidElementBuilder()},
+                      ),
+                      // Highlighter strokes multiply onto the page, so the text
+                      // stays crisp like a real highlighter and pictures are
+                      // marked too.
+                      Positioned.fill(
+                        child: InkLayer(notifier: pen, highlighter: true),
+                      ),
+                      Positioned.fill(
+                        child: InkLayer(notifier: pen, highlighter: false),
+                      ),
+                      // Receives the pointer input; the layers above and beneath
+                      // the text do the drawing.
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0,
+                          child: Scribble(notifier: pen, drawPen: false),
+                        ),
+                      ),
+                      const Positioned.fill(
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            key: Key('ink-page-border'),
+                            decoration: BoxDecoration(
+                              border: Border.fromBorderSide(
+                                BorderSide(color: _pageBorderColor, width: 2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  // Highlighter strokes multiply onto the page, so the text
-                  // stays crisp like a real highlighter and pictures are
-                  // marked too.
-                  Positioned.fill(
-                    child: InkLayer(notifier: pen, highlighter: true),
-                  ),
-                  Positioned.fill(
-                    child: InkLayer(notifier: pen, highlighter: false),
-                  ),
-                  // Receives the pointer input; the layers above and beneath
-                  // the text do the drawing.
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0,
-                      child: Scribble(notifier: pen, drawPen: false),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -528,6 +557,12 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
 }
 
 enum InkTool { pen, highlighter, eraser }
+
+/// Behind the page while drawing, so the white page stands out.
+const _backdropColor = Color(0xFFE8EAED);
+
+/// Edge of the drawable page.
+const _pageBorderColor = Color(0xFFADB1B8);
 
 class _InkHistoryDock extends StatelessWidget {
   const _InkHistoryDock({required this.onUndo, required this.onRedo});

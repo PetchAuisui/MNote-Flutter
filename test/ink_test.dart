@@ -88,6 +88,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('ink page shows a border where writing is possible', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1180, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = InkSession();
+    addTearDown(session.dispose);
+    await tester.pumpWidget(_inkPage(session: session));
+    await tester.pumpAndSettle();
+    final border = find.byKey(const Key('ink-page-border'));
+    expect(border, findsOneWidget);
+    expect(tester.getSize(border).width, InkSession.pageWidth);
+    expect(
+      tester
+          .widget<ColoredBox>(find.byKey(const Key('ink-page-backdrop')))
+          .color,
+      isNot(Colors.white),
+    );
+  });
+
   testWidgets('stylus draws on the transformed page and undo removes ink', (
     tester,
   ) async {

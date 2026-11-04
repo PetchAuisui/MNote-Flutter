@@ -1,0 +1,4 @@
+tags:
+  # Checks that the app, its config and its backend rules stay locked down.
+  # Run only these with: flutter test --tags security
+  security:

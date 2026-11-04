@@ -17,7 +17,13 @@ permissions:
 env:
   FLUTTER_CHANNEL: stable
 
+# Stages (each column in the Actions graph):
+#   1. Format & Analyze
+#   2. Tests, in parallel: Unit & Widget (coverage ≥ 70%), Integration,
+#      Security: Rules (Firebase emulator), Security: App
+#   3. Builds, only once every test job has passed
 jobs:
+  # ── Stage 1 ─────────────────────────────────────────────────────────────
   analyze:
     name: Format & Analyze
     runs-on: ubuntu-latest
@@ -42,8 +48,10 @@ jobs:
       - name: Check for outdated dependencies (informational)
         run: flutter pub outdated || true
 
+  # ── Stage 2: tests ──────────────────────────────────────────────────────
   test:
     name: Unit & Widget Tests
+    needs: analyze
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -58,7 +66,8 @@ jobs:
         run: flutter pub get
 
       - name: Run tests with coverage
-        run: flutter test --coverage --reporter expanded
+        # Security checks run in their own job below.
+        run: flutter test --coverage --exclude-tags security --reporter expanded
 
       - name: Coverage summary
         run: |
@@ -95,9 +104,86 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  integration:
+    name: Integration Tests
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The whole app runs headless on the Flutter test device, with real
+      # files on disk and the real SQLite library index.
+      - name: Run integration tests
+        run: flutter test integration_test -d flutter-tester --reporter expanded
+
+  security-app:
+    name: 'Security: App'
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # No secrets in git, platform config and rules stay locked down.
+      - name: Run security checks
+        run: flutter test --tags security --reporter expanded
+
+  security-rules:
+    name: 'Security: Rules'
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: test_security_rules
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: test_security_rules/package-lock.json
+
+      # The Firebase emulators need Java 21 or newer.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('test_security_rules/package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Firestore and Storage rules tests
+        run: npm test
+
+  # ── Stage 3: builds ─────────────────────────────────────────────────────
   build-android:
-    name: Build Android (debug APK)
-    needs: [analyze, test]
+    name: Build Android
+    needs: [test, integration, security-app, security-rules]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -114,7 +200,8 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: flutter build apk --debug
+      - name: Build debug APK
+        run: flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -124,8 +211,8 @@ jobs:
           retention-days: 7
 
   build-ios:
-    name: Build iOS (no codesign)
-    needs: [analyze, test]
+    name: Build iOS
+    needs: [test, integration, security-app, security-rules]
     runs-on: macos-latest
     timeout-minutes: 40
     steps:
@@ -137,4 +224,5 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: flutter build ios --debug --no-codesign
+      - name: Build iOS app (no codesign)
+        run: flutter build ios --debug --no-codesign

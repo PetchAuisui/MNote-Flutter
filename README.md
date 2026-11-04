@@ -111,6 +111,31 @@ flutter analyze
 flutter test
 ```
 
+## การทดสอบ
+
+CI รันการทดสอบทั้ง 4 ประเภททุกครั้งที่ push หรือเปิด PR และจะไม่ผ่านถ้า line coverage ของ `test/` ต่ำกว่า 70%
+
+| ประเภท | อยู่ที่ | ทดสอบอะไร |
+|---|---|---|
+| Unit | `test/**` (ส่วนที่ไม่ต้อง render) | logic ทีละส่วน เช่น repository, ฐานข้อมูล drift, sync, validator |
+| Widget | `test/**` (`testWidgets`) | หน้าจอและ widget ทีละหน้า |
+| Integration | `integration_test/` | flow เต็มของแอปตั้งแต่ต้นจนจบ ใช้ repository จริง ไฟล์จริงบนดิสก์ และ SQLite จริง: สร้างโน้ต → เขียน → ปิดแอปแล้วเปิดใหม่ ข้อมูลยังอยู่ / login → guide → คลังโน้ต / ถาม AI เรื่องโน้ตแล้วได้คำตอบแบบ stream |
+| Security | `test_security_rules/`, `test/security/` และ test ที่ขึ้นต้นด้วย `(Security)` | Firestore/Storage rules บน Firebase Emulator (ผู้ใช้อื่นหรือคนที่ไม่ได้ login อ่าน/เขียนข้อมูลไม่ได้ จำกัดชนิดและขนาดไฟล์ภาพ), ไม่มี secret หลุดเข้า repo, config ของ Android/iOS ไม่เปิดช่องโหว่ และฝั่ง AI ไม่ส่งโน้ตออกไปโดยผู้ใช้ไม่รู้ |
+
+```bash
+# Unit + Widget + Security ฝั่ง Dart พร้อม coverage
+flutter test --coverage
+
+# เฉพาะ security ฝั่ง Dart
+flutter test --tags security
+
+# Integration (รันแบบไม่มีหน้าจอ หรือใส่ -d <device> เพื่อรันบน iPad/Simulator)
+flutter test integration_test -d flutter-tester
+
+# Security ของ Firebase rules (ต้องมี Node และ Java 21 ขึ้นไป)
+cd test_security_rules && npm ci && npm test
+```
+
 ## Git workflow
 
 `main` เก็บเฉพาะ baseline ที่ผ่านการตรวจสอบแล้ว งานแต่ละชุดพัฒนาใน branch แยก โดยใช้ชื่อที่สื่อความหมาย เช่น `feature/markdown-editor`

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
+import 'package:flutter/painting.dart';
 import 'package:scribble/scribble.dart';
 
 /// A [ScribbleNotifier] whose eraser either rubs out only the part of a stroke
@@ -79,6 +82,17 @@ class InkPenNotifier extends ScribbleNotifier {
     super.onPointerCancel(event);
   });
 
+  /// A stylus can leave without lifting (it hovers away, or the platform
+  /// drops it), which must still finish the swipe and hand the pen back.
+  @override
+  void onPointerExit(PointerExitEvent event) {
+    if (_resumeDrawing == null || value is! Erasing) {
+      super.onPointerExit(event);
+      return;
+    }
+    _endErase(event, () => super.onPointerExit(event));
+  }
+
   void _endErase(PointerEvent event, void Function() fallback) {
     if (!_erasingWith(event)) {
       fallback();
@@ -132,6 +146,11 @@ class InkPenNotifier extends ScribbleNotifier {
   /// The pieces of [line] left after an eraser of [radius] swept from [from]
   /// to [to]. Returns `[line]` itself when nothing was touched, and nothing
   /// at all when [wholeStroke] is set and the stroke was touched.
+  ///
+  /// The stroke is tested along its whole length, not just at its recorded
+  /// points: a fast stroke's points can lie far apart, and the eraser must
+  /// still cut the ink drawn between them. Each cut ends exactly at the edge
+  /// of the eraser.
   static List<SketchLine> eraseFromLine(
     SketchLine line,
     Offset from,
@@ -139,28 +158,87 @@ class InkPenNotifier extends ScribbleNotifier {
     double radius, {
     bool wholeStroke = false,
   }) {
+    final points = line.points;
+    if (points.isEmpty) return [line];
     final reach = radius + line.width / 2;
+    // Nothing near the eraser's path can be touched.
+    final sweep = Rect.fromPoints(from, to).inflate(reach);
+    bool near(Point a, Point b) =>
+        sweep.overlaps(Rect.fromPoints(Offset(a.x, a.y), Offset(b.x, b.y)));
+    bool covered(Point p) =>
+        _distanceToSegment(Offset(p.x, p.y), from, to) <= reach;
+    // Samples along a segment are this far apart, so the eraser can't slip
+    // between two of them.
+    final step = math.max(0.5, reach / 4);
+
     final pieces = <List<Point>>[];
     var current = <Point>[];
-    var touched = false;
-    for (final p in line.points) {
-      if (_distanceToSegment(Offset(p.x, p.y), from, to) <= reach) {
-        touched = true;
-        if (current.isNotEmpty) pieces.add(current);
-        current = <Point>[];
-      } else {
-        current.add(p);
+    var inside = covered(points.first);
+    var touched = inside;
+    if (!inside) current.add(points.first);
+    for (var i = 1; i < points.length; i++) {
+      final a = points[i - 1], b = points[i];
+      if (!inside && !near(a, b)) {
+        // Too far from the eraser for any of this segment to be covered.
+        current.add(b);
+        continue;
+      }
+      final length = math.sqrt(
+        (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y),
+      );
+      final steps = math.max(1, (length / step).ceil());
+      for (var j = 1; j <= steps; j++) {
+        final q = j == steps ? b : _lerp(a, b, j / steps);
+        final qInside = covered(q);
+        if (qInside == inside) {
+          if (!inside && j == steps) current.add(b);
+          continue;
+        }
+        if (qInside) {
+          // The ink runs into the eraser: end this piece at the last sample
+          // outside it.
+          touched = true;
+          if (j > 1) current.add(_lerp(a, b, (j - 1) / steps));
+          pieces.add(current);
+          current = <Point>[];
+        } else {
+          // The ink comes out of the eraser: a new piece starts here.
+          current = <Point>[q];
+        }
+        inside = qInside;
       }
     }
     if (!touched) return [line];
     if (wholeStroke) return const [];
-    if (current.isNotEmpty) pieces.add(current);
+    pieces.add(current);
+    final varied = points.any((p) => p.pressure != points.first.pressure);
     return [
-      for (final points in pieces)
+      for (final piece in pieces)
         // A lone point left at a cut would show up as a stray dot.
-        if (points.length > 1) line.copyWith(points: points),
+        if (piece.length > 1)
+          line.copyWith(points: varied ? _keepVaried(piece) : piece),
     ];
   }
+
+  /// Scribble works out pressure from drawing speed when every point of a
+  /// stroke has the same pressure. A piece cut from a stroke whose pressure
+  /// varied (a real stylus, or a highlight kept at an even width) mustn't
+  /// switch that on, so its first point is nudged apart from the rest.
+  static List<Point> _keepVaried(List<Point> piece) {
+    final first = piece.first.pressure;
+    if (piece.any((p) => p.pressure != first)) return piece;
+    final nudged = first >= 0.5 ? first - 0.0001 : first + 0.0001;
+    return [
+      Point(piece.first.x, piece.first.y, pressure: nudged),
+      ...piece.skip(1),
+    ];
+  }
+
+  static Point _lerp(Point a, Point b, double t) => Point(
+    a.x + (b.x - a.x) * t,
+    a.y + (b.y - a.y) * t,
+    pressure: a.pressure + (b.pressure - a.pressure) * t,
+  );
 
   static double _distanceToSegment(Offset p, Offset a, Offset b) {
     final ab = b - a;

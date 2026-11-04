@@ -59,6 +59,25 @@ void main() {
     expect(pen.value, isA<Drawing>());
   });
 
+  test('a stylus that leaves without lifting hands the pen back', () {
+    final pen = _pen();
+    addTearDown(pen.dispose);
+    const kind = PointerDeviceKind.invertedStylus;
+    pen.onPointerDown(
+      const PointerDownEvent(pointer: 1, kind: kind, position: Offset(50, 20)),
+    );
+    pen.onPointerUpdate(
+      const PointerMoveEvent(pointer: 1, kind: kind, position: Offset(50, 80)),
+    );
+    pen.onPointerExit(
+      const PointerExitEvent(pointer: 1, kind: kind, position: Offset(50, 80)),
+    );
+    expect(pen.currentSketch.lines, hasLength(2));
+    expect(pen.value, isA<Drawing>());
+    expect(pen.value.activePointerIds, isEmpty);
+    expect((pen.value as Drawing).selectedColor, 0xFF275DAD);
+  });
+
   test('holding the stylus side button erases', () {
     final pen = _pen();
     addTearDown(pen.dispose);

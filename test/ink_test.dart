@@ -457,6 +457,62 @@ void main() {
     expect(wiped, isEmpty);
   });
 
+  test('eraser cuts a fast stroke between its far-apart points', () {
+    // Two points 100px apart: the ink between them must still be erasable.
+    final line = SketchLine(
+      color: 0xFF000000,
+      width: 2,
+      points: [const Point(0, 0), const Point(100, 0)],
+    );
+    final pieces = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(50, -30),
+      const Offset(50, 30),
+      5,
+    );
+    expect(pieces, hasLength(2));
+    expect(pieces.first.points.first.x, 0);
+    // Each cut ends close to the edge of the eraser.
+    expect(pieces.first.points.last.x, inInclusiveRange(40, 44.1));
+    expect(pieces.last.points.first.x, inInclusiveRange(55.9, 60));
+    expect(pieces.last.points.last.x, 100);
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, -30),
+        const Offset(50, 30),
+        5,
+        wholeStroke: true,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('pieces of an even-width highlight stay even', () {
+    // Highlights keep an even width by giving the first point a different
+    // pressure from the rest; every piece must keep that difference.
+    final line = SketchLine(
+      color: 0x80FFD54F,
+      width: 18,
+      points: [
+        const Point(0, 0),
+        for (var x = 4; x <= 200; x += 4)
+          Point(x.toDouble(), 0, pressure: 0.5001),
+      ],
+    );
+    final pieces = InkPenNotifier.eraseFromLine(
+      line,
+      const Offset(100, -40),
+      const Offset(100, 40),
+      6,
+    );
+    expect(pieces, hasLength(2));
+    for (final piece in pieces) {
+      final first = piece.points.first.pressure;
+      expect(piece.points.any((p) => p.pressure != first), isTrue);
+    }
+  });
+
   test('whole-stroke eraser deletes any stroke it touches', () {
     final line = SketchLine(
       color: 0xFF000000,

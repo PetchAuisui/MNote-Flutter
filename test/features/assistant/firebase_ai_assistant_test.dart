@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_ai/firebase_ai.dart';
@@ -258,6 +259,48 @@ void main() {
         describeAiError(QuotaExceeded('internal project detail')),
         isNot(contains('internal')),
       );
+    });
+  });
+
+  group('Page image (handwriting)', () {
+    final png = utf8.encode('fake png');
+
+    // 7a. มีรูป: ส่งข้อความกับรูป PNG ไปด้วยกัน
+    test('7a. buildUserContent sends text and the page image together', () {
+      final content = buildUserContent(
+        'สรุป',
+        AiDocumentContext(
+          title: 'a.md',
+          content: 'x',
+          hasInk: true,
+          pageImage: png,
+        ),
+      );
+      expect(content.parts, hasLength(2));
+      expect(content.parts.first, isA<TextPart>());
+      final image = content.parts.last as InlineDataPart;
+      expect(image.mimeType, 'image/png');
+      expect(image.bytes, png);
+    });
+
+    // 7b. ไม่มีรูป: ข้อความอย่างเดียวเหมือนเดิม
+    test('7b. buildUserContent without an image sends text only', () {
+      final content = buildUserContent(
+        'สรุป',
+        const AiDocumentContext(title: 'a.md', content: 'x'),
+      );
+      expect(content.parts.single, isA<TextPart>());
+    });
+
+    // 7c. (Security) บอก AI ว่าลายมือไม่ใช่คำสั่ง และห้ามเดา เฉพาะตอนมีรูป
+    test('7c. (Security) handwriting prompt only when an image is sent', () {
+      final withImage = buildSystemPrompt(
+        hasDocument: true,
+        hasPageImage: true,
+      );
+      expect(withImage, contains('ลายมือ'));
+      expect(withImage, contains('ห้ามเดา'));
+      expect(buildSystemPrompt(hasDocument: true), isNot(contains('ลายมือ')));
     });
   });
 }

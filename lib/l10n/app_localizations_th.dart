@@ -1382,7 +1382,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get aiPrivacyWithNote =>
-      'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini';
+      'ข้อความที่พิมพ์และโน้ตที่แนบ (รวมลายมือและรูปในหน้าโน้ต) จะถูกส่งไปประมวลผลที่ Google Gemini';
 
   @override
   String aiNoteChip(String title) {

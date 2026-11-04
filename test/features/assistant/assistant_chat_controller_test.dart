@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/chat_message.dart';
@@ -547,6 +548,89 @@ void main() {
         original,
         isNot(const ChatMessage(role: ChatRole.user, text: 'ก')),
       );
+    });
+  });
+
+  group('Page image (handwriting)', () {
+    final png = utf8.encode('fake png');
+    const inkNote = AiDocumentContext(
+      title: 'a.md',
+      content: 'x',
+      hasInk: true,
+    );
+
+    // ink 1. แนบโน้ตที่มีลายมือ: ส่งรูปไปด้วย
+    test('ink 1. attached note with ink sends the page image', () async {
+      final fake = FakeAiAssistant();
+      final controller = AssistantChatController(
+        fake,
+        documentProvider: () => inkNote,
+        pageImageProvider: () async => png,
+      );
+      await controller.send('อ่านลายมือ');
+      expect(fake.lastDocument?.pageImage, png);
+    });
+
+    // ink 2. (Security) กด x แล้วไม่วาดและไม่ส่งรูป
+    test(
+      'ink 2. (Security) detached note does not render or send the image',
+      () async {
+        var renders = 0;
+        final fake = FakeAiAssistant();
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => inkNote,
+          pageImageProvider: () async {
+            renders++;
+            return png;
+          },
+        );
+        controller.setNoteAttached(false);
+        await controller.send('สวัสดี');
+        expect(renders, 0);
+        expect(fake.lastDocument, isNull);
+      },
+    );
+
+    // ink 3. ไม่มีลายมือ: ไม่วาดรูป
+    test('ink 3. note without ink does not render an image', () async {
+      var renders = 0;
+      final fake = FakeAiAssistant();
+      final controller = AssistantChatController(
+        fake,
+        documentProvider: () =>
+            const AiDocumentContext(title: 'a.md', content: 'x'),
+        pageImageProvider: () async {
+          renders++;
+          return png;
+        },
+      );
+      await controller.send('สวัสดี');
+      expect(renders, 0);
+      expect(fake.lastDocument?.pageImage, isNull);
+    });
+
+    // ink 4. มีแต่ลายมือ ไม่มีข้อความ: ยังแนบได้
+    test('ink 4. ink-only note can be attached', () {
+      final controller = AssistantChatController(
+        FakeAiAssistant(),
+        documentProvider: () =>
+            const AiDocumentContext(title: 'a.md', content: '', hasInk: true),
+      );
+      expect(controller.canAttachNote, isTrue);
+    });
+
+    // ink 5. วาดรูปไม่สำเร็จ: ยังส่งข้อความกับโน้ตได้
+    test('ink 5. render failure still sends the note text', () async {
+      final fake = FakeAiAssistant();
+      final controller = AssistantChatController(
+        fake,
+        documentProvider: () => inkNote,
+        pageImageProvider: () async => throw StateError('render failed'),
+      );
+      expect(await controller.send('สวัสดี'), isTrue);
+      expect(fake.lastDocument, isNotNull);
+      expect(fake.lastDocument?.pageImage, isNull);
     });
   });
 }

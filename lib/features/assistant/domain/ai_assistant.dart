@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'chat_message.dart';
 
 /// เนื้อหาโน้ตที่แนบให้ AI อ่านพร้อมคำถาม
@@ -19,7 +21,18 @@ final class AiDocumentContext {
   final String title;
   final String content;
 
-  const AiDocumentContext({required this.title, required this.content});
+  /// โน้ตมีลายมือ (ปากกา) ใช้ตัดสินว่าต้องวาดรูปหน้าโน้ตส่งให้ AI ไหม
+  final bool hasInk;
+
+  /// รูปหน้าโน้ตรวมลายมือ (PNG) controller ใส่ให้ตอนกดส่ง เฉพาะโน้ตที่มีลายมือ
+  final Uint8List? pageImage;
+
+  const AiDocumentContext({
+    required this.title,
+    required this.content,
+    this.hasInk = false,
+    this.pageImage,
+  });
 
   bool get isTooLong => content.length > maxContentLength;
 }

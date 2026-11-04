@@ -2621,7 +2621,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPrivacyWithNote.
   ///
   /// In th, this message translates to:
-  /// **'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini'**
+  /// **'ข้อความที่พิมพ์และโน้ตที่แนบ (รวมลายมือและรูปในหน้าโน้ต) จะถูกส่งไปประมวลผลที่ Google Gemini'**
   String get aiPrivacyWithNote;
 
   /// No description provided for @aiNoteChip.

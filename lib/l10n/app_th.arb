@@ -744,7 +744,7 @@
       }
     }
   },
-  "aiPrivacyWithNote": "ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini",
+  "aiPrivacyWithNote": "ข้อความที่พิมพ์และโน้ตที่แนบ (รวมลายมือและรูปในหน้าโน้ต) จะถูกส่งไปประมวลผลที่ Google Gemini",
   "aiNoteChip": "AI จะอ่าน: {title}",
   "@aiNoteChip": {
     "placeholders": {

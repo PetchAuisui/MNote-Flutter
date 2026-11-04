@@ -1396,7 +1396,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPrivacyWithNote =>
-      'What you type and the attached note are sent to Google Gemini for processing';
+      'What you type and the attached note (including handwriting and pictures on the page) are sent to Google Gemini for processing';
 
   @override
   String aiNoteChip(String title) {

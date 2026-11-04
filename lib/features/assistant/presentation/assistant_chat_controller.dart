@@ -10,7 +10,14 @@ class AssistantChatController extends ChangeNotifier {
   final AiAssistant _assistant;
   final AiDocumentContext Function()? _documentProvider;
 
-  AssistantChatController(this._assistant, {this._documentProvider});
+  /// วาดรูปหน้าโน้ตรวมลายมือ เรียกตอนกดส่งเฉพาะเมื่อแนบโน้ตที่มีลายมือ
+  final Future<Uint8List?> Function()? _pageImageProvider;
+
+  AssistantChatController(
+    this._assistant, {
+    this._documentProvider,
+    this._pageImageProvider,
+  });
 
   static const int maxInputLength = 2000;
   static const int maxHistoryMessages = 20;
@@ -39,7 +46,11 @@ class AssistantChatController extends ChangeNotifier {
   /// ไม่ใช้ trim() ที่คัดลอกโน้ตทั้งก้อนทุกครั้ง
   AiDocumentContext? _currentNote() {
     final note = _documentProvider?.call();
-    if (note == null || !_nonWhitespace.hasMatch(note.content)) return null;
+    // โน้ตที่มีแต่ลายมือ ไม่มีข้อความ ก็แนบได้
+    if (note == null ||
+        (!note.hasInk && !_nonWhitespace.hasMatch(note.content))) {
+      return null;
+    }
     return note;
   }
 
@@ -51,6 +62,28 @@ class AssistantChatController extends ChangeNotifier {
     if (_noteAttached == value) return;
     _noteAttached = value;
     _notifySafely();
+  }
+
+  /// ใส่รูปหน้าโน้ตให้โน้ตที่แนบและมีลายมือ
+  /// วาดไม่สำเร็จก็ส่งแค่ข้อความ ไม่ให้แชตพังเพราะรูป
+  Future<AiDocumentContext?> _withPageImage(AiDocumentContext? document) async {
+    final render = _pageImageProvider;
+    if (document == null || !document.hasInk || render == null) {
+      return document;
+    }
+    try {
+      final image = await render();
+      if (image == null) return document;
+      return AiDocumentContext(
+        title: document.title,
+        content: document.content,
+        hasInk: true,
+        pageImage: image,
+      );
+    } catch (e) {
+      debugPrint('AI page image failed: ${e.runtimeType}');
+      return document;
+    }
   }
 
   /// คืน true เมื่อ AI ตอบจบสำเร็จ
@@ -97,10 +130,17 @@ class AssistantChatController extends ChangeNotifier {
     var succeeded = false;
 
     try {
+      // รอวาดรูปเฉพาะโน้ตที่แนบและมีลายมือ โน้ตอื่นส่งทันทีเหมือนเดิม
+      // วาดหลังขึ้นสถานะกำลังตอบแล้ว กันกดส่งซ้ำระหว่างรอ
+      final note =
+          document != null && document.hasInk && _pageImageProvider != null
+          ? await _withPageImage(document)
+          : document;
+      if (_isDisposed) return false;
       final stream = _assistant.sendMessage(
         trimmedText,
         history: history,
-        document: document,
+        document: note,
       );
 
       _streamSubscription = stream.listen(

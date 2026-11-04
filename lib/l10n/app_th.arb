@@ -435,7 +435,6 @@
   "wsNotMnoteFile": "ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้",
   "wsUnsupportedFile": "เปิดได้เฉพาะไฟล์ .mnote, .md หรือ .txt",
   "wsMnoteSaveFailed": "ไม่สามารถบันทึกโน้ตที่เปิดได้",
-  "wsSaved": "บันทึกเอกสารแล้ว",
   "phHeading": "หัวข้อ",
   "phItem": "รายการ",
   "phData": "ข้อมูล",

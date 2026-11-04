@@ -260,8 +260,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     final extension = file.name.contains('.')
         ? file.name.split('.').last.toLowerCase()
         : '';
+    // Check the name before reading: the picker shows every file, and a
+    // large video picked by mistake should not be loaded just to refuse it.
     if (extension == MnoteBundle.extension) {
-      await _openMnote(file.bytes);
+      final bytes = await file.read();
+      if (!mounted) return;
+      await _openMnote(bytes);
     } else if (_openableTextExtensions.contains(extension)) {
       await _openTextFile(file);
     } else {
@@ -279,13 +283,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     if (_workspace.document.isDirty) {
       await _workspace.save();
     }
+    final bytes = await file.read();
     if (!mounted) return;
     final opened = await _runFileAction(
-      () => _workspace.openFile(
-        name: file.name,
-        uri: file.uri,
-        bytes: file.bytes,
-      ),
+      () => _workspace.openFile(name: file.name, uri: file.uri, bytes: bytes),
       successMessage: l.wsOpened,
     );
     if (opened) {
@@ -1719,17 +1720,25 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
 enum _DocumentAction { newDocument, openFile, importFile, trash }
 
-/// A file the user picked to open as a note.
+/// A file the user picked to open as a note. Its content is read only once
+/// the name shows it is a kind of file Mnote opens.
 class PickedNoteFile {
   const PickedNoteFile({
     required this.name,
     required this.uri,
-    required this.bytes,
+    required this.read,
   });
+
+  /// A file whose content is already in memory.
+  PickedNoteFile.memory({
+    required this.name,
+    required this.uri,
+    required Uint8List bytes,
+  }) : read = (() async => bytes);
 
   final String name;
   final Uri uri;
-  final Uint8List bytes;
+  final Future<Uint8List> Function() read;
 }
 
 /// Picks any file: iOS hides a `.mnote` file behind an extension filter,
@@ -1740,11 +1749,7 @@ Future<PickedNoteFile?> pickNoteFile() async {
     dialogTitle: LanguagePreferences.current().openFile,
   );
   if (file == null) return null;
-  return PickedNoteFile(
-    name: file.name,
-    uri: file.uri,
-    bytes: await file.readAsBytes(),
-  );
+  return PickedNoteFile(name: file.name, uri: file.uri, read: file.readAsBytes);
 }
 
 class _LineNumberPainter extends CustomPainter {

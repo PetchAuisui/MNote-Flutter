@@ -755,9 +755,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wsMnoteSaveFailed => 'Could not save the opened note';
 
   @override
-  String get wsSaved => 'Note saved';
-
-  @override
   String get phHeading => 'Heading';
 
   @override

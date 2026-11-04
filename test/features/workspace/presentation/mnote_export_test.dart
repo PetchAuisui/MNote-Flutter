@@ -81,7 +81,7 @@ void main() {
           home: MarkdownWorkspacePage(
             repository: repo,
             initialDocument: MarkdownDocument.example('old'),
-            filePicker: () async => PickedNoteFile(
+            filePicker: () async => PickedNoteFile.memory(
               name: 'trip.mnote',
               uri: Uri.file('/tmp/trip.mnote'),
               bytes: bytes,
@@ -130,7 +130,7 @@ void main() {
     await openPicked(
       tester,
       repo,
-      PickedNoteFile(
+      PickedNoteFile.memory(
         name: 'guide.md',
         uri: Uri.file('/tmp/guide.md'),
         bytes: Uint8List.fromList(utf8.encode('# Guide')),
@@ -145,16 +145,22 @@ void main() {
     tester,
   ) async {
     final repo = FakeDocumentRepository();
+    var reads = 0;
     await openPicked(
       tester,
       repo,
       PickedNoteFile(
-        name: 'photo.png',
-        uri: Uri.file('/tmp/photo.png'),
-        bytes: Uint8List(0),
+        name: 'holiday.mov',
+        uri: Uri.file('/tmp/holiday.mov'),
+        read: () async {
+          reads += 1;
+          return Uint8List(0);
+        },
       ),
     );
 
+    // Refused by name alone, without loading what may be a huge file.
+    expect(reads, 0);
     expect(repo.openCalls, 0);
     expect(find.textContaining('เปิดได้เฉพาะไฟล์'), findsOneWidget);
   });

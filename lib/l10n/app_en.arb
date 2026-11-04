@@ -222,7 +222,6 @@
   "wsNotMnoteFile": "This file is not a Mnote note that can be opened",
   "wsUnsupportedFile": "Only .mnote, .md or .txt files can be opened",
   "wsMnoteSaveFailed": "Could not save the opened note",
-  "wsSaved": "Note saved",
   "phHeading": "Heading",
   "phItem": "Item",
   "phData": "Data",

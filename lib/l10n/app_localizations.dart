@@ -1430,12 +1430,6 @@ abstract class AppLocalizations {
   /// **'ไม่สามารถบันทึกโน้ตที่เปิดได้'**
   String get wsMnoteSaveFailed;
 
-  /// No description provided for @wsSaved.
-  ///
-  /// In th, this message translates to:
-  /// **'บันทึกเอกสารแล้ว'**
-  String get wsSaved;
-
   /// No description provided for @phHeading.
   ///
   /// In th, this message translates to:

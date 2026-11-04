@@ -743,9 +743,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get wsMnoteSaveFailed => 'ไม่สามารถบันทึกโน้ตที่เปิดได้';
 
   @override
-  String get wsSaved => 'บันทึกเอกสารแล้ว';
-
-  @override
   String get phHeading => 'หัวข้อ';
 
   @override

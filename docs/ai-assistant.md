@@ -5,7 +5,7 @@
 - Branch: `feature/ai-chat` (แชท, PR #31), `feature/ai-note-context` (แนบโน้ต) และ `feature/ai-separate-project` (ย้าย AI ไป Firebase project แยก + เปลี่ยนโมเดล)
 - ตอบโจทย์อาจารย์ข้อ "ใช้ AI อย่างน้อย 1 Feature (Gemini API)" และเป็น Firebase บริการที่ 3 ของโปรเจกต์ (ต่อจาก Auth และ Firestore)
 - โมเดล: `gemini-3.1-flash-lite` ผ่าน Firebase project **`mnote-ai`** (แผน Spark ไม่ผูกบัตร) แยกจาก project หลัก `mnote-8db27` เหตุผลในหัวข้อ 7.6
-- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release (หลังย้าย project แล้ว), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build **iOS: รองรับในโค้ดแล้ว แต่ยังไม่ได้ทดสอบบนเครื่องจริงหลังย้าย project** (รอ PM ซึ่งมี Mac หัวข้อ 7.5)
+- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release (หลังย้าย project แล้ว), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build iOS ทดสอบบน iPad ของ PM แล้ว (debug + debug token ของ `mnote-ai` หัวข้อ 7.5)
 
 > **ก่อนเทสหรือ demo อ่านหัวข้อ 7.5 (ใครใช้ AI ได้) และ 7.6 (โควตารวมทั้งทีม)** และคนดูแล Firebase อ่านหัวข้อ 7 ทั้งหมด
 
@@ -178,6 +178,7 @@ App Check ผูกกับ Firebase app แต่ละตัว token ขอ�
 | **เปิด app `ai` ตอนส่งข้อความครั้งแรก ไม่ใช่ใน `main.dart`** | ไม่ต้องแตะ `main.dart` ของทีม และคนที่ไม่เปิดแชตไม่เสียเวลาเปิดแอปเพิ่ม |
 | **ใส่ค่า config ของ `mnote-ai` เองใน `ai_firebase_app.dart` ไม่ใช้ `flutterfire configure`** | `flutterfire configure` จะเขียนทับ `firebase_options.dart` ของ project หลัก ค่าพวกนี้เป็นตัวระบุ project ไม่ใช่ความลับ |
 | **options แยกต่อแพลตฟอร์ม (`optionsFor()`) Android + iOS เว็บและแพลตฟอร์มอื่นไม่รองรับ** | แต่ละแพลตฟอร์มลงทะเบียนเป็นแอปแยกใน `mnote-ai` มี `appId` และ `apiKey` ของตัวเอง แยกเป็นฟังก์ชันจึง test การเลือกได้โดยไม่ต้องรันบนเครื่องจริง |
+| **App Check ของ app `ai` เปิดไม่สำเร็จให้โยน error ต่อ ไม่กลืนแบบ `main.dart`** | ถ้ากลืน `_pending` จะจำ app ที่ App Check ใช้ไม่ได้ไว้ ส่งกี่ครั้งก็พังจนปิดแอป โยนต่อแล้ว `instance()` ล้าง `_pending` ลองใหม่ตอนส่งครั้งหน้า และผู้ใช้เห็นข้อความ App Check `main.dart` ต้องกลืนเพราะห้ามทำให้แอปเปิดไม่ขึ้น แต่ของ AI เรียกตอนกดส่งแชต (แก้ตามรีวิว PR #61) |
 | **error ตอนเปิด app `ai` โยน `FirebaseException` ไม่ใช่ `Error`** | `sendMessage` ดัก `on Exception` ถ้าเป็น `Error` จะหลุดจนแอปพัง |
 | **`gemini-3.1-flash-lite` แทน `gemini-3.8-flash`** | ตอบเร็วกว่ามาก และตัวเดิมได้ error จากเซิร์ฟเวอร์ในข้อความแรกบ่อย คุณภาพทดสอบแล้วพอสำหรับสรุปโน้ตและผัง mermaid ไม่ได้ตั้งระดับการคิด (หัวข้อ 8.1) |
 | **`Completer` ใน `send()`** | ให้ `dispose()` ยกเลิก subscription และปลด `send()` ได้ทันที |
@@ -260,6 +261,7 @@ App Check ผูกกับ Firebase app แต่ละตัว token ขอ�
 | App Check → Apps → android → Play Integrity | SHA-256 `2E:66:...` (ตัวเดียวกับที่ลงทะเบียนใน `mnote-8db27`) |
 | Play Integrity → Advanced settings          | ไม่ติ๊ก `PLAY_RECOGNIZED`, ไม่ติ๊ก `LICENSED`, ระดับขั้นต่ำ **Device integrity**   |
 | debug token (android)                       | faa tablet                                                                         |
+| debug token (ios) | iPad ของ PM |
 | ผู้ใช้ที่มีสิทธิ์                           | เจ้าของ project + เพื่อนในทีมเป็น **Editor** (เพื่อให้เพิ่ม debug token เองได้)    |
 
 **ของ `mnote-8db27` (ไม่ได้ใช้กับ AI แล้ว):** การตั้งค่า AI Logic, debug token และ Play Integrity เดิมยังอยู่ ไม่กระทบอะไร App Check ของ Firestore / Auth **ไม่ได้แตะ** (Monitoring)
@@ -324,7 +326,7 @@ Console ของ **`mnote-ai`** → App Check → Apps → แถว android �
 | Android `flutter run` (debug) | ได้ | ลงทะเบียน debug token ของเครื่องนั้น (7.4) |
 | Android `flutter run --release` / APK release บนเครื่องจริง | **ได้ทุกเครื่อง** ไม่ต้องลงทะเบียน | ต้อง build จากคอมที่ใส่ SHA-256 ไว้แล้ว (7.3) |
 | Android release บนโปรแกรมจำลอง | ไม่ได้ | ตั้งใจ: ไม่ผ่าน Device integrity |
-| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token ใน `mnote-ai`** (ยังไม่ได้ทดสอบจริง) | ต้องใช้ Mac ลงทะเบียน token ในแถว ios (7.4) |
+| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token ใน `mnote-ai`** (ทดสอบบน iPad ของ PM แล้ว) | ต้องใช้ Mac ลงทะเบียน token ในแถว ios (7.4) |
 | iOS แบบ release / แอปที่แจกคนอื่น | **ไม่ได้** | ต้องลงทะเบียน App Attest / DeviceCheck ซึ่งต้องมีบัญชี Apple Developer แบบเสียเงิน ทีมยังไม่มี |
 
 **build iOS ต้องใช้ Mac:** Xcode มีแค่บน macOS คนที่ใช้ Windows build หรือติดตั้งแอปลง iPhone/iPad ไม่ได้ (ไม่เกี่ยวกับ AI) ในทีมมีแค่ PM ที่มี Mac จึงเป็นคนทดสอบ iOS CI (`flutter build ios --no-codesign`) ยืนยันได้แค่ว่าโค้ด compile ผ่าน
@@ -484,6 +486,8 @@ MarkdownBody(
 - debug (ลงทะเบียน debug token ของ `mnote-ai` แล้ว) และ release: AI ตอบได้
 - ปิด/เปิดแอปหลายรอบ ข้อความแรกไม่ error (ตอนใช้ 3.8 Flash ข้อความแรก error บ่อย)
 - สรุปโน้ต, ผัง mermaid, prompt injection (กรณี 7) ยังทำงานเหมือนเดิม ตอบเร็วขึ้นชัดเจน
+- iPad ของ PM (iOS, debug + debug token ของ `mnote-ai`): AI ตอบได้
+- หลังแก้ App Check ตามรีวิว: Android ใช้งานปกติ
 
 **ทดสอบบนเครื่องเพิ่ม (ค้างจาก #31) ผ่าน:** การ์ดโค้ดคัดลอกได้โค้ดล้วน, Mermaid แสดงเป็นโค้ดระหว่างสตรีมแล้วเปลี่ยนเป็นภาพตอนจบ, เลื่อนขึ้นอ่านระหว่าง AI ตอบโดยไม่ถูกดึงลง
 

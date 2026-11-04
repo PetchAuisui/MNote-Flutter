@@ -63,6 +63,10 @@ jobs:
       - name: Coverage summary
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+          # Generated code (drift, l10n, FlutterFire) is not ours to test.
+          lcov --remove coverage/lcov.info \
+            '*.g.dart' '*/l10n/*' '*/firebase_options.dart' \
+            -o coverage/lcov.info --ignore-errors unused
           lcov --summary coverage/lcov.info | tee coverage/summary.txt
           {
             echo '### Test coverage'
@@ -70,6 +74,17 @@ jobs:
             cat coverage/summary.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce coverage ≥ 70%
+        env:
+          MIN_COVERAGE: 70
+        run: |
+          pct=$(grep -oP 'lines\.*:\s*\K[0-9.]+' coverage/summary.txt)
+          echo "Line coverage: ${pct}% (minimum ${MIN_COVERAGE}%)"
+          if awk -v p="$pct" -v m="$MIN_COVERAGE" 'BEGIN { exit !(p < m) }'; then
+            echo "::error::Line coverage ${pct}% is below ${MIN_COVERAGE}%"
+            exit 1
+          fi
 
       - name: Upload coverage report
         if: always()

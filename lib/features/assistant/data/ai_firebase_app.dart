@@ -72,19 +72,17 @@ class AiFirebaseApp {
     final app =
         Firebase.apps.where((a) => a.name == appName).firstOrNull ??
         await Firebase.initializeApp(name: appName, options: options);
-    try {
-      // provider ชุดเดียวกับ main.dart: debug ตอนพัฒนา, Play Integrity / App Attest ตอน release
-      await FirebaseAppCheck.instanceFor(app: app).activate(
-        providerAndroid: kDebugMode
-            ? const AndroidDebugProvider()
-            : const AndroidPlayIntegrityProvider(),
-        providerApple: kDebugMode
-            ? const AppleDebugProvider()
-            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
-      );
-    } catch (e) {
-      debugPrint('AI App Check activation failed: $e');
-    }
+    // provider ชุดเดียวกับ main.dart: debug ตอนพัฒนา, Play Integrity / App Attest ตอน release
+    // ถ้าล้มเหลวให้โยนต่อ instance() จะล้าง _pending แล้วลองใหม่ตอนส่งครั้งหน้า
+    // และผู้ใช้เห็น "ยืนยันความปลอดภัยของแอปไม่สำเร็จ" แทนการพังเงียบ
+    await FirebaseAppCheck.instanceFor(app: app).activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    );
     return app;
   }
 }

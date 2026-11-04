@@ -1634,12 +1634,6 @@ abstract class AppLocalizations {
   /// **'แทรกเนื้อหาจากไฟล์'**
   String get insertFromFile;
 
-  /// No description provided for @saveAs.
-  ///
-  /// In th, this message translates to:
-  /// **'บันทึกเป็น'**
-  String get saveAs;
-
   /// No description provided for @statusBusy.
   ///
   /// In th, this message translates to:

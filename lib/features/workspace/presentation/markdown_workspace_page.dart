@@ -334,13 +334,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _resetUndoHistory();
   }
 
-  Future<void> _saveDocument({bool saveAs = false}) async {
-    await _runFileAction(
-      saveAs ? _workspace.saveAs : _workspace.save,
-      successMessage: context.l10n.wsSaved,
-    );
-  }
-
   void _resetInk() {
     final previous = _ink;
     // A different note starts at its top, not where the last one was left.
@@ -1372,8 +1365,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 _openMnote();
               case _DocumentAction.importFile:
                 _importTextFile();
-              case _DocumentAction.saveAs:
-                _saveDocument(saveAs: true);
               case _DocumentAction.trash:
                 _moveToTrash();
             }
@@ -1418,16 +1409,6 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                   Icon(Icons.post_add_outlined, size: 20),
                   SizedBox(width: 12),
                   Expanded(child: Text(context.l10n.insertFromFile)),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: _DocumentAction.saveAs,
-              child: Row(
-                children: [
-                  Icon(Icons.save_as_outlined, size: 20),
-                  SizedBox(width: 12),
-                  Expanded(child: Text(context.l10n.saveAs)),
                 ],
               ),
             ),
@@ -1729,7 +1710,6 @@ enum _DocumentAction {
   openDocument,
   openMnote,
   importFile,
-  saveAs,
   trash,
 }
 

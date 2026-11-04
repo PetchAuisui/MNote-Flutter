@@ -93,15 +93,6 @@ class WorkspaceController extends ChangeNotifier {
     });
   }
 
-  Future<bool> saveAs() {
-    return _run(() async {
-      final document = await _repository.saveAs(_document);
-      if (document == null) return false;
-      _document = document;
-      return true;
-    });
-  }
-
   void clearError() {
     _errorMessage = null;
   }

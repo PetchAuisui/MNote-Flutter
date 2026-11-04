@@ -845,9 +845,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get insertFromFile => 'แทรกเนื้อหาจากไฟล์';
 
   @override
-  String get saveAs => 'บันทึกเป็น';
-
-  @override
   String get statusBusy => 'กำลังดำเนินการ…';
 
   @override

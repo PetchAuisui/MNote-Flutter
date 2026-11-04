@@ -256,7 +256,6 @@
   "openOtherDoc": "Open another note",
   "openMnote": "Open Mnote note (.mnote)",
   "insertFromFile": "Insert content from a file",
-  "saveAs": "Save as",
   "statusBusy": "Working…",
   "statusUnsaved": "Not saved yet",
   "statusExample": "Sample note · ready to edit",

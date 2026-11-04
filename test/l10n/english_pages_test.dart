@@ -79,7 +79,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('New note'), findsOneWidget);
     expect(find.text('Open another note'), findsOneWidget);
-    expect(find.text('Save as'), findsOneWidget);
+    expect(find.text('Save as'), findsNothing);
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 

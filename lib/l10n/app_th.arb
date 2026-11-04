@@ -469,7 +469,6 @@
   "openOtherDoc": "เปิดเอกสารอื่น",
   "openMnote": "เปิดโน้ต Mnote (.mnote)",
   "insertFromFile": "แทรกเนื้อหาจากไฟล์",
-  "saveAs": "บันทึกเป็น",
   "statusBusy": "กำลังดำเนินการ…",
   "statusUnsaved": "ยังไม่ได้บันทึก",
   "statusExample": "เอกสารตัวอย่าง · พร้อมแก้ไข",

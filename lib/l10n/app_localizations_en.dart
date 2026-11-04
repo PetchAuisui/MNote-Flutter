@@ -856,9 +856,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insertFromFile => 'Insert content from a file';
 
   @override
-  String get saveAs => 'Save as';
-
-  @override
   String get statusBusy => 'Working…';
 
   @override

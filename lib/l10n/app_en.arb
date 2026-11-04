@@ -417,6 +417,7 @@
   "aiFailed": "The AI could not answer. Please try again.",
   "aiQuota": "You have used up the AI assistant quota. Wait a moment and try again. If it still fails, today's quota is used up; try again tomorrow.",
   "aiUnavailable": "The AI assistant is temporarily unavailable. Please try again later.",
+  "aiBusy": "The AI assistant is busy right now. Please try again in a moment.",
   "aiAppCheck": "App security verification failed, so the AI assistant cannot be used right now.",
   "aiConnect": "Could not connect to the AI assistant. Check your internet connection and try again.",
   "aiTooLong": "The message is too long (max {max} characters)",

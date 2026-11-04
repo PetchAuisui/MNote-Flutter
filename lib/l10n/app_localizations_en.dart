@@ -1382,6 +1382,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The AI assistant is temporarily unavailable. Please try again later.';
 
   @override
+  String get aiBusy =>
+      'The AI assistant is busy right now. Please try again in a moment.';
+
+  @override
   String get aiAppCheck =>
       'App security verification failed, so the AI assistant cannot be used right now.';
 

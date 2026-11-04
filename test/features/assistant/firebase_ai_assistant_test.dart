@@ -248,6 +248,14 @@ void main() {
       expect(result.message, contains('อินเทอร์เน็ต'));
     });
 
+    test('busy server shows the try-again message', () {
+      final result = aiErrorToException(
+        ServerException('The model is overloaded. Please try again later.'),
+      );
+      expect(result.message, contains('ผู้ใช้งานมาก'));
+      expect(result.message, isNot(contains('ไม่พร้อมใช้งาน')));
+    });
+
     test('(Security) log text never includes the error message', () {
       final appCheck = FirebaseException(
         plugin: 'firebase_app_check',
@@ -301,6 +309,54 @@ void main() {
       expect(withImage, contains('ลายมือ'));
       expect(withImage, contains('ห้ามเดา'));
       expect(buildSystemPrompt(hasDocument: true), isNot(contains('ลายมือ')));
+    });
+  });
+
+  group('Retry when the server is busy', () {
+    // 8a. 503 / overloaded / หน้า error ที่ไม่ใช่ JSON ลองใหม่ได้
+    test('8a. busy and non-JSON server errors are retried', () {
+      expect(
+        isTransientAiError(
+          ServerException('The model is overloaded. Please try again later.'),
+        ),
+        isTrue,
+      );
+      expect(
+        isTransientAiError(
+          ServerException('The service is currently unavailable.'),
+        ),
+        isTrue,
+      );
+      expect(isTransientAiError(const FormatException('<html>')), isTrue);
+    });
+
+    // 8b. โควตาหมด, App Check, คำขอผิด, เน็ตหลุด ไม่ลองใหม่ (ลองแล้วก็ไม่ผ่าน)
+    test(
+      '8b. quota, App Check, bad requests and network errors are not retried',
+      () {
+        expect(isTransientAiError(QuotaExceeded('Quota exceeded')), isFalse);
+        expect(isTransientAiError(ServerException('boom')), isFalse);
+        expect(
+          isTransientAiError(
+            FirebaseException(plugin: 'firebase_app_check', code: 'unknown'),
+          ),
+          isFalse,
+        );
+        expect(isTransientAiError(const SocketException('offline')), isFalse);
+      },
+    );
+
+    // 8c. ลองไม่เกิน 3 ครั้ง ครั้งแรกทันที ครั้งสุดท้ายใช้โมเดลสำรอง
+    test('8c. at most three attempts, last one on the fallback model', () {
+      final plan = aiAttemptPlan();
+      expect(plan, hasLength(3));
+      expect(plan.first.model, FirebaseAiAssistant.modelName);
+      expect(plan.first.delay, Duration.zero);
+      expect(plan.last.model, FirebaseAiAssistant.fallbackModelName);
+      expect(
+        FirebaseAiAssistant.fallbackModelName,
+        isNot(FirebaseAiAssistant.modelName),
+      );
     });
   });
 }

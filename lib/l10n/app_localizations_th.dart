@@ -1368,6 +1368,9 @@ class AppLocalizationsTh extends AppLocalizations {
       'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง';
 
   @override
+  String get aiBusy => 'ตอนนี้ผู้ช่วย AI มีผู้ใช้งานมาก กรุณาลองใหม่อีกสักครู่';
+
+  @override
   String get aiAppCheck =>
       'ยืนยันความปลอดภัยของแอปไม่สำเร็จ จึงใช้ผู้ช่วย AI ไม่ได้ในตอนนี้';
 

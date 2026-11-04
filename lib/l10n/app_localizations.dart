@@ -2600,6 +2600,12 @@ abstract class AppLocalizations {
   /// **'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง'**
   String get aiUnavailable;
 
+  /// No description provided for @aiBusy.
+  ///
+  /// In th, this message translates to:
+  /// **'ตอนนี้ผู้ช่วย AI มีผู้ใช้งานมาก กรุณาลองใหม่อีกสักครู่'**
+  String get aiBusy;
+
   /// No description provided for @aiAppCheck.
   ///
   /// In th, this message translates to:

@@ -16,13 +16,21 @@ class LocalDocumentRepository implements DocumentRepository {
   Future<MarkdownDocument?> open() async {
     final file = await _storage.pickDocument();
     if (file == null) return null;
+    return openFile(name: file.name, uri: file.uri, bytes: file.bytes);
+  }
 
+  @override
+  Future<MarkdownDocument> openFile({
+    required String name,
+    required Uri uri,
+    required Uint8List bytes,
+  }) async {
     try {
-      final content = utf8.decode(_withoutByteOrderMark(file.bytes));
+      final content = utf8.decode(_withoutByteOrderMark(bytes));
       final doc = MarkdownDocument.opened(
-        name: file.name,
+        name: name,
         content: content,
-        uri: file.uri,
+        uri: uri,
       );
 
       // บันทึกเข้า Metadata ป้องกันไฟล์หาย

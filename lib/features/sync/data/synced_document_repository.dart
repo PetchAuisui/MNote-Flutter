@@ -205,6 +205,17 @@ class SyncedDocumentRepository implements SyncableDocumentRepository {
   }
 
   @override
+  Future<MarkdownDocument> openFile({
+    required String name,
+    required Uri uri,
+    required Uint8List bytes,
+  }) async {
+    final doc = await _inner.openFile(name: name, uri: uri, bytes: bytes);
+    _pushSoon();
+    return doc;
+  }
+
+  @override
   Future<MarkdownDocument?> save(MarkdownDocument document) async {
     final saved = await _inner.save(document);
     if (saved != null) _pushSoon();

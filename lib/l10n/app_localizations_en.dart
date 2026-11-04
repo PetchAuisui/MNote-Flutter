@@ -748,6 +748,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This file is not a Mnote note that can be opened';
 
   @override
+  String get wsUnsupportedFile =>
+      'Only .mnote, .md or .txt files can be opened';
+
+  @override
   String get wsMnoteSaveFailed => 'Could not save the opened note';
 
   @override
@@ -847,10 +851,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newDocMenu => 'New note';
 
   @override
-  String get openOtherDoc => 'Open another note';
-
-  @override
-  String get openMnote => 'Open Mnote note (.mnote)';
+  String get openFile => 'Open file';
 
   @override
   String get insertFromFile => 'Insert content from a file';

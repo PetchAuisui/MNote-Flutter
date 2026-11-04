@@ -1,8 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:mnote/features/workspace/domain/markdown_document.dart';
 import 'package:mnote/models/note_item.dart';
 
 abstract interface class DocumentRepository {
   Future<MarkdownDocument?> open();
+
+  /// Opens a Markdown or text file the user already picked.
+  Future<MarkdownDocument> openFile({
+    required String name,
+    required Uri uri,
+    required Uint8List bytes,
+  });
 
   Future<MarkdownDocument?> save(MarkdownDocument document);
 

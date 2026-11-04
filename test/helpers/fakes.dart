@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -89,6 +90,21 @@ class FakeDocumentRepository implements DocumentRepository {
     openCalls += 1;
     if (error case final error?) throw error;
     return openResult;
+  }
+
+  @override
+  Future<MarkdownDocument> openFile({
+    required String name,
+    required Uri uri,
+    required Uint8List bytes,
+  }) async {
+    openCalls += 1;
+    if (error case final error?) throw error;
+    return MarkdownDocument.opened(
+      name: name,
+      content: utf8.decode(bytes),
+      uri: uri,
+    );
   }
 
   @override

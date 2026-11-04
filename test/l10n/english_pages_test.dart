@@ -78,7 +78,7 @@ void main() {
     await tester.tap(find.byTooltip('More actions'));
     await tester.pumpAndSettle();
     expect(find.text('New note'), findsOneWidget);
-    expect(find.text('Open another note'), findsOneWidget);
+    expect(find.text('Open file'), findsOneWidget);
     expect(find.text('Save as'), findsNothing);
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();

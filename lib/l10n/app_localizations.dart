@@ -1418,6 +1418,12 @@ abstract class AppLocalizations {
   /// **'ไฟล์นี้ไม่ใช่โน้ต Mnote ที่เปิดได้'**
   String get wsNotMnoteFile;
 
+  /// No description provided for @wsUnsupportedFile.
+  ///
+  /// In th, this message translates to:
+  /// **'เปิดได้เฉพาะไฟล์ .mnote, .md หรือ .txt'**
+  String get wsUnsupportedFile;
+
   /// No description provided for @wsMnoteSaveFailed.
   ///
   /// In th, this message translates to:
@@ -1616,17 +1622,11 @@ abstract class AppLocalizations {
   /// **'เอกสารใหม่'**
   String get newDocMenu;
 
-  /// No description provided for @openOtherDoc.
+  /// No description provided for @openFile.
   ///
   /// In th, this message translates to:
-  /// **'เปิดเอกสารอื่น'**
-  String get openOtherDoc;
-
-  /// No description provided for @openMnote.
-  ///
-  /// In th, this message translates to:
-  /// **'เปิดโน้ต Mnote (.mnote)'**
-  String get openMnote;
+  /// **'เปิดไฟล์'**
+  String get openFile;
 
   /// No description provided for @insertFromFile.
   ///

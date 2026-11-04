@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
+import 'package:mnote/features/assistant/presentation/ai_page_image.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -1334,9 +1335,24 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       documentProvider: () => AiDocumentContext(
         title: _workspace.document.name,
         content: _workspace.document.content,
+        hasInk: _ink.hasContent,
       ),
+      pageImageProvider: _renderPageForAi,
     );
     showAssistantChat(context, controller: chat);
+  }
+
+  /// รูปหน้าโน้ตรวมลายมือให้ AI อ่าน (ใช้ตัวโหลดลายมือเดียวกับการส่งออก)
+  Future<Uint8List?> _renderPageForAi() async {
+    final ink = await _currentInkSnapshot();
+    if (ink == null) return null;
+    if (!mounted) return null;
+    return renderNotePageForAi(
+      context,
+      markdown: _workspace.document.content,
+      ink: ink,
+      imageDirectory: _imageDirectory,
+    );
   }
 
   Widget _buildDocumentActions() {

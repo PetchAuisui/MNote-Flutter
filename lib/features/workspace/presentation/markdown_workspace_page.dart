@@ -32,6 +32,7 @@ import 'markdown_outline_panel.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
 import 'ink_pen.dart';
+import 'ink_pictures_layer.dart';
 import 'ink_session.dart';
 import 'stylus_actions.dart';
 import 'export_sheet.dart';
@@ -879,7 +880,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// The ink to export. The ink page loads saved ink only once it is shown,
   /// so in another mode the session is still empty and the saved copy is used.
   Future<String?> _currentInkSnapshot() async {
-    if (_ink.pen.currentSketch.lines.isNotEmpty) return _ink.encode();
+    if (_ink.hasContent) return _ink.encode();
     final storage =
         InkStorageScope.maybeOf(context) ?? const DeviceInkFileStorage();
     final bytes = await storage.autoLoad(name: _workspace.document.name);
@@ -1567,8 +1568,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   void _selectInkTool(InkTool tool) {
     if (tool != _inkTool) _previousInkTool = _inkTool;
     setState(() => _inkTool = tool);
+    _ink.setMovingPictures(tool == InkTool.picture);
     final pen = _ink.pen;
     switch (tool) {
+      case InkTool.picture:
+        break;
       case InkTool.pen:
         pen
           ..setColor(_inkPenColor)
@@ -1594,6 +1598,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _inkPenColor = color;
       _inkTool = InkTool.pen;
     });
+    _ink.setMovingPictures(false);
     _ink.pen
       ..setColor(color)
       ..setStrokeWidth(_inkPenWidth);
@@ -1609,6 +1614,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       _inkPenWidth = width;
       _inkTool = InkTool.pen;
     });
+    _ink.setMovingPictures(false);
     _ink.pen
       ..setColor(_inkPenColor)
       ..setStrokeWidth(width);
@@ -1676,6 +1682,18 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
         onFit: _inkFit.fit,
+        onAddPicture: () => insertInkPicture(
+          context: context,
+          session: _ink,
+          picker: widget.imagePicker,
+          imageDirectory: _imageDirectory,
+          center:
+              _ink.visibleCenter?.call() ??
+              const Offset(InkSession.pageWidth / 2, 400),
+        ),
+        onDeletePicture: _ink.selectedPicture == null
+            ? null
+            : () => _ink.removePicture(_ink.selectedPicture!),
         eraseWholeStroke: _ink.eraseWholeStroke,
         onEraserModeChanged: _ink.setEraseWholeStroke,
       ),

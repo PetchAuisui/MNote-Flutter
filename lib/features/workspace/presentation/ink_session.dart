@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
 import 'ink_pen.dart';
+import 'ink_picture.dart';
 import 'ink_settings.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_document_style.dart';
@@ -74,6 +76,91 @@ class InkSession extends ChangeNotifier {
   /// Whether anything has been drawn on the page.
   bool get hasInk => pen.currentSketch.lines.isNotEmpty;
 
+  final List<InkPicture> _pictures = [];
+
+  /// Pictures placed freely on the page, beneath the ink, bottom first.
+  List<InkPicture> get pictures => List.unmodifiable(_pictures);
+
+  /// The picture being moved or resized, if any.
+  String? selectedPicture;
+
+  /// Whether the picture tool is on: pictures can be moved and resized, and
+  /// the pen is paused.
+  bool movingPictures = false;
+
+  void setMovingPictures(bool moving) {
+    if (movingPictures == moving && (moving || selectedPicture == null)) {
+      return;
+    }
+    movingPictures = moving;
+    if (!moving) selectedPicture = null;
+    notifyListeners();
+  }
+
+  /// The page point at the middle of what's on screen, set by the page that
+  /// shows this session, so new pictures land where the person is looking.
+  Offset Function()? visibleCenter;
+
+  /// Whether the page has ink or pictures on it.
+  bool get hasContent => hasInk || _pictures.isNotEmpty;
+
+  int _pictureSerial = 0;
+
+  /// Places the picture at [src] (natural size [size]) centred on [center],
+  /// shrunk to at most half the page width, and selects it.
+  InkPicture addPicture(
+    String src, {
+    required Size size,
+    required Offset center,
+  }) {
+    final scale = size.width > pageWidth / 2 ? pageWidth / 2 / size.width : 1.0;
+    final width = math.max(InkPicture.minSide, size.width * scale);
+    final height = math.max(InkPicture.minSide, size.height * scale);
+    final picture = InkPicture(
+      id: '${DateTime.now().microsecondsSinceEpoch}-${_pictureSerial++}',
+      src: src,
+      rect: () {
+        final rect = Rect.fromCenter(
+          center: center,
+          width: width,
+          height: height,
+        );
+        return InkPicture.fitOnPage(
+          rect,
+          pageWidth,
+          math.max(this.height, rect.bottom),
+        );
+      }(),
+    );
+    _pictures.add(picture);
+    selectedPicture = picture.id;
+    grow(picture.rect.bottom);
+    notifyListeners();
+    return picture;
+  }
+
+  /// Moves or resizes a picture, keeping it on the page.
+  void placePicture(String id, Rect rect) {
+    final i = _pictures.indexWhere((p) => p.id == id);
+    if (i < 0) return;
+    _pictures[i] = _pictures[i].copyWith(
+      rect: InkPicture.fitOnPage(rect, pageWidth, height),
+    );
+    notifyListeners();
+  }
+
+  void removePicture(String id) {
+    _pictures.removeWhere((p) => p.id == id);
+    if (selectedPicture == id) selectedPicture = null;
+    notifyListeners();
+  }
+
+  void selectPicture(String? id) {
+    if (selectedPicture == id) return;
+    selectedPicture = id;
+    notifyListeners();
+  }
+
   /// How the page text must be laid out under this ink. Ink is drawn at fixed
   /// positions, so once a page has ink its text keeps the size, line height
   /// and font it had when the first stroke was drawn, whatever the editor
@@ -115,7 +202,14 @@ class InkSession extends ChangeNotifier {
     );
   }
 
-  String _savedSketch = jsonEncode(const Sketch(lines: []).toJson());
+  String _saved = _savedState(const Sketch(lines: []).toJson(), const []);
+
+  static String _savedState(Object? sketch, Object? pictures) =>
+      jsonEncode({'sketch': sketch, 'pictures': pictures ?? const []});
+
+  List<Map<String, Object>> get _picturesJson => [
+    for (final p in _pictures) p.toJson(),
+  ];
 
   void setColorPreset(int index, Color color) {
     colorPresets[index] = color;
@@ -185,7 +279,8 @@ class InkSession extends ChangeNotifier {
     }
   }
 
-  bool get isDirty => jsonEncode(pen.currentSketch.toJson()) != _savedSketch;
+  bool get isDirty =>
+      _savedState(pen.currentSketch.toJson(), _picturesJson) != _saved;
 
   void grow(double value) {
     if (!value.isFinite || value <= height) return;
@@ -199,6 +294,7 @@ class InkSession extends ChangeNotifier {
     'width': pageWidth,
     'height': height,
     'sketch': pen.currentSketch.toJson(),
+    if (_pictures.isNotEmpty) 'pictures': _picturesJson,
     if (hasInk && _layout != null)
       'layout': {
         'size': _layout!.bodySize,
@@ -209,7 +305,7 @@ class InkSession extends ChangeNotifier {
 
   void markSaved(String snapshot) {
     final data = jsonDecode(snapshot) as Map<String, dynamic>;
-    _savedSketch = jsonEncode(data['sketch']);
+    _saved = _savedState(data['sketch'], data['pictures']);
     notifyListeners();
   }
 
@@ -245,12 +341,24 @@ class InkSession extends ChangeNotifier {
         }
       }
     }
+    final pictures = data['pictures'];
+    if (pictures != null && pictures is! List) {
+      throw const FormatException('Invalid ink pictures');
+    }
+    final loadedPictures = [
+      for (final p in (pictures as List?) ?? const [])
+        InkPicture.fromJson(p, pageWidth: pageWidth, pageHeight: extent),
+    ];
     height = extent;
     pen.setSketch(sketch: sketch);
+    _pictures
+      ..clear()
+      ..addAll(loadedPictures);
+    selectedPicture = null;
     _layout = sketch.lines.isEmpty
         ? null
         : _decodeLayout(data['layout']) ?? const DocumentTextOptions();
-    _savedSketch = jsonEncode(sketch.toJson());
+    _saved = _savedState(sketch.toJson(), _picturesJson);
     notifyListeners();
   }
 

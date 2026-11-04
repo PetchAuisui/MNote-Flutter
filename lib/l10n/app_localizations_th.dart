@@ -1116,6 +1116,15 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkErasePartial => 'ลบทีละนิด';
 
   @override
+  String get inkPictureTool => 'รูปภาพ';
+
+  @override
+  String get inkAddPicture => 'เพิ่มรูป';
+
+  @override
+  String get inkDeletePicture => 'ลบรูป';
+
+  @override
   String get inkGroupStroke => 'รูปแบบเส้น';
 
   @override

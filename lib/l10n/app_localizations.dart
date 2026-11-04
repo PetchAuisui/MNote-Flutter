@@ -2126,6 +2126,24 @@ abstract class AppLocalizations {
   /// **'ลบทีละนิด'**
   String get inkErasePartial;
 
+  /// No description provided for @inkPictureTool.
+  ///
+  /// In th, this message translates to:
+  /// **'รูปภาพ'**
+  String get inkPictureTool;
+
+  /// No description provided for @inkAddPicture.
+  ///
+  /// In th, this message translates to:
+  /// **'เพิ่มรูป'**
+  String get inkAddPicture;
+
+  /// No description provided for @inkDeletePicture.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบรูป'**
+  String get inkDeletePicture;
+
   /// No description provided for @inkGroupStroke.
   ///
   /// In th, this message translates to:

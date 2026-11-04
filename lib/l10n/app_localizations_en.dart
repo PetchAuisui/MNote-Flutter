@@ -1128,6 +1128,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inkErasePartial => 'Bit by bit';
 
   @override
+  String get inkPictureTool => 'Pictures';
+
+  @override
+  String get inkAddPicture => 'Add picture';
+
+  @override
+  String get inkDeletePicture => 'Delete picture';
+
+  @override
   String get inkGroupStroke => 'Stroke style';
 
   @override

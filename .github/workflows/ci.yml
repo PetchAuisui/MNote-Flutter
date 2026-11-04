@@ -43,7 +43,7 @@ jobs:
         run: flutter pub outdated || true
 
   test:
-    name: Unit & Widget Tests
+    name: Unit, Widget & Security Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -95,9 +95,63 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The whole app runs headless on the Flutter test device, with real
+      # files on disk and the real SQLite library index.
+      - name: Run integration tests
+        run: flutter test integration_test -d flutter-tester --reporter expanded
+
+  security-rules:
+    name: Security Tests (Firebase rules)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: test_security_rules
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: test_security_rules/package-lock.json
+
+      # The Firebase emulators need Java 21 or newer.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('test_security_rules/package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Firestore and Storage rules tests
+        run: npm test
+
   build-android:
     name: Build Android (debug APK)
-    needs: [analyze, test]
+    needs: [analyze, test, integration, security-rules]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -125,7 +179,7 @@ jobs:
 
   build-ios:
     name: Build iOS (no codesign)
-    needs: [analyze, test]
+    needs: [analyze, test, integration, security-rules]
     runs-on: macos-latest
     timeout-minutes: 40
     steps:

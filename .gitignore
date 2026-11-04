@@ -46,3 +46,7 @@ app.*.map.json
 
 # Xcode-generated SwiftPM resolution files
 **/xcshareddata/swiftpm/
+
+# Firebase rules tests (npm)
+/test_security_rules/node_modules/
+*-debug.log

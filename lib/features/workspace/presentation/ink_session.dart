@@ -42,6 +42,15 @@ class InkSession extends ChangeNotifier {
   Color highlightColor = const Color(0xFFFFD54F);
   double highlightWidth = 18;
 
+  /// Whether the eraser deletes whole strokes rather than only what it covers.
+  bool get eraseWholeStroke => pen.eraseWholeStroke;
+
+  void setEraseWholeStroke(bool whole) {
+    if (pen.eraseWholeStroke == whole) return;
+    pen.eraseWholeStroke = whole;
+    notifyListeners();
+  }
+
   static Color highlightInk(Color color) => color.withValues(alpha: 0.5);
 
   void setHighlightPreset(int index, Color color) {

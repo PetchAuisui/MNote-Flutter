@@ -1659,6 +1659,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         onClear: _ink.pen.currentSketch.lines.isEmpty ? null : _clearInk,
         onTouchChanged: _toggleInkTouch,
         onFit: _inkFit.fit,
+        eraseWholeStroke: _ink.eraseWholeStroke,
+        onEraserModeChanged: _ink.setEraseWholeStroke,
       ),
     );
   }

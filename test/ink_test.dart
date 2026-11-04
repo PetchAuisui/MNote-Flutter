@@ -230,6 +230,18 @@ void main() {
       tester.widget<IconButton>(find.byKey(const Key('ink-eraser'))).isSelected,
       isTrue,
     );
+    // The eraser offers its two modes in place of colors and widths.
+    expect(find.byKey(const Key('ink-color-preset-0')), findsNothing);
+    expect(find.byKey(const Key('ink-width-preset-0')), findsNothing);
+    final inkPen = pen as InkPenNotifier;
+    expect(inkPen.eraseWholeStroke, isFalse);
+    await tester.tap(find.byKey(const Key('ink-eraser-whole')));
+    await tester.pump();
+    expect(inkPen.eraseWholeStroke, isTrue);
+    await tester.tap(find.byKey(const Key('ink-eraser-partial')));
+    await tester.pump();
+    expect(inkPen.eraseWholeStroke, isFalse);
+    expect(pen.value, isA<Erasing>());
 
     await tester.tap(find.byKey(const Key('ink-highlighter')));
     await tester.pump();
@@ -422,6 +434,34 @@ void main() {
       5,
     );
     expect(wiped, isEmpty);
+  });
+
+  test('whole-stroke eraser deletes any stroke it touches', () {
+    final line = SketchLine(
+      color: 0xFF000000,
+      width: 2,
+      points: [for (var x = 0; x <= 100; x += 2) Point(x.toDouble(), 0)],
+    );
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, -30),
+        const Offset(50, 30),
+        5,
+        wholeStroke: true,
+      ),
+      isEmpty,
+    );
+    expect(
+      InkPenNotifier.eraseFromLine(
+        line,
+        const Offset(50, 40),
+        const Offset(60, 40),
+        5,
+        wholeStroke: true,
+      ).single,
+      same(line),
+    );
   });
 
   testWidgets('highlighter keeps its own colors, separate from the pen', (

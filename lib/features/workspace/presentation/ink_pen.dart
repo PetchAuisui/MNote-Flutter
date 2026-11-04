@@ -1,11 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:scribble/scribble.dart';
 
-/// A [ScribbleNotifier] whose eraser rubs out only the part of a stroke it
-/// passes over (splitting the stroke in two), instead of deleting the whole
-/// stroke the moment it is touched.
+/// A [ScribbleNotifier] whose eraser either rubs out only the part of a stroke
+/// it passes over (splitting the stroke in two) or, with [eraseWholeStroke],
+/// deletes every stroke it touches.
 class InkPenNotifier extends ScribbleNotifier {
   InkPenNotifier({super.allowedPointersMode, super.widths});
+
+  /// Whether the eraser deletes a whole stroke on touch instead of only the
+  /// part it covers.
+  bool eraseWholeStroke = false;
 
   /// Where each active eraser pointer was last seen, so a fast swipe erases
   /// the whole path between two pointer events rather than skipping gaps.
@@ -69,7 +73,13 @@ class InkPenNotifier extends ScribbleNotifier {
     final lines = <SketchLine>[];
     var changed = false;
     for (final line in value.sketch.lines) {
-      final pieces = eraseFromLine(line, from, to, eraserRadius);
+      final pieces = eraseFromLine(
+        line,
+        from,
+        to,
+        eraserRadius,
+        wholeStroke: eraseWholeStroke,
+      );
       if (pieces.length != 1 || !identical(pieces.first, line)) changed = true;
       lines.addAll(pieces);
     }
@@ -78,13 +88,15 @@ class InkPenNotifier extends ScribbleNotifier {
   }
 
   /// The pieces of [line] left after an eraser of [radius] swept from [from]
-  /// to [to]. Returns `[line]` itself when nothing was touched.
+  /// to [to]. Returns `[line]` itself when nothing was touched, and nothing
+  /// at all when [wholeStroke] is set and the stroke was touched.
   static List<SketchLine> eraseFromLine(
     SketchLine line,
     Offset from,
     Offset to,
-    double radius,
-  ) {
+    double radius, {
+    bool wholeStroke = false,
+  }) {
     final reach = radius + line.width / 2;
     final pieces = <List<Point>>[];
     var current = <Point>[];
@@ -99,6 +111,7 @@ class InkPenNotifier extends ScribbleNotifier {
       }
     }
     if (!touched) return [line];
+    if (wholeStroke) return const [];
     if (current.isNotEmpty) pieces.add(current);
     return [
       for (final points in pieces)

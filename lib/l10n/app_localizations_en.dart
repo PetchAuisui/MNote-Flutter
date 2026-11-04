@@ -1119,7 +1119,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inkHighlighter => 'Highlighter';
 
   @override
-  String get inkEraser => 'Stroke eraser';
+  String get inkEraser => 'Eraser';
+
+  @override
+  String get inkEraseWhole => 'Whole stroke';
+
+  @override
+  String get inkErasePartial => 'Bit by bit';
 
   @override
   String get inkGroupStroke => 'Stroke style';

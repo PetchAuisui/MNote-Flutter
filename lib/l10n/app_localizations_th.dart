@@ -1107,7 +1107,13 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkHighlighter => 'ปากกาไฮไลต์';
 
   @override
-  String get inkEraser => 'ยางลบทั้งเส้น';
+  String get inkEraser => 'ยางลบ';
+
+  @override
+  String get inkEraseWhole => 'ลบทั้งเส้น';
+
+  @override
+  String get inkErasePartial => 'ลบทีละนิด';
 
   @override
   String get inkGroupStroke => 'รูปแบบเส้น';

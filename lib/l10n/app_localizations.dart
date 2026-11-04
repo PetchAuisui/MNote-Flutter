@@ -2111,8 +2111,20 @@ abstract class AppLocalizations {
   /// No description provided for @inkEraser.
   ///
   /// In th, this message translates to:
-  /// **'ยางลบทั้งเส้น'**
+  /// **'ยางลบ'**
   String get inkEraser;
+
+  /// No description provided for @inkEraseWhole.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบทั้งเส้น'**
+  String get inkEraseWhole;
+
+  /// No description provided for @inkErasePartial.
+  ///
+  /// In th, this message translates to:
+  /// **'ลบทีละนิด'**
+  String get inkErasePartial;
 
   /// No description provided for @inkGroupStroke.
   ///

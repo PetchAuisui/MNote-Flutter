@@ -510,6 +510,9 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
             onUndo: pen.canUndo ? pen.undo : null,
             onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,
+            eraseWholeStroke: widget.session.eraseWholeStroke,
+            onEraserModeChanged: (whole) =>
+                setState(() => widget.session.setEraseWholeStroke(whole)),
             onTouchChanged: () {
               pen.setAllowedPointersMode(
                 _touch ? ScribblePointerMode.penOnly : ScribblePointerMode.all,
@@ -585,6 +588,8 @@ class InkToolbar extends StatelessWidget {
     required this.onClear,
     required this.onTouchChanged,
     required this.onFit,
+    required this.eraseWholeStroke,
+    required this.onEraserModeChanged,
   });
 
   final InkTool selectedTool;
@@ -603,6 +608,10 @@ class InkToolbar extends StatelessWidget {
   final VoidCallback? onClear;
   final VoidCallback onTouchChanged;
   final VoidCallback onFit;
+
+  /// Shown in place of colors and widths while the eraser is selected.
+  final bool eraseWholeStroke;
+  final ValueChanged<bool> onEraserModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -676,47 +685,67 @@ class InkToolbar extends StatelessWidget {
                             _InkToolbarGroup(
                               key: const Key('ink-style-group'),
                               label: context.l10n.inkGroupStroke,
-                              children: [
-                                for (var i = 0; i < colorPresets.length; i++)
-                                  _ColorSwatchButton(
-                                    key: Key('ink-color-preset-$i'),
-                                    color: colorPresets[i],
-                                    selected: colorPresets[i] == penColor,
-                                    onTap: () => colorPresets[i] == penColor
-                                        ? _editColor(context, i)
-                                        : onColorSelected(colorPresets[i]),
-                                    onLongPress: () => _editColor(context, i),
-                                  ),
-                                IconButton(
-                                  key: const Key('ink-color'),
-                                  tooltip: context.l10n.inkChangeColor,
-                                  icon: const Icon(Icons.palette_outlined),
-                                  onPressed: () {
-                                    final selected = colorPresets.indexOf(
-                                      penColor,
-                                    );
-                                    _editColor(
-                                      context,
-                                      selected < 0
-                                          ? colorPresets.length - 1
-                                          : selected,
-                                      initial: penColor,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 4),
-                                for (var i = 0; i < widthPresets.length; i++)
-                                  _WidthPresetButton(
-                                    key: Key('ink-width-preset-$i'),
-                                    width: widthPresets[i],
-                                    color: penColor,
-                                    selected: widthPresets[i] == penWidth,
-                                    onTap: () => widthPresets[i] == penWidth
-                                        ? _editWidth(context, i)
-                                        : onWidthSelected(widthPresets[i]),
-                                    onLongPress: () => _editWidth(context, i),
-                                  ),
-                              ],
+                              children: selectedTool == InkTool.eraser
+                                  ? _eraserModes(context)
+                                  : [
+                                      for (
+                                        var i = 0;
+                                        i < colorPresets.length;
+                                        i++
+                                      )
+                                        _ColorSwatchButton(
+                                          key: Key('ink-color-preset-$i'),
+                                          color: colorPresets[i],
+                                          selected: colorPresets[i] == penColor,
+                                          onTap: () =>
+                                              colorPresets[i] == penColor
+                                              ? _editColor(context, i)
+                                              : onColorSelected(
+                                                  colorPresets[i],
+                                                ),
+                                          onLongPress: () =>
+                                              _editColor(context, i),
+                                        ),
+                                      IconButton(
+                                        key: const Key('ink-color'),
+                                        tooltip: context.l10n.inkChangeColor,
+                                        icon: const Icon(
+                                          Icons.palette_outlined,
+                                        ),
+                                        onPressed: () {
+                                          final selected = colorPresets.indexOf(
+                                            penColor,
+                                          );
+                                          _editColor(
+                                            context,
+                                            selected < 0
+                                                ? colorPresets.length - 1
+                                                : selected,
+                                            initial: penColor,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(width: 4),
+                                      for (
+                                        var i = 0;
+                                        i < widthPresets.length;
+                                        i++
+                                      )
+                                        _WidthPresetButton(
+                                          key: Key('ink-width-preset-$i'),
+                                          width: widthPresets[i],
+                                          color: penColor,
+                                          selected: widthPresets[i] == penWidth,
+                                          onTap: () =>
+                                              widthPresets[i] == penWidth
+                                              ? _editWidth(context, i)
+                                              : onWidthSelected(
+                                                  widthPresets[i],
+                                                ),
+                                          onLongPress: () =>
+                                              _editWidth(context, i),
+                                        ),
+                                    ],
                             ),
                             const SizedBox(width: 8),
                             _InkToolbarGroup(
@@ -795,6 +824,23 @@ class InkToolbar extends StatelessWidget {
     );
   }
 
+  List<Widget> _eraserModes(BuildContext context) => [
+    _EraserModeButton(
+      key: const Key('ink-eraser-partial'),
+      icon: Icons.auto_fix_normal,
+      label: context.l10n.inkErasePartial,
+      selected: !eraseWholeStroke,
+      onTap: () => onEraserModeChanged(false),
+    ),
+    _EraserModeButton(
+      key: const Key('ink-eraser-whole'),
+      icon: Icons.gesture,
+      label: context.l10n.inkEraseWhole,
+      selected: eraseWholeStroke,
+      onTap: () => onEraserModeChanged(true),
+    ),
+  ];
+
   Widget _toolButton({
     required Key key,
     required String tooltip,
@@ -835,6 +881,60 @@ class InkToolbar extends StatelessWidget {
     if (picked == null) return;
     onWidthPresetChanged(index, picked);
     onWidthSelected(picked);
+  }
+}
+
+class _EraserModeButton extends StatelessWidget {
+  const _EraserModeButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = selected
+        ? colors.onPrimaryContainer
+        : colors.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Material(
+          color: selected ? colors.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 20, color: foreground),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelLarge?.copyWith(color: foreground),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

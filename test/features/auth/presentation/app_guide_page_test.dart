@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/auth/presentation/app_guide_page.dart';
 import 'package:mnote/screens/note_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/fakes.dart';
 
 void main() {
+  // The note list reads saved settings when it opens; without a stand-in the
+  // missing plugin can fail the run on CI.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('AppGuidePage Tests', () {
     testWidgets('renders guide title, skip button, and slide 1 content', (
       tester,

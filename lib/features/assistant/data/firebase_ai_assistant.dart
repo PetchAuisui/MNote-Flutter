@@ -5,16 +5,17 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/ai_assistant.dart';
 import '../domain/chat_message.dart';
+import 'ai_firebase_app.dart';
 
 /// เรียก Gemini ผ่าน Firebase AI Logic
 ///
 /// API key อยู่ฝั่งเซิร์ฟเวอร์ของ Firebase ไม่อยู่ในแอป
-/// App Check เปิดให้ทั้งแอปใน main.dart AI Logic จึงรับเฉพาะคำขอจากแอปที่ผ่านการยืนยัน
+/// ใช้ Firebase project แยกสำหรับ AI (ดู [AiFirebaseApp]) App Check เปิดใน project นั้น
 /// โน้ตที่แนบจะถูกห่อด้วยแท็ก `<note>` ดู [buildUserPrompt]
 class FirebaseAiAssistant implements AiAssistant {
   const FirebaseAiAssistant();
 
-  static const modelName = 'gemini-3.8-flash';
+  static const modelName = 'gemini-3.1-flash-lite';
 
   static const _basePrompt =
       'คุณคือผู้ช่วยในแอปจดโน้ต MNote ตอบเป็นภาษาเดียวกับผู้ใช้ กระชับ '
@@ -41,7 +42,8 @@ class FirebaseAiAssistant implements AiAssistant {
       throw AiAssistantException(LanguagePreferences.current().aiNoteTooLong);
     }
     try {
-      final model = FirebaseAI.googleAI().generativeModel(
+      final aiApp = await AiFirebaseApp.instance();
+      final model = FirebaseAI.googleAI(app: aiApp).generativeModel(
         model: modelName,
         systemInstruction: Content.system(
           buildSystemPrompt(hasDocument: document != null),

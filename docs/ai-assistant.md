@@ -2,11 +2,12 @@
 
 เอกสารนี้อธิบายฟีเจอร์ผู้ช่วย AI ใน Mnote: ปุ่ม AI (ไอคอน `auto_awesome`) มุมขวาบนของหน้าแก้ไขที่เปิดแชทคุยกับ Gemini และแนบโน้ตที่เปิดอยู่ให้ AI อ่านได้ ทำอะไรได้ ใช้วิธีไหนและเพราะอะไร ข้อมูลไหลผ่านไฟล์ใดบ้าง ความปลอดภัย การทดสอบ สิ่งที่ตั้งค่าใน Firebase Console ใครใช้ AI ได้บ้าง และถ้าจะต่อยอดต้องทำอย่างไร
 
-- Branch: `feature/ai-chat` (แชท, PR #31) และ `feature/ai-note-context` (แนบโน้ต)
+- Branch: `feature/ai-chat` (แชท, PR #31), `feature/ai-note-context` (แนบโน้ต) และ `feature/ai-separate-project` (ย้าย AI ไป Firebase project แยก + เปลี่ยนโมเดล)
 - ตอบโจทย์อาจารย์ข้อ "ใช้ AI อย่างน้อย 1 Feature (Gemini API)" และเป็น Firebase บริการที่ 3 ของโปรเจกต์ (ต่อจาก Auth และ Firestore)
-- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release, iOS ทดสอบบน iPad แล้ว (debug + debug token), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build
+- โมเดล: `gemini-3.1-flash-lite` ผ่าน Firebase project **`mnote-ai`** (แผน Spark ไม่ผูกบัตร) แยกจาก project หลัก `mnote-8db27` เหตุผลในหัวข้อ 7.6
+- สถานะ: Android ทดสอบบนแท็บเล็ตจริงแล้วทั้ง debug และ release (หลังย้าย project แล้ว), การแนบโน้ตทดสอบบนแท็บเล็ตครบ 9 กรณี (หัวข้อ 9), CI ผ่านทั้ง Android และ iOS build iOS ทดสอบบน iPad ของ PM แล้ว (debug + debug token ของ `mnote-ai` หัวข้อ 7.5)
 
-> **ก่อนเทสหรือ demo อ่านหัวข้อ 7.5 (ใครใช้ AI ได้) และ 7.6 (โควตา: ทั้งทีมได้ 20 ข้อความต่อวัน)** และคนดูแล Firebase อ่านหัวข้อ 7 ทั้งหมด
+> **ก่อนเทสหรือ demo อ่านหัวข้อ 7.5 (ใครใช้ AI ได้) และ 7.6 (โควตารวมทั้งทีม)** และคนดูแล Firebase อ่านหัวข้อ 7 ทั้งหมด
 
 ---
 
@@ -21,7 +22,7 @@
 | ทำเซิร์ฟเวอร์ (Cloud Functions) ถือ key เอง | ปลอดภัย แต่ต้องใช้แผน Blaze (ผูกบัตร) และเป็นงานใหญ่ |
 | **Firebase AI Logic** (เลือกใช้) | key อยู่ที่ Firebase แอปเรียกผ่าน SDK ใช้แผน Spark (ฟรี) ได้ และอยู่ในโปรเจกต์ Firebase เดิมของทีม |
 
-งานนี้ใช้โปรเจกต์ Firebase เดิม `mnote-8db27` **ไม่ได้สร้างโปรเจกต์ใหม่ และไม่ได้รัน `flutterfire configure`** จึงไม่กระทบ config ของ Auth/Firestore
+เดิมงานนี้ใช้โปรเจกต์ Firebase หลัก `mnote-8db27` แต่หลัง project นั้นผูกบัตร (Blaze) Gemini ก็ไม่มีโควตาฟรีอีก (หัวข้อ 7.6) จึง**ย้ายเฉพาะ AI ไป project `mnote-ai`** (Spark ไม่ผูกบัตร) ส่วน Auth, Firestore, Storage ยังอยู่ `mnote-8db27` ตามเดิม **ไม่ได้รัน `flutterfire configure`** และไม่ได้แตะ `firebase_options.dart` หรือ `google-services.json` จึงไม่กระทบ config ของ Auth/Firestore
 
 ---
 
@@ -77,6 +78,7 @@ lib/
 │   │   ├── chat_message.dart                ข้อความแชท (role + text + attachedNoteTitle)
 │   │   └── ai_assistant.dart                interface AiAssistant + exception + AiDocumentContext (+ maxContentLength)
 │   ├── data/
+│   │   ├── ai_firebase_app.dart             เปิด Firebase app ชื่อ `ai` (project mnote-ai, Android + iOS) + App Check ของ project นั้น
 │   │   └── firebase_ai_assistant.dart       ตัวจริง: เรียก Gemini, ห่อโน้ตด้วยแท็ก <note>, เลือก system prompt
 │   └── presentation/
 │       ├── assistant_chat_controller.dart   state ของแชท + สถานะการแนบโน้ต (ChangeNotifier)
@@ -88,6 +90,7 @@ lib/
 test/
 ├── helpers/fake_ai_assistant.dart           ตัวปลอมสำหรับ test (ไม่ต่อเน็ต, จำ lastDocument)
 └── features/assistant/
+    ├── ai_firebase_app_test.dart             6 test
     ├── assistant_chat_controller_test.dart  28 test
     ├── assistant_chat_panel_test.dart       25 test
     ├── assistant_entry_test.dart             7 test
@@ -101,7 +104,11 @@ test/
 - PR #31: ปุ่ม AI + พารามิเตอร์ `assistant`
 - งานแนบโน้ต: แก้ใน `_openAssistant()` จุดเดียว (+7/-1) ให้ส่ง `documentProvider` ตอนสร้าง controller
 
-**App Check ไม่ได้อยู่ในงานนี้:** เปิดไว้ใน `main.dart` โดย PR #33 ของทีมแล้ว (`_activateAppCheck()`) งานนี้ใช้ตัวนั้นตรง ๆ ไม่ได้ตั้งค่าซ้ำ เดิมเคยมี `lib/core/app_check.dart` ของเราเอง แต่ลบออกหลัง #33 merge เพื่อไม่ให้มีจุดตั้งค่า 2 ที่
+**App Check มี 2 จุด เพราะมี 2 project:**
+- `main.dart` (PR #33 ของทีม, `_activateAppCheck()`): App Check ของ app หลัก (`mnote-8db27`) ใช้กับ Auth / Firestore ไม่ได้แตะ
+- `ai_firebase_app.dart` (งานนี้): App Check ของ app `ai` (`mnote-ai`) ใช้ provider ชุดเดียวกับ `main.dart` (debug provider ตอน `kDebugMode`, Play Integrity ตอน release)
+
+App Check ผูกกับ Firebase app แต่ละตัว token ของ app หลักใช้กับ `mnote-ai` ไม่ได้ จึงต้องเปิดแยก
 
 ---
 
@@ -126,11 +133,14 @@ test/
   → AiAssistant.sendMessage(text, history, document)
   → FirebaseAiAssistant
        ตรวจโน้ตยาวเกินซ้ำ (ด่านสุดท้าย)
+       AiFirebaseApp.instance() ครั้งแรก: Firebase.initializeApp(name: 'ai') + เปิด App Check ของ mnote-ai
+                                ครั้งถัดไป: ใช้ app เดิม (ถ้าล้มเหลว ครั้งหน้าลองใหม่)
+       FirebaseAI.googleAI(app: aiApp)  คำขอทั้งหมดไปที่ mnote-ai
        buildSystemPrompt(hasDocument)   เลือกข้อความระบบแบบมี/ไม่มีโน้ต
        buildGeminiHistory()     กรองให้ผู้ใช้/AI สลับกัน
        buildUserPrompt()        <note> ชื่อ + เนื้อหา </note> ตามด้วยคำถาม
        chat.sendMessageStream()
-         → firebase_ai ขอ App Check token ──→ Firebase AI Logic ──→ Gemini
+         → firebase_ai ขอ App Check token (ของ app ai) ──→ Firebase AI Logic (mnote-ai) ──→ Gemini
   ← คำตอบทีละชิ้น (Stream<String>) ← controller ต่อข้อความ ← หน้าจอวาดใหม่
 ```
 
@@ -164,7 +174,13 @@ test/
 | **interface `AiAssistant` + ตัวจริง/ตัวปลอม** | test ทั้ง UI และ controller ได้โดยไม่ต่อเน็ตและไม่ใช้โควตา และเปลี่ยนผู้ให้บริการ AI ได้โดยไม่แก้หน้าจอ |
 | **พารามิเตอร์ `assistant` ค่าเริ่มต้น `const FirebaseAiAssistant()`** | หน้าแก้ไขถูกสร้างจาก 4 จุดในไฟล์ของเพื่อน ใช้ค่าเริ่มต้นทำให้ปุ่มขึ้นทุกหน้าโดยไม่ต้องแก้ไฟล์เหล่านั้น ส่ง `null` เพื่อซ่อนปุ่มได้ |
 | **side sheet แบบลอย ไม่ใช่แผงแทรกในหน้า** | ไม่ต้องรื้อโครง `build()` ของหน้าแก้ไข (ไฟล์ที่ทุกคนแก้) และเป็นรูปแบบที่ MD3 มี |
-| **ใช้ App Check จาก `main.dart` (#33) ไม่ตั้งเอง** | มีจุดตั้งค่าที่เดียว เราไม่ต้องแตะ `main.dart` ของทีม |
+| **AI ใช้ Firebase project แยก (`mnote-ai`)** | project หลักผูกบัตรแล้ว Gemini ไม่มีโควตาฟรี ทีมไม่เติมเงิน (หัวข้อ 7.6) แยกเฉพาะ AI ข้อมูลของทีมไม่ต้องย้าย |
+| **เปิด app `ai` ตอนส่งข้อความครั้งแรก ไม่ใช่ใน `main.dart`** | ไม่ต้องแตะ `main.dart` ของทีม และคนที่ไม่เปิดแชตไม่เสียเวลาเปิดแอปเพิ่ม |
+| **ใส่ค่า config ของ `mnote-ai` เองใน `ai_firebase_app.dart` ไม่ใช้ `flutterfire configure`** | `flutterfire configure` จะเขียนทับ `firebase_options.dart` ของ project หลัก ค่าพวกนี้เป็นตัวระบุ project ไม่ใช่ความลับ |
+| **options แยกต่อแพลตฟอร์ม (`optionsFor()`) Android + iOS เว็บและแพลตฟอร์มอื่นไม่รองรับ** | แต่ละแพลตฟอร์มลงทะเบียนเป็นแอปแยกใน `mnote-ai` มี `appId` และ `apiKey` ของตัวเอง แยกเป็นฟังก์ชันจึง test การเลือกได้โดยไม่ต้องรันบนเครื่องจริง |
+| **App Check ของ app `ai` เปิดไม่สำเร็จให้โยน error ต่อ ไม่กลืนแบบ `main.dart`** | ถ้ากลืน `_pending` จะจำ app ที่ App Check ใช้ไม่ได้ไว้ ส่งกี่ครั้งก็พังจนปิดแอป โยนต่อแล้ว `instance()` ล้าง `_pending` ลองใหม่ตอนส่งครั้งหน้า และผู้ใช้เห็นข้อความ App Check `main.dart` ต้องกลืนเพราะห้ามทำให้แอปเปิดไม่ขึ้น แต่ของ AI เรียกตอนกดส่งแชต (แก้ตามรีวิว PR #61) |
+| **error ตอนเปิด app `ai` โยน `FirebaseException` ไม่ใช่ `Error`** | `sendMessage` ดัก `on Exception` ถ้าเป็น `Error` จะหลุดจนแอปพัง |
+| **`gemini-3.1-flash-lite` แทน `gemini-3.8-flash`** | ตอบเร็วกว่ามาก และตัวเดิมได้ error จากเซิร์ฟเวอร์ในข้อความแรกบ่อย คุณภาพทดสอบแล้วพอสำหรับสรุปโน้ตและผัง mermaid ไม่ได้ตั้งระดับการคิด (หัวข้อ 8.1) |
 | **`Completer` ใน `send()`** | ให้ `dispose()` ยกเลิก subscription และปลด `send()` ได้ทันที |
 | **นับความยาวข้อความตามตัวอักษรที่เห็น (`characters`)** | ช่องพิมพ์นับแบบนี้ ถ้า controller นับ `String.length` ภาษาไทยที่มีสระบน/ล่างจะนับเกิน |
 | **ล้างช่องพิมพ์เฉพาะเมื่อ controller รับข้อความ และคืนข้อความถ้าตอบไม่สำเร็จ** | ถ้าข้อความถูกปฏิเสธหรือเน็ตหลุด/โควตาหมด ผู้ใช้ไม่ต้องพิมพ์ใหม่ |
@@ -194,8 +210,8 @@ test/
 **ลิมิตความยาวโน้ต 1,000,000 ตัวอักษร: ที่มาของตัวเลข**
 
 เดิมตั้งไว้ 20,000 โดยไม่ได้วัด หลังหาข้อมูลแล้วพบว่าตัวเลขนั้นไม่มีเหตุผลรองรับ จึงขยับไปที่เพดานจริง:
-- Gemini 3.8 Flash รับ input ได้ 1,048,576 token และ 1 token ประมาณ 4 ตัวอักษร (เอกสาร Google ไม่ได้ระบุอัตราของภาษาไทย)
-- เพดานที่ต่ำกว่าคือ **TPM 250K token ต่อนาทีของแผนฟรี** (หัวข้อ 7.6) คำขอเดียวที่เกินนี้ส่งไม่ผ่านอยู่แล้ว 250K × 4 ≈ 1,000,000 ตัวอักษร
+- Gemini 3.1 Flash-Lite (เหมือน 3.8 Flash ที่ใช้ตอนตั้งค่านี้) รับ input ได้ 1,048,576 token และ 1 token ประมาณ 4 ตัวอักษร (เอกสาร Google ไม่ได้ระบุอัตราของภาษาไทย)
+- เพดานที่ต่ำกว่าคือ **TPM ของแผนฟรี** (250K token ต่อนาทีตอนวัด ดูค่าปัจจุบันในหัวข้อ 7.6) คำขอเดียวที่เกินนี้ส่งไม่ผ่านอยู่แล้ว 250K × 4 ≈ 1,000,000 ตัวอักษร
 - **RPD นับจำนวนครั้ง ไม่ได้นับความยาว** โน้ตยาวจึงไม่ทำให้โควตารายวันหมดเร็วขึ้น
 
 ลิมิตนี้จึง**ไม่ได้มีไว้ประหยัด** แต่มีไว้ให้ผู้ใช้เห็นข้อความที่บอกสาเหตุชัดเจน ถ้าไม่ตรวจเอง โน้ตที่ใหญ่เกินจะได้ error จาก Gemini ซึ่งแอปแปลงได้แค่ "ไม่พร้อมใช้งาน" หรือ "ครบโควตา" ผู้ใช้จะเข้าใจผิด
@@ -212,7 +228,9 @@ test/
 
 | ความเสี่ยง | การป้องกัน | หลักฐาน |
 |---|---|---|
-| API key หลุด | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ key |
+| API key หลุด | Gemini key ไม่อยู่ในแอปหรือ repo อยู่ที่ Firebase AI Logic ค่าใน `ai_firebase_app.dart` (`apiKey`, `appId`, ...) เป็นตัวระบุ project ชนิดเดียวกับ `firebase_options.dart` ไม่ใช่ Gemini key ตัวที่กันคนนอกคือ App Check | ไม่มีโค้ดส่วนไหนอ่านหรือเก็บ Gemini key |
+| **GitHub แจ้ง "Secrets detected" ที่ `apiKey` ใน `ai_firebase_app.dart`** | เป็น Firebase config key ไม่ใช่ความลับ (GitHub แยกจากรูปแบบ `AIza` ไม่ได้) ใน Google Cloud Console → Credentials key ของ `mnote-ai` จำกัด API แล้ว (**ไม่มี Gemini API** มี Firebase AI Logic API และ App Check API) คนที่ได้ key ไปเรียก Gemini ตรงไม่ได้ เรียก AI Logic ก็ติด App Check ปิด alert แบบ Won't fix **ห้าม Rotate / Delete key** แอปจะใช้ AI ไม่ได้ | ตรวจ 1 พ.ย. 2026 |
+| **AI กลับไปใช้ project ที่ผูกบัตร** (เผลอเอา config ของ `mnote-8db27` มาใส่) | test ดักว่า `projectId` ต้องไม่ใช่ `mnote-8db27` และชื่อ app ต้องไม่ใช่ `[DEFAULT]` | `ai_firebase_app_test.dart` |
 | คนนอกใช้โควตา (สคริปต์, แอปปลอม, โปรแกรมจำลอง) | App Check: firebase_ai ไม่ส่งคำขอถ้าไม่มี token, release ต้องผ่าน Play Integrity ระดับ Device integrity | ทดสอบบนเครื่องจริง (หัวข้อ 7.3) |
 | ส่งข้อความยาวมากเพื่อผลาญโควตา | จำกัด 2000 ตัวอักษร ทั้งช่องพิมพ์และ controller | test (Security) |
 | ประวัติแชทยาวไม่สิ้นสุด | ส่งแค่ 20 ข้อความล่าสุด | test (Security) |
@@ -222,6 +240,7 @@ test/
 | **คำตอบ AI ใช้ติดตามผู้ใช้** (รูปจาก URL ภายนอก) | `imageBuilder` แสดงข้อความ alt แทน ไม่โหลดรูป | test (Security): ไม่มี `Image` |
 | คำตอบ AI มีลิงก์อันตราย | ไม่ใส่ `onTapLink` ลิงก์ในคำตอบกดไม่ได้ | — |
 | log หลุดข้อมูล | `describeAiError()` พิมพ์แค่ชนิดของ error ไม่พิมพ์ข้อความผู้ใช้ เนื้อหาโน้ต หรือรายละเอียด error | test (Security) |
+| **ไม่เปิด Replay protection** | Enforced กันคำขอที่ไม่ได้มาจากแอปเราแล้ว replay protection ต้องขอ token ใหม่ทุกข้อความ (ช้าลง + กินโควตา Play Integrity เสี่ยงเต็มตอนนำเสนอ/Usability Testing) และ `mnote-ai` ไม่ผูกบัตร ความเสียหายสูงสุดถ้า token ถูกดักไปยิงซ้ำคือโควตาฟรีวันนั้นหมด ไม่มีค่าใช้จ่ายและข้อมูลไม่หลุด ถ้าเปิดให้ผู้ใช้จริง: เปิด authenticated-users mode + จำกัดข้อความต่อคนก่อน แล้วค่อยพิจารณา replay protection | ตัดสินใจ 1 พ.ย. 2026 |
 | debug token หลุด | ไม่อยู่ในโค้ด/repo/PR ลงทะเบียนผ่าน Console ทีละเครื่อง ลบได้ทันทีถ้าหลุด | หัวข้อ 7.4 |
 
 ---
@@ -230,17 +249,22 @@ test/
 
 ### 7.1 การตั้งค่าปัจจุบัน
 
-| ที่ | ค่า |
-|---|---|
-| AI Logic → ผู้ให้บริการ | **Gemini Developer API** (แผน Spark ฟรี ไม่ผูกบัตร) |
-| AI Logic → AI monitoring | **ปิด** (อาจเก็บข้อความผู้ใช้และเนื้อหาโน้ตที่แนบไว้ใน log ควรตกลงกับทีมก่อนเปิด) |
-| App Check → APIs → Firebase AI Logic | **Basic - Monitoring** / Replay protection: **Disabled** |
-| App Check → Apps → mnote (android) → Play Integrity | SHA-256 2 ตัว (`ba:25:...` และ `2E:66:...`) |
-| Play Integrity → Advanced settings | ไม่ติ๊ก `PLAY_RECOGNIZED`, ไม่ติ๊ก `LICENSED`, ระดับขั้นต่ำ **Device integrity** |
-| debug token (android) | `Tablet SM-T735 (Faa)` |
-| debug token (ios) | `pet` (iPad) |
-| App Check → Apps → mnote (ios) | ไม่ได้ลงทะเบียน App Attest / DeviceCheck (หัวข้อ 7.5) |
-| App Check ของ Firestore / Auth | **ไม่ได้แตะ** (Monitoring) |
+**ตั้งแต่ 1 พ.ย. 2026 AI ใช้ Firebase project แยกชื่อ `mnote-ai`** (แผน Spark ไม่ผูกบัตร) ตารางนี้เป็นค่าของ **`mnote-ai`** ทั้งหมด ส่วน Auth / Firestore / Storage อยู่ `mnote-8db27` ตามเดิม เหตุผลที่แยกอยู่ในหัวข้อ 7.6
+
+| ที่ (`mnote-ai`)                            | ค่า                                                                                |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| แผน                                         | **Spark** (ไม่ผูกบัตร) **ห้ามกด Upgrade / ผูกบัตร**                                |
+| แอปที่ลงทะเบียน | Android และ iOS ทั้งคู่ใช้ `com.petchauisui.mnote` |
+| AI Logic → ผู้ให้บริการ                     | **Gemini Developer API** (ไม่ใช่ Vertex AI ซึ่งต้องใช้ Blaze)                      |
+| AI Logic → AI monitoring                    | **ปิด** (อาจเก็บข้อความผู้ใช้และเนื้อหาโน้ตที่แนบไว้ใน log ควรตกลงกับทีมก่อนเปิด)  |
+| App Check → APIs → Firebase AI Logic        | **Enforced** (1 พ.ย. 2026) / Replay protection: **Disabled** (เหตุผลใน 6) |
+| App Check → Apps → android → Play Integrity | SHA-256 `2E:66:...` (ตัวเดียวกับที่ลงทะเบียนใน `mnote-8db27`) |
+| Play Integrity → Advanced settings          | ไม่ติ๊ก `PLAY_RECOGNIZED`, ไม่ติ๊ก `LICENSED`, ระดับขั้นต่ำ **Device integrity**   |
+| debug token (android)                       | faa tablet                                                                         |
+| debug token (ios) | iPad ของ PM |
+| ผู้ใช้ที่มีสิทธิ์                           | เจ้าของ project + เพื่อนในทีมเป็น **Editor** (เพื่อให้เพิ่ม debug token เองได้)    |
+
+**ของ `mnote-8db27` (ไม่ได้ใช้กับ AI แล้ว):** การตั้งค่า AI Logic, debug token และ Play Integrity เดิมยังอยู่ ไม่กระทบอะไร App Check ของ Firestore / Auth **ไม่ได้แตะ** (Monitoring)
 
 **ห้ามเปิด Replay protection:** ต้องใช้ token แบบใช้ครั้งเดียว (limited-use) ซึ่งโค้ดไม่ได้ขอ ถ้าเปิด AI จะโดนบล็อกทุกเครื่อง
 
@@ -250,13 +274,13 @@ test/
 
 1. **firebase_ai ไม่ส่งคำขอเลยถ้าขอ App Check token ไม่ได้ แม้ AI Logic ยังเป็นโหมด Monitoring** ทุกเครื่องต้องผ่าน App Check เสมอ
 2. **หน้า App Check นับเฉพาะคำขอที่ไปถึงเซิร์ฟเวอร์** จึงอาจเห็น verified 100% ทั้งที่บางเครื่องใช้ไม่ได้
-3. **เส้นตาย 2 พฤศจิกายน 2026:** Firebase จะบังคับ App Check กับ AI Logic (Console แสดงแถบแจ้งเตือนนี้) เพราะข้อ 1 ผลจริงจึง**เหมือนตอนนี้ทุกอย่าง**:
-   - **Android:** ตั้งค่า Play Integrity ครบแล้ว (7.3) debug build ยังต้องลงทะเบียน debug token เหมือนเดิม (7.4)
-   - **iOS:** ใช้ AI ได้**เฉพาะเครื่องที่ลงทะเบียน debug token** (7.5)
+3. **เส้นตาย 2 พฤศจิกายน 2026 (ของ `mnote-8db27`):** Firebase จะบังคับ App Check กับ AI Logic เพราะข้อ 1 ผลจริงจึงเหมือนเดิม และ AI ไม่ได้ใช้ project นั้นแล้ว ของ `mnote-ai` ให้กด Enforce เอง (7.7)
+4. **ผูกบัตรแล้ว Gemini ไม่ฟรี (1 พ.ย. 2026):** หลัง `mnote-8db27` เป็น Blaze ทุกข้อความได้ 429 ใน log เห็น `AI request failed: ServerException` (ไม่ใช่ `QuotaExceeded` เพราะข้อความจากเซิร์ฟเวอร์ไม่มีคำว่า "quota") ผู้ใช้จึงเห็น "ไม่พร้อมใช้งาน" ยืนยันได้จาก Google Cloud Console → APIs & Services → กราฟ Errors by response code (429 เต็ม 100%) แก้โดยย้าย AI ไป `mnote-ai` (7.6)
+5. **`gemini-3.8-flash` บน `mnote-ai` ข้อความแรกหลังเปิดแอป error บ่อย** (`ServerException` หรือ `FormatException` ซึ่งแปลว่าเซิร์ฟเวอร์ตอบ error กลับมา) ข้อความถัดไปผ่าน หลังเปลี่ยนเป็น `gemini-3.1-flash-lite` ทดสอบปิด/เปิดแอปหลายรอบไม่เจออีก
 
 ### 7.3 Play Integrity (แอป Android release)
 
-แอป release ใช้ Play Integrity แทน debug token ต้องผ่าน 2 เงื่อนไข**พร้อมกัน**:
+แอป release ใช้ Play Integrity แทน debug token ตั้งค่าใน Console ของ **`mnote-ai`** (ที่ AI ใช้) ต้องผ่าน 2 เงื่อนไข**พร้อมกัน**:
 
 | เงื่อนไข | ทำไม | ถ้าไม่มี |
 |---|---|---|
@@ -279,17 +303,19 @@ debug build ใช้ debug token ทุกเครื่องที่ `flutt
 
 **Android**
 1. `flutter run` → เปิดแชท → ส่งข้อความ 1 ครั้ง (จะ error)
-2. `adb logcat -d | grep DebugAppCheckProvider` → คัดลอกรหัสหลัง `Firebase App Check debug token:`
+2. `adb logcat -d | grep DebugAppCheckProvider` → จะเห็น `Enter this debug secret...` **2 บรรทัด** ตัวหนึ่งของ app หลัก (`mnote-8db27` ขึ้นตอนเปิดแอป) อีกตัวของ app `ai` (`mnote-ai` ขึ้นหลังส่งข้อความ AI ครั้งแรก) **AI ใช้ตัวของ `mnote-ai`** ถ้าแยกไม่ออก ตัวที่ยังไม่เคยลงทะเบียนคือของ `mnote-ai`
 
-**iOS (บน Mac)**
-1. เปิด `ios/Runner.xcworkspace` ใน Xcode → เลือก Simulator หรือเครื่องจริง → กด Run
-2. ใน console ของ Xcode ค้น `App Check debug token` → คัดลอกรหัส
-
-**ลงทะเบียน (ทั้งสองแพลตฟอร์ม)**
-App Check → Apps → แถวของแพลตฟอร์มนั้น → **⋮** → **Manage debug tokens** → Add → ตั้งชื่อ `อุปกรณ์ (ชื่อคน)` → วาง token → Save
+**ลงทะเบียน**
+Console ของ **`mnote-ai`** → App Check → Apps → แถว android → **⋮** → **Manage debug tokens** → Add → ตั้งชื่อ `อุปกรณ์ (ชื่อคน)` → วาง token → Save
+- ต้องมีสิทธิ์ Editor ของ `mnote-ai` ขอจากเจ้าของ project
 - **อย่ากด Generate token** (ใช้สำหรับ CI จะได้ token ที่ไม่ตรงกับเครื่อง)
 - **อย่าวางในช่อง SHA-256 ของ Play Integrity**
-- แอป iOS ไม่ต้องลงทะเบียน App Attest / DeviceCheck ก่อน และไม่ต้องมีบัญชี Apple Developer แบบเสียเงิน (ทดสอบแล้วบน iPad)
+- ลงทะเบียนใน `mnote-8db27` ไม่ทำให้ AI ใช้ได้ เพราะ AI ไม่ได้อยู่ project นั้นแล้ว
+
+**iOS (บน Mac เท่านั้น)**
+1. `flutter run` บน iPad หรือรันจาก Xcode (`ios/Runner.xcworkspace`) → เปิดแชท → ส่งข้อความ AI 1 ครั้ง (จะ error)
+2. ใน console ค้น `App Check debug token` → ใช้ตัวที่ขึ้น**หลังส่งข้อความ AI** (อีกตัวเป็นของ `mnote-8db27`)
+3. ลงทะเบียนที่ `mnote-ai` → App Check → Apps → แถว **ios** → Manage debug tokens
 
 **debug token เป็นความลับ** ห้ามใส่ในโค้ด, README, PR หรือแชทกลุ่ม ถ้าล้างข้อมูลแอป ถอนการติดตั้ง หรือรีเซ็ต simulator จะได้รหัสใหม่และต้องลงทะเบียนอีกครั้ง
 
@@ -300,10 +326,12 @@ App Check → Apps → แถวของแพลตฟอร์มนั้น
 | Android `flutter run` (debug) | ได้ | ลงทะเบียน debug token ของเครื่องนั้น (7.4) |
 | Android `flutter run --release` / APK release บนเครื่องจริง | **ได้ทุกเครื่อง** ไม่ต้องลงทะเบียน | ต้อง build จากคอมที่ใส่ SHA-256 ไว้แล้ว (7.3) |
 | Android release บนโปรแกรมจำลอง | ไม่ได้ | ตั้งใจ: ไม่ผ่าน Device integrity |
-| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token** | ลงทะเบียน debug token ในแถว mnote (ios) |
+| iOS `flutter run` / Xcode (debug) | **ได้เฉพาะเครื่องที่ลงทะเบียน debug token ใน `mnote-ai`** (ทดสอบบน iPad ของ PM แล้ว) | ต้องใช้ Mac ลงทะเบียน token ในแถว ios (7.4) |
 | iOS แบบ release / แอปที่แจกคนอื่น | **ไม่ได้** | ต้องลงทะเบียน App Attest / DeviceCheck ซึ่งต้องมีบัญชี Apple Developer แบบเสียเงิน ทีมยังไม่มี |
 
-**iOS แจกไม่ได้เป็นข้อจำกัดของ Apple ไม่ใช่ของ AI:** ถ้าไม่มีบัญชี Apple Developer แบบเสียเงิน แอปทั้งตัวก็ติดตั้งลง iPhone ของคนอื่นไม่ได้อยู่แล้ว ถ้าอาจารย์ใช้ iPhone ให้ demo บนเครื่องของทีม
+**build iOS ต้องใช้ Mac:** Xcode มีแค่บน macOS คนที่ใช้ Windows build หรือติดตั้งแอปลง iPhone/iPad ไม่ได้ (ไม่เกี่ยวกับ AI) ในทีมมีแค่ PM ที่มี Mac จึงเป็นคนทดสอบ iOS CI (`flutter build ios --no-codesign`) ยืนยันได้แค่ว่าโค้ด compile ผ่าน
+
+**iOS แจกไม่ได้เป็นข้อจำกัดของ Apple ไม่ใช่ของ AI:** ถ้าไม่มีบัญชี Apple Developer แบบเสียเงิน แอปทั้งตัวก็ติดตั้งลง iPhone ของคนอื่นไม่ได้อยู่แล้ว ถ้าอาจารย์ใช้ iPhone ให้ demo บนแท็บเล็ต Android ของทีม
 
 **แนะนำสำหรับวันเทส**
 - คนที่แค่เทส ไม่ได้แก้โค้ด: ใช้ **APK release** (`flutter build apk --release` จากคอมที่ลงทะเบียน SHA-256 แล้ว)
@@ -312,28 +340,42 @@ App Check → Apps → แถวของแพลตฟอร์มนั้น
 
 ### 7.6 โควตา (สำคัญ)
 
-ลิมิตจริงของ `gemini-3.8-flash` ในแผนฟรีของโปรเจกต์ `mnote-8db27` (ดูจาก [AI Studio rate limit](https://aistudio.google.com/rate-limit) ณ 24 ต.ค. 2026):
+**ทำไม AI ต้องใช้ project แยก (`mnote-ai`):** Gemini Developer API มีโควตาฟรีเฉพาะ project ที่**ไม่ผูกบัตร** พอ `mnote-8db27` เปลี่ยนเป็น Blaze (ผูกบัตร) ก็ถูกย้ายไป Tier 1 ซึ่งไม่มีโมเดลไหนฟรี และ spend cap ตั้งไว้ $0 คำขอทุกครั้งจึงได้ 429 (7.2 ข้อ 4) ทางแก้ที่พิจารณา:
+
+| ทาง | ผล |
+|---|---|
+| เติมเงิน (prepay) | ไม่เลือก: ขั้นต่ำ $5 จ่ายล่วงหน้า คืนไม่ได้ ไม่คุ้มสำหรับโปรเจกต์ส่งงาน |
+| ฝัง Gemini API key ไว้ในแอป | ไม่เลือก: อันตราย (หัวข้อ 1) `--dart-define` ก็ยังฝังอยู่ใน APK |
+| เปลี่ยนโมเดลใน project เดิม | ไม่ช่วย: spend cap ผูกกับ project ทุกโมเดลได้ 429 เหมือนกัน |
+| **project แยกที่ไม่ผูกบัตร (เลือกใช้)** | ฟรี ข้อมูลของทีมไม่ย้าย แลกกับต้องดูแล 2 project (debug token ลงทะเบียนแยก) |
+
+**โมเดล `gemini-3.1-flash-lite`** ลิมิตในแผนฟรีของ `mnote-ai` (ดูจาก [AI Studio rate limit](https://aistudio.google.com/rate-limit) ณ 1 พ.ย. 2026):
 
 | ลิมิต | ค่า | นับอะไร |
 |---|---|---|
-| RPM | **5 ครั้งต่อนาที** | จำนวนคำขอ |
+| RPM | **15 ครั้งต่อนาที** | จำนวนคำขอ |
 | TPM | **250K token ต่อนาที** | token ขาเข้า (ข้อความ + ประวัติ + โน้ตที่แนบ) |
-| RPD | **20 ครั้งต่อวัน** | จำนวนคำขอ ไม่ขึ้นกับความยาว |
+| RPD | **500 ครั้งต่อวัน** | จำนวนคำขอ ไม่ขึ้นกับความยาว |
 
-- **ลิมิตนับรวมทั้งโปรเจกต์ ไม่ได้นับรายคน** ([เอกสาร](https://ai.google.dev/gemini-api/docs/rate-limits)) ทั้งทีมได้ 20 ข้อความต่อวันรวมกัน
-- **RPD รีเซ็ตเที่ยงคืนเวลาแปซิฟิก** (ประมาณ 14:00 น. เวลาไทย และประมาณ 15:00 น. หลังสหรัฐฯ เลิกใช้เวลาออมแสงต้นเดือนพฤศจิกายน) "วันนี้" ของโควตาจึงเริ่มตั้งแต่บ่ายของวันก่อนตามเวลาไทย
-- **ส่งติดกันเร็ว ๆ 5 ครั้งในนาทีเดียวจะชน RPM** หายเองภายในไม่ถึงนาที (เคยเจอระหว่างทดสอบ) เว้นประมาณ 15 วินาทีระหว่างข้อความเวลาทดสอบ
+(ค่าเดิมของ `gemini-3.8-flash` บน `mnote-8db27` ก่อนผูกบัตร: RPM 5, TPM 250K, RPD 20)
+
+- **ลิมิตนับรวมทั้ง project ไม่ได้นับรายคน** ([เอกสาร](https://ai.google.dev/gemini-api/docs/rate-limits)) ทั้งทีมใช้โควตาเดียวกัน
+- **RPD รีเซ็ตเที่ยงคืนเวลาแปซิฟิก** (ประมาณ 15:00 น. เวลาไทย หลังสหรัฐฯ เลิกใช้เวลาออมแสงต้นเดือนพฤศจิกายน) "วันนี้" ของโควตาจึงเริ่มตั้งแต่บ่ายของวันก่อนตามเวลาไทย
+- **ส่งติดกันเร็ว ๆ จนเกิน RPM** จะชนลิมิตต่อนาที หายเองภายในไม่ถึงนาที
 - พอชน ผู้ใช้เห็น "ใช้ผู้ช่วย AI ครบโควตาแล้ว..." แอปไม่พัง และใน log เห็น `AI request failed: QuotaExceeded`
-- ดูการใช้งานได้ที่หน้า rate limit ของ AI Studio เลือกโปรเจกต์ **Mnote** และช่วงเวลา **1 Day** (มุมมอง 28 วันแสดงค่าสูงสุดเก่า อาจเข้าใจผิดว่าโควตาวันนี้หมด) **ในหน้านั้นห้ามกด Create API key และ Set up billing**
-- **20 ครั้งต่อวันไม่พอสำหรับ Usability Testing หลายคน** ควรวางแผนจำนวนข้อความล่วงหน้า หรือพิจารณาเปลี่ยนโมเดล (หัวข้อ 8.1)
-- **ห้ามกด Upgrade เป็น Blaze** เพื่อแก้โควตาโดยไม่ได้ตกลงกับทีม
+- ดูการใช้งานที่หน้า rate limit ของ AI Studio เลือก project **`mnote-ai`** และช่วงเวลา **1 Day** (มุมมอง 28 วันแสดงค่าสูงสุดเก่า อาจเข้าใจผิดว่าโควตาวันนี้หมด) **ในหน้านั้นห้ามกด Create API key และ Set up billing**
+- **500 ครั้งต่อวันพอสำหรับ Usability Testing** (เดิม 3.8 Flash ได้แค่ 20) แต่ถ้าหลายคนส่งพร้อมกันเกิน 15 ครั้งในนาทีเดียวจะชน RPM ชั่วคราว
+
+**ห้าม:**
+- **ผูกบัตรหรือกด Upgrade เป็น Blaze ให้ `mnote-ai`** จะกลับไปได้ 429 ทุกข้อความเหมือน `mnote-8db27`
+- เอาค่า config ของ `mnote-8db27` มาใส่ใน `ai_firebase_app.dart` (มี test ดักไว้)
 
 ### 7.7 Checklist ก่อนปล่อยแอปจริง
 
-- [x] ลงทะเบียน Play Integrity + ปิด `PLAY_RECOGNIZED` + Device integrity (7.3)
-- [ ] ลงทะเบียน debug token ของทุกคนที่ `flutter run` (7.4)
-- [ ] กด Enforce App Check ของ AI Logic (หรือรอ Firebase บังคับเองวันที่ 2 พ.ย. ผลเหมือนกัน)
-- [ ] ลบ debug token ที่ไม่ใช้แล้ว (โดยเฉพาะก่อนอัปเกรดเป็นแผน Blaze)
+- [x] ลงทะเบียน Play Integrity + ปิด `PLAY_RECOGNIZED` + Device integrity ใน `mnote-ai` (7.3)
+- [ ] ลงทะเบียน debug token ของทุกคนที่ `flutter run` ใน `mnote-ai` (7.4)
+- [x] กด Enforce App Check ของ AI Logic ใน **`mnote-ai`** (1 พ.ย. 2026, Replay protection: Disabled)
+- [ ] ลบ debug token ที่ไม่ใช้แล้ว **โดยเฉพาะใน `mnote-8db27` ซึ่งผูกบัตรแล้ว** (token หลุด = คนนอกเรียก API ในชื่อแอปเราได้)
 - [ ] พิจารณาสร้าง release key ร่วมกันของทีม (7.3)
 - [ ] พิจารณาเปิด **authenticated-users mode** ของ AI Logic (ให้เฉพาะคนที่ล็อกอินใช้ได้)
 - [ ] ถ้าจะเปิด AI monitoring ต้องตกลงกับทีมก่อน เพราะตอนนี้ข้อความอาจมีเนื้อหาโน้ตของผู้ใช้
@@ -348,8 +390,8 @@ App Check → Apps → แถวของแพลตฟอร์มนั้น
 
 | ค่า | ตอนนี้ | ทำไมควรปรับได้ |
 |---|---|---|
-| `FirebaseAiAssistant.modelName` | `gemini-3.8-flash` (RPD 20) | สลับโมเดลที่โควตามากกว่าช่วง Usability Testing ได้ ต้องดูลิมิตของโมเดลนั้นในโปรเจกต์ก่อน |
-| ระดับการคิด (`ThinkingConfig.withThinkingLevel`) | ไม่ได้ตั้ง (ค่าเริ่มต้น MEDIUM) | **AI ตอบช้าเพราะการคิดเป็นหลัก** 3.8 Flash รองรับ low / medium / high (ไม่รองรับ minimal จะได้ error 400) ปิดการคิดไม่ได้ ตั้ง LOW จะเร็วขึ้นแต่คำตอบที่ต้องใช้เหตุผลอาจด้อยลง |
+| `FirebaseAiAssistant.modelName` | `gemini-3.1-flash-lite` | สลับโมเดลได้โดยไม่ออกแอปใหม่ ต้องดูลิมิตของโมเดลนั้นใน `mnote-ai` ก่อน |
+| ระดับการคิด (`ThinkingConfig.withThinkingLevel`) | ไม่ได้ตั้ง (ใช้ค่าเริ่มต้นของโมเดล) | 3.1 Flash-Lite รองรับ thinking ถ้าคำตอบตื้นไปค่อยลอง MEDIUM แลกกับความเร็ว **ตั้งสูงไม่ได้ทำให้โมเดลเล็กรู้มากขึ้น** ช่วยแค่งานที่ต้องใช้เหตุผลหลายขั้น และการคิดกิน token ของโควตา |
 | `AiDocumentContext.maxContentLength` | 1,000,000 | ปรับตามเพดานของแผนที่ใช้ (เช่น ถ้าเปิด billing TPM จะสูงขึ้น) |
 
 ### 8.2 ส่งเฉพาะส่วนที่เลือกของโน้ต
@@ -410,10 +452,11 @@ MarkdownBody(
 
 ## 9. การทดสอบ
 
-**อัตโนมัติ:** test ของผู้ช่วย AI 89 ตัว (งานนี้เพิ่ม 31 ตัว) และ test ทั้งโปรเจกต์ผ่านทั้งหมด `flutter analyze` ไม่มีปัญหา
+**อัตโนมัติ:** test ของผู้ช่วย AI 95 ตัว (แนบโน้ตเพิ่ม 31 ตัว, ย้าย project เพิ่ม 6 ตัว) และ test ทั้งโปรเจกต์ผ่านทั้งหมด `flutter analyze --fatal-infos` และ `dart format --set-exit-if-changed` ไม่มีปัญหา (บน Windows guard test ภาษาไทยของทีมตก 1 ตัวเพราะ path ใช้ `\` บน CI ผ่าน)
 
 | ไฟล์ | ครอบคลุม |
 |---|---|
+| `ai_firebase_app_test.dart` | ค่า config Android และ iOS ครบไม่มีข้อความตัวอย่างค้าง, (Security) ทุกแพลตฟอร์มไม่ใช่ project ที่ผูกบัตร (`mnote-8db27`), ชื่อ app ไม่ใช่ `[DEFAULT]`, เลือก options ตามแพลตฟอร์ม (เว็บ/Windows ได้ null), iOS มี bundle ID ถูก |
 | `assistant_chat_controller_test.dart` | (#31) ส่ง/รับ, ข้อความว่าง, ส่งซ้ำ, error, ล้าง, dispose, (Security) 2001 ตัวอักษร / ภาษาไทย / ประวัติ 20, ถอยกลับ, คำตอบว่าง / (แนบโน้ต) แนบเป็นค่าเริ่มต้น, ส่งโน้ตจริง, อ่านตอนส่ง, (Security) กด x แล้วไม่ส่งและจำค่า, แนบกลับ, ยังแนบหลังส่ง, (Security) โน้ตว่าง, โน้ตยาวเกินไม่เรียก assistant, (Security) ประวัติไม่มีเนื้อหาโน้ต, ล้มแล้วสถานะการแนบไม่เปลี่ยน, (Security) ที่เห็นตรงกับที่ส่ง 3 สถานะ, `copyWith` เก็บชื่อโน้ต |
 | `assistant_chat_panel_test.dart` | (#31) หน้าว่าง, ปุ่มส่ง, คำแนะนำ, error, Markdown, ไดอะแกรม, ล้าง, (Security) ไม่โหลดรูป / maxLength, fullscreen / side sheet, แป้นพิมพ์, เปิดแผงใหม่, คืนข้อความ / (แนบโน้ต) ชิปและแถบความเป็นส่วนตัว, กด x, แนบกลับ, (Security) ชิปตรงกับที่ส่ง, ป้ายบนข้อความ, (Security) โน้ตว่าง, เปิดแผงใหม่ (State ใหม่) ยังจำค่า, ชื่อยาวไม่ล้นจอ, ข้อความเตือนว่า AI อาจผิดพลาด |
 | `assistant_entry_test.dart` | ไม่มี assistant ไม่มีปุ่ม, เปิดบนแท็บเล็ต/มือถือ, บทสนทนายังอยู่, (Security) เปิดแชตไม่ส่งอะไร มีชิปส่งโน้ต กด x ไม่ส่ง เนื้อหาไม่แสดงในแชท, ออกจากหน้าไม่ error, (Security) โน้ตว่างไม่มีชิป |
@@ -439,6 +482,13 @@ MarkdownBody(
 - release: ใช้ AI ได้หลังตั้งค่า Play Integrity ลบ SHA-256 แล้วใช้ไม่ได้ ใส่กลับแล้วใช้ได้
 - iPad (iOS, debug): ลงทะเบียน debug token แล้วใช้ได้
 
+**บนเครื่องจริง: ย้ายไป `mnote-ai` + `gemini-3.1-flash-lite` (Samsung SM-T735)**
+- debug (ลงทะเบียน debug token ของ `mnote-ai` แล้ว) และ release: AI ตอบได้
+- ปิด/เปิดแอปหลายรอบ ข้อความแรกไม่ error (ตอนใช้ 3.8 Flash ข้อความแรก error บ่อย)
+- สรุปโน้ต, ผัง mermaid, prompt injection (กรณี 7) ยังทำงานเหมือนเดิม ตอบเร็วขึ้นชัดเจน
+- iPad ของ PM (iOS, debug + debug token ของ `mnote-ai`): AI ตอบได้
+- หลังแก้ App Check ตามรีวิว: Android ใช้งานปกติ
+
 **ทดสอบบนเครื่องเพิ่ม (ค้างจาก #31) ผ่าน:** การ์ดโค้ดคัดลอกได้โค้ดล้วน, Mermaid แสดงเป็นโค้ดระหว่างสตรีมแล้วเปลี่ยนเป็นภาพตอนจบ, เลื่อนขึ้นอ่านระหว่าง AI ตอบโดยไม่ถูกดึงลง
 
 **ยังไม่ได้ทดสอบบนเครื่อง:** ข้อความโควตาแบบใหม่ (ต้องรอเจอเอง ไม่ควรตั้งใจใช้โควตาให้หมด)
@@ -457,7 +507,9 @@ MarkdownBody(
 - [Firebase AI Logic: Count tokens](https://firebase.google.com/docs/ai-logic/count-tokens?api=dev)
 - [Gemini API: Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)
 - [Gemini API: Tokens](https://ai.google.dev/gemini-api/docs/tokens)
-- [Gemini 3.8 Flash (input 1,048,576 token, thinking low/medium/high)](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)
+- [Gemini 3.1 Flash-Lite (input 1,048,576 token, รองรับ thinking)](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)
+- [Gemini API: Pricing (แผนฟรี / Tier)](https://ai.google.dev/pricing)
+- [Gemini 3.8 Flash (โมเดลเดิม)](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)
 - [App Check: debug provider (Flutter)](https://firebase.google.com/docs/app-check/flutter/debug-provider)
 - [App Check: Play Integrity provider](https://firebase.google.com/docs/app-check/android/play-integrity-provider)
 - [App Check: App Attest provider](https://firebase.google.com/docs/app-check/ios/app-attest-provider)

@@ -8,6 +8,8 @@ import 'package:scribble/scribble.dart';
 import 'editor_settings.dart';
 import 'ink_pen.dart';
 import 'ink_picture.dart';
+import 'ink_tool.dart';
+import 'stylus_actions.dart';
 import 'ink_settings.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_document_style.dart';
@@ -86,15 +88,93 @@ class InkSession extends ChangeNotifier {
 
   /// Whether the picture tool is on: pictures can be moved and resized, and
   /// the pen is paused.
-  bool movingPictures = false;
+  bool get movingPictures => tool == InkTool.picture;
 
-  void setMovingPictures(bool moving) {
-    if (movingPictures == moving && (moving || selectedPicture == null)) {
+  /// The selected tool. Kept here, not in the page showing the ink, so every
+  /// toolbar for this session agrees on it.
+  InkTool get tool => _tool;
+  InkTool _tool = InkTool.pen;
+  InkTool _previousTool = InkTool.pen;
+
+  /// The pen's own color and width (the highlighter keeps its own).
+  Color get penColor => _penColor;
+  Color _penColor = const Color(0xFF202124);
+  double get penWidth => _penWidth;
+  double _penWidth = 3;
+
+  bool get _highlighting => _tool == InkTool.highlighter;
+
+  /// Color and width of the tool in hand, for the toolbar.
+  Color get toolColor => _highlighting ? highlightColor : _penColor;
+  double get toolWidth => _highlighting ? highlightWidth : _penWidth;
+  List<Color> get toolColorPresets =>
+      _highlighting ? highlightPresets : colorPresets;
+  List<double> get toolWidthPresets =>
+      _highlighting ? highlightWidthPresets : widthPresets;
+
+  void setToolColorPreset(int index, Color color) => _highlighting
+      ? setHighlightPreset(index, color)
+      : setColorPreset(index, color);
+
+  void setToolWidthPreset(int index, double width) => _highlighting
+      ? setHighlightWidthPreset(index, width)
+      : setWidthPreset(index, width);
+
+  void selectTool(InkTool tool) {
+    if (tool != _tool) _previousTool = _tool;
+    _tool = tool;
+    if (tool != InkTool.picture) selectedPicture = null;
+    switch (tool) {
+      case InkTool.pen:
+        pen
+          ..setColor(_penColor)
+          ..setStrokeWidth(_penWidth);
+      case InkTool.highlighter:
+        pen
+          ..setColor(highlightInk(highlightColor))
+          ..setStrokeWidth(highlightWidth);
+      case InkTool.eraser:
+        pen
+          ..setEraser()
+          ..setStrokeWidth(InkPenNotifier.eraserRadius);
+      case InkTool.picture:
+        break;
+    }
+    notifyListeners();
+  }
+
+  /// Picks a color for the highlighter while it's in hand, else for the pen
+  /// (switching to it).
+  void selectToolColor(Color color) {
+    if (_highlighting) {
+      selectHighlight(color: color);
+      pen.setColor(highlightInk(color));
       return;
     }
-    movingPictures = moving;
-    if (!moving) selectedPicture = null;
-    notifyListeners();
+    _penColor = color;
+    selectTool(InkTool.pen);
+  }
+
+  /// Picks a width for the highlighter while it's in hand, else for the pen
+  /// (switching to it).
+  void selectToolWidth(double width) {
+    if (_highlighting) {
+      selectHighlight(width: width);
+      pen.setStrokeWidth(width);
+      return;
+    }
+    _penWidth = width;
+    selectTool(InkTool.pen);
+  }
+
+  /// Does what a stylus gesture (Apple Pencil double-tap or squeeze) asked.
+  void applyStylusAction(StylusAction action) {
+    final next = toolAfterStylusAction(
+      action,
+      current: _tool,
+      previous: _previousTool,
+    );
+    if (next != null) selectTool(next);
   }
 
   /// The page point at the middle of what's on screen, set by the page that
@@ -114,8 +194,9 @@ class InkSession extends ChangeNotifier {
     required Offset center,
   }) {
     final scale = size.width > pageWidth / 2 ? pageWidth / 2 / size.width : 1.0;
-    final width = math.max(InkPicture.minSide, size.width * scale);
-    final height = math.max(InkPicture.minSide, size.height * scale);
+    // fitOnPage enlarges tiny pictures, keeping their shape.
+    final width = size.width * scale;
+    final height = size.height * scale;
     final picture = InkPicture(
       id: '${DateTime.now().microsecondsSinceEpoch}-${_pictureSerial++}',
       src: src,

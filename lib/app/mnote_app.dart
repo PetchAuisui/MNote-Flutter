@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mnote/core/theme/app_theme.dart';
@@ -19,7 +17,7 @@ import 'package:mnote/features/workspace/data/device_document_storage.dart';
 import 'package:mnote/features/workspace/data/local_document_repository.dart';
 import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/domain/document_repository.dart';
-import 'package:mnote/features/workspace/presentation/ink_picture.dart';
+import 'package:mnote/features/workspace/data/ink_picture_index.dart';
 import 'package:mnote/features/workspace/presentation/ink_storage_scope.dart';
 import 'package:mnote/l10n/l10n.dart';
 import 'package:mnote/models/note_item.dart';
@@ -125,25 +123,13 @@ class _MnoteAppState extends State<MnoteApp> {
         if (doc.syncMode == SyncMode.never || doc.isTrash) continue;
         notes.add(doc.content);
         // Pictures placed on the ink page live in the ink file, not the text.
-        notes.addAll(await _inkPictureReferences(doc.name));
+        for (final src in await _inkPictures.sourcesFor(doc.name)) {
+          notes.add('![]($src)');
+        }
       }
       return notes;
     };
     return repository;
-  }
-
-  /// `![](images/…)` for each picture on the ink page of the note [name].
-  static Future<List<String>> _inkPictureReferences(String name) async {
-    try {
-      final bytes = await const DeviceInkFileStorage().autoLoad(name: name);
-      if (bytes == null) return const [];
-      return [
-        for (final src in InkPicture.sourcesIn(jsonDecode(utf8.decode(bytes))))
-          '![]($src)',
-      ];
-    } on Object {
-      return const [];
-    }
   }
 
   SyncedImageFiles? _syncedImages() {
@@ -169,6 +155,7 @@ class _MnoteAppState extends State<MnoteApp> {
 
   // Built once: they own Firestore listeners, so rebuilding the app widget
   // must not create (and leak) new ones.
+  final _inkPictures = InkPictureIndex();
   late final SyncSettings _syncSettings = widget.syncSettings ?? SyncSettings();
   late final SyncedInkFileStorage? _ink = _syncedInk();
   late final SyncedImageFiles? _images = _syncedImages();

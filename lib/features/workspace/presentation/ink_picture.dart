@@ -78,18 +78,23 @@ class InkPicture {
         !file.contains('..');
   }
 
-  /// [rect] moved and shrunk as needed so it lies on a page [pageWidth] wide
-  /// and [pageHeight] tall.
+  /// [rect] scaled (keeping its shape) and moved as needed so it lies on a
+  /// page [pageWidth] wide and [pageHeight] tall, with its shorter side at
+  /// least [minSide] where the page allows.
   static Rect fitOnPage(Rect rect, double pageWidth, double pageHeight) {
-    final width = rect.width.clamp(minSide, pageWidth).toDouble();
-    final height = rect.height.clamp(minSide, pageHeight).toDouble();
-    final left = rect.left
-        .clamp(0.0, math.max(0.0, pageWidth - width))
-        .toDouble();
-    final top = rect.top
-        .clamp(0.0, math.max(0.0, pageHeight - height))
-        .toDouble();
-    return Rect.fromLTWH(left, top, width, height);
+    if (rect.width <= 0 || rect.height <= 0) {
+      return Rect.fromLTWH(0, 0, minSide, minSide);
+    }
+    var scale = math.max(1.0, minSide / math.min(rect.width, rect.height));
+    scale = math.min(
+      scale,
+      math.min(pageWidth / rect.width, pageHeight / rect.height),
+    );
+    final width = rect.width * scale;
+    final height = rect.height * scale;
+    final left = rect.left.clamp(0.0, math.max(0.0, pageWidth - width));
+    final top = rect.top.clamp(0.0, math.max(0.0, pageHeight - height));
+    return Rect.fromLTWH(left.toDouble(), top.toDouble(), width, height);
   }
 
   /// The `images/…` files the pictures in an encoded ink snapshot use, for

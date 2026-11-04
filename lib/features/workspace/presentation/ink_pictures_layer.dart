@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
@@ -83,11 +84,27 @@ class _InkPictureEditorState extends State<InkPictureEditor> {
     _startRect = picture.rect;
   }
 
-  void _move(InkPicture picture, DragUpdateDetails details) {
+  void _startGesture(InkPicture picture, ScaleStartDetails details) {
+    _session.selectPicture(picture.id);
+    _dragStart = _pagePosition(details.focalPoint);
+    _startRect = picture.rect;
+  }
+
+  /// One finger moves the picture; a pinch also resizes it, keeping its
+  /// shape, so pinching on a picture never zooms the page by surprise.
+  void _transformPicture(InkPicture picture, ScaleUpdateDetails details) {
     final start = _dragStart, rect = _startRect;
-    final now = _pagePosition(details.globalPosition);
+    final now = _pagePosition(details.focalPoint);
     if (start == null || rect == null || now == null) return;
-    _session.placePicture(picture.id, rect.shift(now - start));
+    final scale = details.pointerCount > 1 ? details.scale : 1.0;
+    _session.placePicture(
+      picture.id,
+      Rect.fromCenter(
+        center: rect.center + (now - start),
+        width: rect.width * scale,
+        height: rect.height * scale,
+      ),
+    );
   }
 
   void _resize(InkPicture picture, DragUpdateDetails details) {
@@ -100,10 +117,8 @@ class _InkPictureEditorState extends State<InkPictureEditor> {
     final grow = delta.dx.abs() > (delta.dy * aspect).abs()
         ? delta.dx
         : delta.dy * aspect;
-    final width = (rect.width + grow).clamp(
-      InkPicture.minSide,
-      InkSession.pageWidth - rect.left,
-    );
+    // The page keeps the picture within bounds, shape intact.
+    final width = math.max(1.0, rect.width + grow);
     _session.placePicture(
       picture.id,
       Rect.fromLTWH(rect.left, rect.top, width, width / aspect),
@@ -113,10 +128,6 @@ class _InkPictureEditorState extends State<InkPictureEditor> {
   void _end() {
     _dragStart = null;
     _startRect = null;
-    // Pictures may now reach lower than the page did.
-    for (final p in _session.pictures) {
-      _session.grow(p.rect.bottom);
-    }
   }
 
   @override
@@ -149,10 +160,9 @@ class _InkPictureEditorState extends State<InkPictureEditor> {
               // Measure from where the finger landed, so the picture doesn't
               // lag behind it by the drag slop.
               dragStartBehavior: DragStartBehavior.down,
-              onPanStart: (d) => _start(picture, d),
-              onPanUpdate: (d) => _move(picture, d),
-              onPanEnd: (_) => _end(),
-              onPanCancel: _end,
+              onScaleStart: (d) => _startGesture(picture, d),
+              onScaleUpdate: (d) => _transformPicture(picture, d),
+              onScaleEnd: (_) => _end(),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(

@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'ink_page.dart';
+import 'ink_tool.dart';
 
 /// What the person asked a stylus gesture (Apple Pencil double-tap or
 /// squeeze) to do, as set in the system's Pencil settings.
@@ -36,11 +35,6 @@ class StylusActions {
 
   /// Gestures, already mapped to what the person wants them to do.
   Stream<StylusAction> get actions => _actions.stream;
-
-  /// Feeds an action as if it came from the platform (tests, and any other
-  /// source of stylus gestures).
-  @visibleForTesting
-  void emit(StylusAction action) => _actions.add(action);
 
   Future<void> _handle(MethodCall call) async {
     if (call.method != 'tap' && call.method != 'squeeze') return;

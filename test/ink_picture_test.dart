@@ -8,6 +8,7 @@ import 'package:mnote/features/workspace/data/ink_file_storage.dart';
 import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/ink_picture.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
+import 'package:mnote/features/workspace/presentation/stylus_actions.dart';
 import 'package:mnote/l10n/app_localizations.dart';
 import 'package:scribble/scribble.dart';
 
@@ -104,6 +105,51 @@ void main() {
     expect(session.isDirty, isTrue);
   });
 
+  test('pictures keep their shape however they are clamped', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    final banner = session.addPicture(
+      'images/banner.png',
+      size: const Size(2000, 100),
+      center: const Offset(500, 300),
+    );
+    expect(banner.rect.width / banner.rect.height, closeTo(20, 0.001));
+    expect(banner.rect.height, greaterThanOrEqualTo(InkPicture.minSide));
+    expect(banner.rect.width, lessThanOrEqualTo(InkSession.pageWidth));
+
+    session.placePicture(banner.id, const Rect.fromLTWH(0, 0, 100, 5));
+    final shrunk = session.pictures.single.rect;
+    expect(shrunk.width / shrunk.height, closeTo(20, 0.001));
+
+    session.placePicture(banner.id, const Rect.fromLTWH(0, 0, 4000, 200));
+    final grown = session.pictures.single.rect;
+    expect(grown.width, InkSession.pageWidth);
+    expect(grown.width / grown.height, closeTo(20, 0.001));
+  });
+
+  test('the session owns the tool, so every toolbar agrees', () {
+    final session = InkSession();
+    addTearDown(session.dispose);
+    session.selectTool(InkTool.highlighter);
+    expect(session.toolColorPresets, same(session.highlightPresets));
+    session.selectToolColor(session.highlightPresets[1]);
+    expect(session.tool, InkTool.highlighter);
+    expect(session.highlightColor, session.highlightPresets[1]);
+
+    session.selectTool(InkTool.picture);
+    expect(session.movingPictures, isTrue);
+    session.selectToolWidth(6);
+    expect(session.tool, InkTool.pen);
+    expect(session.penWidth, 6);
+    expect(session.movingPictures, isFalse);
+    expect(session.pen.value.selectedWidth, 6);
+
+    session.applyStylusAction(StylusAction.switchEraser);
+    expect(session.tool, InkTool.eraser);
+    session.applyStylusAction(StylusAction.switchEraser);
+    expect(session.tool, InkTool.pen);
+  });
+
   test('ink files with unsafe pictures are refused', () {
     final session = InkSession();
     addTearDown(session.dispose);
@@ -181,7 +227,37 @@ void main() {
       closeTo(before.width / before.height, 0.01),
     );
 
-    await tester.tap(find.byKey(const Key('ink-picture-delete')));
+    // Pinching on the picture resizes it rather than zooming the page.
+    final center = tester.getCenter(drag);
+    final pageScale = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!
+        .value
+        .getMaxScaleOnAxis();
+    final a = await tester.startGesture(center - const Offset(30, 0));
+    final b = await tester.startGesture(center + const Offset(30, 0));
+    for (var i = 0; i < 4; i++) {
+      await a.moveBy(const Offset(-10, 0));
+      await b.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+    final pinched = session.pictures.single.rect;
+    expect(pinched.width, greaterThan(resized.width));
+    expect(
+      tester
+          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+          .transformationController!
+          .value
+          .getMaxScaleOnAxis(),
+      pageScale,
+    );
+
+    // The pinched picture now reaches past the screen, so delete it from
+    // the toolbar.
+    await tester.tap(find.byKey(const Key('ink-delete-picture')));
     await tester.pumpAndSettle();
     expect(session.pictures, isEmpty);
 

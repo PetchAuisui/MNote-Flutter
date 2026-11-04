@@ -12,15 +12,17 @@ import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
-import 'ink_pen.dart';
 import 'ink_pictures_layer.dart';
 import 'ink_session.dart';
+import 'ink_tool.dart';
 import 'ink_storage_scope.dart';
 import 'stylus_actions.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
 import 'mermaid/mermaid_element_builder.dart';
+
+export 'ink_tool.dart';
 
 /// Lets a toolbar outside [InkPage] fit the page to the view width.
 class InkFitController {
@@ -86,11 +88,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   VoidCallback? _jumpStep;
   String? _headingsSource;
   List<MarkdownHeading> _headings = const [];
-  InkTool _tool = InkTool.pen;
-  InkTool _previousTool = InkTool.pen;
   StreamSubscription<StylusAction>? _stylus;
-  Color _penColor = const Color(0xFF202124);
-  double _penWidth = 3;
   bool get _touch =>
       widget.session.pen.value.allowedPointersMode == ScribblePointerMode.all;
   double _viewportWidth = 0;
@@ -351,16 +349,10 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       ..setTranslationRaw(target, value.getTranslation().y, 0);
   }
 
-  void _onStylusAction(StylusAction action) {
-    // Without its own toolbar the host page owns the tools and handles this.
-    if (!widget.showToolbar) return;
-    final next = toolAfterStylusAction(
-      action,
-      current: _tool,
-      previous: _previousTool,
-    );
-    if (next != null) _selectTool(next);
-  }
+  // This page is on screen whenever its ink is being edited, so it answers
+  // stylus gestures whichever toolbar is showing.
+  void _onStylusAction(StylusAction action) =>
+      widget.session.applyStylusAction(action);
 
   /// The page point in the middle of the screen.
   Offset _visibleCenter() {
@@ -381,61 +373,6 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     imageDirectory: widget.imageDirectory,
     center: _visibleCenter(),
   );
-
-  void _selectTool(InkTool tool) {
-    final pen = widget.session.pen;
-    if (tool != _tool) _previousTool = _tool;
-    setState(() => _tool = tool);
-    widget.session.setMovingPictures(tool == InkTool.picture);
-    switch (tool) {
-      case InkTool.picture:
-        break;
-      case InkTool.pen:
-        pen
-          ..setColor(_penColor)
-          ..setStrokeWidth(_penWidth);
-      case InkTool.highlighter:
-        pen
-          ..setColor(InkSession.highlightInk(widget.session.highlightColor))
-          ..setStrokeWidth(widget.session.highlightWidth);
-      case InkTool.eraser:
-        pen
-          ..setEraser()
-          ..setStrokeWidth(InkPenNotifier.eraserRadius);
-    }
-  }
-
-  void _selectColor(Color color) {
-    if (_tool == InkTool.highlighter) {
-      widget.session.selectHighlight(color: color);
-      widget.session.pen.setColor(InkSession.highlightInk(color));
-      return;
-    }
-    setState(() {
-      _penColor = color;
-      _tool = InkTool.pen;
-    });
-    widget.session.setMovingPictures(false);
-    widget.session.pen
-      ..setColor(color)
-      ..setStrokeWidth(_penWidth);
-  }
-
-  void _selectWidth(double width) {
-    if (_tool == InkTool.highlighter) {
-      widget.session.selectHighlight(width: width);
-      widget.session.pen.setStrokeWidth(width);
-      return;
-    }
-    setState(() {
-      _penWidth = width;
-      _tool = InkTool.pen;
-    });
-    widget.session.setMovingPictures(false);
-    widget.session.pen
-      ..setColor(_penColor)
-      ..setStrokeWidth(width);
-  }
 
   Future<void> _clearInk() async {
     if (widget.session.pen.currentSketch.lines.isEmpty) return;
@@ -599,42 +536,11 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       }
       return Column(
         children: [
-          InkToolbar(
-            selectedTool: _tool,
-            penColor: _tool == InkTool.highlighter
-                ? widget.session.highlightColor
-                : _penColor,
-            penWidth: _tool == InkTool.highlighter
-                ? widget.session.highlightWidth
-                : _penWidth,
+          InkToolbar.forSession(
+            session: widget.session,
             touchEnabled: _touch,
-            onToolSelected: _selectTool,
-            onColorSelected: _selectColor,
-            onWidthSelected: _selectWidth,
-            colorPresets: _tool == InkTool.highlighter
-                ? widget.session.highlightPresets
-                : widget.session.colorPresets,
-            widthPresets: _tool == InkTool.highlighter
-                ? widget.session.highlightWidthPresets
-                : widget.session.widthPresets,
-            onColorPresetChanged: _tool == InkTool.highlighter
-                ? widget.session.setHighlightPreset
-                : widget.session.setColorPreset,
-            onWidthPresetChanged: _tool == InkTool.highlighter
-                ? widget.session.setHighlightWidthPreset
-                : widget.session.setWidthPreset,
-            onUndo: pen.canUndo ? pen.undo : null,
-            onRedo: pen.canRedo ? pen.redo : null,
             onClear: pen.currentSketch.lines.isEmpty ? null : _clearInk,
             onAddPicture: _addPicture,
-            onDeletePicture: widget.session.selectedPicture == null
-                ? null
-                : () => widget.session.removePicture(
-                    widget.session.selectedPicture!,
-                  ),
-            eraseWholeStroke: widget.session.eraseWholeStroke,
-            onEraserModeChanged: (whole) =>
-                setState(() => widget.session.setEraseWholeStroke(whole)),
             onTouchChanged: () {
               pen.setAllowedPointersMode(
                 _touch ? ScribblePointerMode.penOnly : ScribblePointerMode.all,
@@ -648,8 +554,6 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     },
   );
 }
-
-enum InkTool { pen, highlighter, eraser, picture }
 
 /// Behind the page while drawing, so the white page stands out.
 const _backdropColor = Color(0xFFE8EAED);
@@ -721,6 +625,46 @@ class InkToolbar extends StatelessWidget {
     required this.onAddPicture,
     required this.onDeletePicture,
   });
+
+  /// A toolbar for [session]'s tools; the caller supplies what depends on
+  /// the page showing it.
+  factory InkToolbar.forSession({
+    Key? key,
+    required InkSession session,
+    required bool touchEnabled,
+    required VoidCallback? onClear,
+    required VoidCallback onAddPicture,
+    required VoidCallback onTouchChanged,
+    required VoidCallback onFit,
+  }) {
+    final pen = session.pen;
+    final picture = session.selectedPicture;
+    return InkToolbar(
+      key: key,
+      selectedTool: session.tool,
+      penColor: session.toolColor,
+      penWidth: session.toolWidth,
+      touchEnabled: touchEnabled,
+      onToolSelected: session.selectTool,
+      onColorSelected: session.selectToolColor,
+      onWidthSelected: session.selectToolWidth,
+      colorPresets: session.toolColorPresets,
+      widthPresets: session.toolWidthPresets,
+      onColorPresetChanged: session.setToolColorPreset,
+      onWidthPresetChanged: session.setToolWidthPreset,
+      onUndo: pen.canUndo ? pen.undo : null,
+      onRedo: pen.canRedo ? pen.redo : null,
+      onClear: onClear,
+      onTouchChanged: onTouchChanged,
+      onFit: onFit,
+      eraseWholeStroke: session.eraseWholeStroke,
+      onEraserModeChanged: session.setEraseWholeStroke,
+      onAddPicture: onAddPicture,
+      onDeletePicture: picture == null
+          ? null
+          : () => session.removePicture(picture),
+    );
+  }
 
   final InkTool selectedTool;
   final Color penColor;
@@ -976,14 +920,14 @@ class InkToolbar extends StatelessWidget {
   }
 
   List<Widget> _eraserModes(BuildContext context) => [
-    _EraserModeButton(
+    _LabeledToolButton(
       key: const Key('ink-eraser-partial'),
       icon: Icons.auto_fix_normal,
       label: context.l10n.inkErasePartial,
       selected: !eraseWholeStroke,
       onTap: () => onEraserModeChanged(false),
     ),
-    _EraserModeButton(
+    _LabeledToolButton(
       key: const Key('ink-eraser-whole'),
       icon: Icons.gesture,
       label: context.l10n.inkEraseWhole,
@@ -993,7 +937,7 @@ class InkToolbar extends StatelessWidget {
   ];
 
   List<Widget> _pictureActions(BuildContext context) => [
-    _EraserModeButton(
+    _LabeledToolButton(
       key: const Key('ink-add-picture'),
       icon: Icons.add_photo_alternate_outlined,
       label: context.l10n.inkAddPicture,
@@ -1051,8 +995,8 @@ class InkToolbar extends StatelessWidget {
   }
 }
 
-class _EraserModeButton extends StatelessWidget {
-  const _EraserModeButton({
+class _LabeledToolButton extends StatelessWidget {
+  const _LabeledToolButton({
     super.key,
     required this.icon,
     required this.label,

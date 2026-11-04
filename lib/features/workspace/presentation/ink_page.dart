@@ -162,7 +162,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _transform.addListener(_clampHorizontal);
     _transform.addListener(_trackActiveHeading);
     widget.outline?.attach(_scrollToOffset);
-    widget.fitController?.attach(_fit);
+    widget.fitController?.attach(_fitWidth);
   }
 
   @override
@@ -173,8 +173,8 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       widget.outline?.attach(_scrollToOffset);
     }
     if (oldWidget.fitController != widget.fitController) {
-      oldWidget.fitController?.detach(_fit);
-      widget.fitController?.attach(_fit);
+      oldWidget.fitController?.detach(_fitWidth);
+      widget.fitController?.attach(_fitWidth);
     }
     if (oldWidget.transformationController != widget.transformationController) {
       _transform.removeListener(_clampHorizontal);
@@ -193,7 +193,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _transform.removeListener(_clampHorizontal);
     _transform.removeListener(_trackActiveHeading);
     widget.outline?.detach(_scrollToOffset);
-    widget.fitController?.detach(_fit);
+    widget.fitController?.detach(_fitWidth);
     _scrollAnimation.dispose();
     _autoSaveInkTimer?.cancel();
     if (widget.session.isDirty) {
@@ -306,11 +306,20 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// The "fit width" button: the page fills the view edge to edge, zooming
+  /// in when the view is wider than the page.
+  void _fitWidth() => _fit(fill: true);
+
   /// Fits the page to the view width while keeping the part of the page in
   /// the middle of the view where it is, instead of jumping back to the top.
-  void _fit() {
-    final scale = (_viewportWidth / InkSession.pageWidth).clamp(0.1, 1.0);
-    final dx = _viewportWidth > InkSession.pageWidth
+  /// Unless [fill], a view wider than the page shows it at its own size, as
+  /// the Markdown modes do, so text stays put when switching modes.
+  void _fit({bool fill = false}) {
+    final scale = (_viewportWidth / InkSession.pageWidth).clamp(
+      0.1,
+      fill ? 4.0 : 1.0,
+    );
+    final dx = !fill && _viewportWidth > InkSession.pageWidth
         ? (_viewportWidth - InkSession.pageWidth) / 2
         : 0.0;
     final current = _transform.value;
@@ -631,7 +640,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
                 _touch ? ScribblePointerMode.penOnly : ScribblePointerMode.all,
               );
             },
-            onFit: _fit,
+            onFit: _fitWidth,
           ),
           Expanded(child: canvas),
         ],
@@ -812,8 +821,12 @@ class InkToolbar extends StatelessWidget {
                                   icon: const Icon(Icons.image_outlined),
                                   selectedIcon: const Icon(Icons.image),
                                   selected: selectedTool == InkTool.picture,
-                                  onPressed: () =>
-                                      onToolSelected(InkTool.picture),
+                                  // Choosing the tool goes straight to
+                                  // picking a picture to add.
+                                  onPressed: () {
+                                    onToolSelected(InkTool.picture);
+                                    onAddPicture();
+                                  },
                                 ),
                               ],
                             ),

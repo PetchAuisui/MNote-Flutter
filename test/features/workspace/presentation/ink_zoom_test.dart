@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mnote/features/workspace/presentation/markdown_document_canvas.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mnote/features/workspace/presentation/ink_page.dart';
 import 'package:mnote/features/workspace/presentation/ink_session.dart';
@@ -59,7 +60,9 @@ void main() {
     );
   });
 
-  testWidgets('fit width keeps the current scroll position', (tester) async {
+  testWidgets('fit width fills the view and keeps the scroll position', (
+    tester,
+  ) async {
     tester.view
       ..physicalSize = const Size(1200, 1600)
       ..devicePixelRatio = 1;
@@ -92,7 +95,16 @@ void main() {
     await tester.tap(find.byKey(const Key('ink-fit')));
     await tester.pumpAndSettle();
 
-    expect(transform.value.getTranslation().y, closeTo(-2000, 0.5));
+    // The page now fills the view edge to edge, and the part of the page in
+    // the middle of the view stays there.
+    final view = tester.getSize(find.byType(InteractiveViewer));
+    final scale = transform.value.getMaxScaleOnAxis();
+    expect(DocumentPageMetrics.width * scale, closeTo(view.width, 0.5));
+    expect(transform.value.getTranslation().x, closeTo(0, 0.5));
+    final before = (view.height / 2 + 2000) / fitted.getMaxScaleOnAxis();
+    final after =
+        (view.height / 2 - transform.value.getTranslation().y) / scale;
+    expect(after, closeTo(before, 0.5));
   });
 
   testWidgets('fit width from a zoom keeps the middle of the view in place', (

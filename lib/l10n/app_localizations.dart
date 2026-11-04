@@ -2177,7 +2177,7 @@ abstract class AppLocalizations {
   /// No description provided for @inkFitWidth.
   ///
   /// In th, this message translates to:
-  /// **'พอดีความกว้าง'**
+  /// **'ความกว้างพอดี'**
   String get inkFitWidth;
 
   /// No description provided for @inkGroupManage.

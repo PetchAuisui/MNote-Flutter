@@ -1140,7 +1140,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkPencilOnly => 'Apple Pencil เขียน · นิ้วเลื่อนหน้า';
 
   @override
-  String get inkFitWidth => 'พอดีความกว้าง';
+  String get inkFitWidth => 'ความกว้างพอดี';
 
   @override
   String get inkGroupManage => 'จัดการหมึก';

@@ -130,7 +130,11 @@ void main() {
     await tester.pumpWidget(_page(session));
     await tester.pumpAndSettle();
 
+    // Choosing the tool opens the picker and adds the picture straight away.
     await tester.tap(find.byKey(const Key('ink-picture-tool')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
     await tester.pumpAndSettle();
     expect(session.movingPictures, isTrue);
     expect(find.byKey(const Key('ink-color-preset-0')), findsNothing);
@@ -148,12 +152,6 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.byKey(const Key('ink-add-picture')));
-    // Looking up the picture's size reads the disk, which needs real time.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 200)),
-    );
-    await tester.pumpAndSettle();
     final picture = session.pictures.single;
     expect(picture.src, 'images/cat-0001.png');
     expect(session.selectedPicture, picture.id);

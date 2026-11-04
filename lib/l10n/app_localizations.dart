@@ -2192,6 +2192,12 @@ abstract class AppLocalizations {
   /// **'ความสว่าง'**
   String get inkBrightness;
 
+  /// No description provided for @inkFineTune.
+  ///
+  /// In th, this message translates to:
+  /// **'ปรับละเอียด'**
+  String get inkFineTune;
+
   /// No description provided for @ok.
   ///
   /// In th, this message translates to:

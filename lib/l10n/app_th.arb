@@ -638,6 +638,7 @@
   "inkHue": "สี",
   "inkSaturation": "ความเข้ม",
   "inkBrightness": "ความสว่าง",
+  "inkFineTune": "ปรับละเอียด",
   "ok": "ตกลง",
   "inkCustomWidth": "กำหนดขนาดเส้น",
   "inkColorTip": "แตะเพื่อเลือก · แตะซ้ำหรือกดค้างเพื่อเปลี่ยนสีนี้",

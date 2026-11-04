@@ -1149,6 +1149,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get inkBrightness => 'ความสว่าง';
 
   @override
+  String get inkFineTune => 'ปรับละเอียด';
+
+  @override
   String get ok => 'ตกลง';
 
   @override

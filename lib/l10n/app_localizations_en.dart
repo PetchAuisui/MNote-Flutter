@@ -1161,6 +1161,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inkBrightness => 'Brightness';
 
   @override
+  String get inkFineTune => 'Fine-tune';
+
+  @override
   String get ok => 'OK';
 
   @override

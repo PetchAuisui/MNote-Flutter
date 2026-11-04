@@ -5,6 +5,7 @@ import 'package:flutter/painting.dart';
 import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
+import 'ink_pen.dart';
 import 'ink_settings.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_document_style.dart';
@@ -13,7 +14,7 @@ import 'markdown_document_style.dart';
 class InkSession extends ChangeNotifier {
   static const pageWidth = DocumentPageMetrics.width;
   double height = DocumentPageMetrics.initialHeight;
-  late final ScribbleNotifier pen = ScribbleNotifier(
+  late final InkPenNotifier pen = InkPenNotifier(
     allowedPointersMode: InkSettings.instance.fingerDrawing
         ? ScribblePointerMode.all
         : ScribblePointerMode.penOnly,

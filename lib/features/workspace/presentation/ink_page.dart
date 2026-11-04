@@ -338,7 +338,8 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       case InkTool.eraser:
         pen
           ..setEraser()
-          ..setStrokeWidth(28);
+          // Radius of the eraser circle; it rubs out only what it covers.
+          ..setStrokeWidth(12);
     }
   }
 
@@ -996,51 +997,112 @@ class _CustomColorDialog extends StatefulWidget {
 class _CustomColorDialogState extends State<_CustomColorDialog> {
   late HSVColor _hsv = HSVColor.fromColor(widget.initial);
 
+  /// Ready-made colors: tap one and you're done. Grays and browns, then the
+  /// main hues in regular, dark and light shades.
+  static const _palette = <Color>[
+    Color(0xFF000000),
+    Color(0xFF424242),
+    Color(0xFF757575),
+    Color(0xFFBDBDBD),
+    Color(0xFFFFFFFF),
+    Color(0xFF5D4037),
+    Color(0xFF8D6E63),
+    Color(0xFFD7CCC8),
+    Color(0xFFF44336),
+    Color(0xFFFF9800),
+    Color(0xFFFFEB3B),
+    Color(0xFF4CAF50),
+    Color(0xFF009688),
+    Color(0xFF2196F3),
+    Color(0xFF3F51B5),
+    Color(0xFF9C27B0),
+    Color(0xFFB71C1C),
+    Color(0xFFE65100),
+    Color(0xFFF9A825),
+    Color(0xFF1B5E20),
+    Color(0xFF004D40),
+    Color(0xFF0D47A1),
+    Color(0xFF1A237E),
+    Color(0xFF4A148C),
+    Color(0xFFEF9A9A),
+    Color(0xFFFFCC80),
+    Color(0xFFFFF59D),
+    Color(0xFFA5D6A7),
+    Color(0xFF80CBC4),
+    Color(0xFF90CAF9),
+    Color(0xFF9FA8DA),
+    Color(0xFFCE93D8),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final color = _hsv.toColor();
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
       title: Text(context.l10n.inkCustomColor),
       content: SizedBox(
         width: 320,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              key: const Key('ink-color-preview'),
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                key: const Key('ink-color-preview'),
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _slider(
-              context.l10n.inkHue,
-              _hsv.hue,
-              360,
-              (v) => _hsv = _hsv.withHue(v),
-              key: const Key('ink-color-hue'),
-              activeColor: HSVColor.fromAHSV(1, _hsv.hue, 1, 1).toColor(),
-            ),
-            _slider(
-              context.l10n.inkSaturation,
-              _hsv.saturation,
-              1,
-              (v) => _hsv = _hsv.withSaturation(v),
-              key: const Key('ink-color-saturation'),
-            ),
-            _slider(
-              context.l10n.inkBrightness,
-              _hsv.value,
-              1,
-              (v) => _hsv = _hsv.withValue(v),
-              key: const Key('ink-color-value'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var i = 0; i < _palette.length; i++)
+                    _paletteSwatch(context, i, color),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                context.l10n.inkFineTune,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              _slider(
+                context.l10n.inkHue,
+                _hsv.hue,
+                360,
+                (v) => _hsv = _hsv.withHue(v),
+                key: const Key('ink-color-hue'),
+                track: [
+                  for (var h = 0; h <= 360; h += 60)
+                    HSVColor.fromAHSV(1, h.toDouble(), 1, 1).toColor(),
+                ],
+              ),
+              _slider(
+                context.l10n.inkSaturation,
+                _hsv.saturation,
+                1,
+                (v) => _hsv = _hsv.withSaturation(v),
+                key: const Key('ink-color-saturation'),
+                track: [
+                  _hsv.withSaturation(0).toColor(),
+                  _hsv.withSaturation(1).toColor(),
+                ],
+              ),
+              _slider(
+                context.l10n.inkBrightness,
+                _hsv.value,
+                1,
+                (v) => _hsv = _hsv.withValue(v),
+                key: const Key('ink-color-value'),
+                track: [const Color(0xFF000000), _hsv.withValue(1).toColor()],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -1057,27 +1119,111 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     );
   }
 
+  Widget _paletteSwatch(BuildContext context, int index, Color current) {
+    final swatch = _palette[index];
+    final selected = swatch.toARGB32() == current.toARGB32();
+    final onSwatch = swatch.computeLuminance() > 0.5
+        ? Colors.black
+        : Colors.white;
+    return InkResponse(
+      key: Key('ink-color-palette-$index'),
+      radius: 20,
+      onTap: () => setState(() => _hsv = HSVColor.fromColor(swatch)),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: swatch,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: selected ? Icon(Icons.check, size: 18, color: onSwatch) : null,
+      ),
+    );
+  }
+
   Widget _slider(
     String label,
     double value,
     double max,
     void Function(double) apply, {
     required Key key,
-    Color? activeColor,
+    required List<Color> track,
   }) => Row(
     children: [
       SizedBox(width: 72, child: Text(label)),
       Expanded(
-        child: Slider(
-          key: key,
-          value: value.clamp(0, max),
-          max: max,
-          activeColor: activeColor,
-          onChanged: (v) => setState(() => apply(v)),
+        child: SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 12,
+            trackShape: _GradientTrackShape(track),
+            thumbColor: Colors.white,
+            overlayColor: Colors.black12,
+            thumbShape: const RoundSliderThumbShape(
+              enabledThumbRadius: 11,
+              elevation: 3,
+            ),
+          ),
+          child: Slider(
+            key: key,
+            value: value.clamp(0, max),
+            max: max,
+            onChanged: (v) => setState(() => apply(v)),
+          ),
         ),
       ),
     ],
   );
+}
+
+/// A slider track that shows what each position looks like, so dragging
+/// the thumb isn't guesswork.
+class _GradientTrackShape extends SliderTrackShape with BaseSliderTrackShape {
+  const _GradientTrackShape(this.colors);
+
+  final List<Color> colors;
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+    required TextDirection textDirection,
+  }) {
+    final rect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(rect.height / 2),
+    );
+    context.canvas
+      ..drawRRect(
+        rrect,
+        Paint()..shader = LinearGradient(colors: colors).createShader(rect),
+      )
+      ..drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = const Color(0x1F000000),
+      );
+  }
 }
 
 class _CustomWidthDialog extends StatefulWidget {

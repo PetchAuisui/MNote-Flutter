@@ -4,8 +4,25 @@ import 'package:scribble/scribble.dart';
 /// A [ScribbleNotifier] whose eraser either rubs out only the part of a stroke
 /// it passes over (splitting the stroke in two) or, with [eraseWholeStroke],
 /// deletes every stroke it touches.
+///
+/// Whatever tool is selected, a stylus erases while it is flipped to its
+/// eraser end or while its side button is held (S Pen, Surface Pen, Wacom…),
+/// then goes straight back to the tool it had.
 class InkPenNotifier extends ScribbleNotifier {
-  InkPenNotifier({super.allowedPointersMode, super.widths});
+  InkPenNotifier({super.sketch, super.allowedPointersMode, super.widths});
+
+  /// Radius of the eraser circle.
+  static const eraserRadius = 12.0;
+
+  /// Whether [event] comes from a stylus asking to erase: flipped over to its
+  /// eraser end, or with its side button held.
+  static bool wantsEraser(PointerEvent event) =>
+      event.kind == PointerDeviceKind.invertedStylus ||
+      (event.kind == PointerDeviceKind.stylus &&
+          event.buttons & kPrimaryStylusButton != 0);
+
+  /// The drawing state to return to once a stylus stops erasing on its own.
+  Drawing? _resumeDrawing;
 
   /// Whether the eraser deletes a whole stroke on touch instead of only the
   /// part it covers.
@@ -20,6 +37,19 @@ class InkPenNotifier extends ScribbleNotifier {
 
   @override
   void onPointerDown(PointerDownEvent event) {
+    final current = value;
+    if (current is Drawing &&
+        current.activePointerIds.isEmpty &&
+        current.supportedPointerKinds.contains(event.kind) &&
+        wantsEraser(event)) {
+      _resumeDrawing = current;
+      temporaryValue = ScribbleState.erasing(
+        sketch: current.sketch,
+        selectedWidth: eraserRadius,
+        scaleFactor: current.scaleFactor,
+        allowedPointersMode: current.allowedPointersMode,
+      );
+    }
     super.onPointerDown(event);
     if (!_erasingWith(event)) return;
     _eraserTrail[event.pointer] = event.localPosition;
@@ -66,6 +96,18 @@ class InkPenNotifier extends ScribbleNotifier {
           .where((id) => id != event.pointer)
           .toList(),
     );
+    final resume = _resumeDrawing;
+    if (resume != null && value.activePointerIds.isEmpty) {
+      _resumeDrawing = null;
+      // Undo only restores the sketch, so this never brings back the
+      // temporary eraser.
+      temporaryValue = resume.copyWith(
+        sketch: value.sketch,
+        activePointerIds: const [],
+        pointerPosition: null,
+        activeLine: null,
+      );
+    }
   }
 
   ScribbleState _erase(Offset from, Offset to) {

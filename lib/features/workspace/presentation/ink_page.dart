@@ -11,8 +11,10 @@ import 'package:mnote/features/workspace/presentation/workspace_toolbar_metrics.
 import 'package:scribble/scribble.dart';
 
 import 'editor_settings.dart';
+import 'ink_pen.dart';
 import 'ink_session.dart';
 import 'ink_storage_scope.dart';
+import 'stylus_actions.dart';
 import 'markdown_document_canvas.dart';
 import 'markdown_live_editor.dart';
 import 'markdown_outline.dart';
@@ -79,6 +81,8 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
   String? _headingsSource;
   List<MarkdownHeading> _headings = const [];
   InkTool _tool = InkTool.pen;
+  InkTool _previousTool = InkTool.pen;
+  StreamSubscription<StylusAction>? _stylus;
   Color _penColor = const Color(0xFF202124);
   double _penWidth = 3;
   bool get _touch =>
@@ -93,6 +97,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
     _storage = widget.fileStorage ?? const DeviceInkFileStorage();
     widget.session.pen.addListener(_onPenChanged);
     EditorSettings.instance.addListener(_onEditorSettingsChanged);
+    _stylus = StylusActions.instance.actions.listen(_onStylusAction);
     _attachTransform();
   }
 
@@ -175,6 +180,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
+    _stylus?.cancel();
     _transform.removeListener(_clampHorizontal);
     _transform.removeListener(_trackActiveHeading);
     widget.outline?.detach(_scrollToOffset);
@@ -323,8 +329,20 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       ..setTranslationRaw(target, value.getTranslation().y, 0);
   }
 
+  void _onStylusAction(StylusAction action) {
+    // Without its own toolbar the host page owns the tools and handles this.
+    if (!widget.showToolbar) return;
+    final next = toolAfterStylusAction(
+      action,
+      current: _tool,
+      previous: _previousTool,
+    );
+    if (next != null) _selectTool(next);
+  }
+
   void _selectTool(InkTool tool) {
     final pen = widget.session.pen;
+    if (tool != _tool) _previousTool = _tool;
     setState(() => _tool = tool);
     switch (tool) {
       case InkTool.pen:
@@ -338,8 +356,7 @@ class _InkPageState extends State<InkPage> with SingleTickerProviderStateMixin {
       case InkTool.eraser:
         pen
           ..setEraser()
-          // Radius of the eraser circle; it rubs out only what it covers.
-          ..setStrokeWidth(12);
+          ..setStrokeWidth(InkPenNotifier.eraserRadius);
     }
   }
 

@@ -31,7 +31,9 @@ import 'markdown_live_editor.dart';
 import 'markdown_outline_panel.dart';
 import 'markdown_document_style.dart';
 import 'ink_page.dart';
+import 'ink_pen.dart';
 import 'ink_session.dart';
+import 'stylus_actions.dart';
 import 'export_sheet.dart';
 
 class MarkdownWorkspacePage extends StatefulWidget {
@@ -89,6 +91,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   InkSession _ink = InkSession();
   late final TransformationController _inkTransform;
   InkTool _inkTool = InkTool.pen;
+  InkTool _previousInkTool = InkTool.pen;
+  StreamSubscription<StylusAction>? _stylus;
   Color _inkPenColor = const Color(0xFF202124);
   double _inkPenWidth = 3;
   bool _inkTouch = InkSettings.instance.fingerDrawing;
@@ -100,6 +104,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   @override
   void initState() {
     super.initState();
+    _stylus = StylusActions.instance.actions.listen(_onStylusAction);
     _inkTransform = TransformationController();
     _workspace = WorkspaceController(
       widget.repository,
@@ -153,6 +158,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   @override
   void dispose() {
+    _stylus?.cancel();
     _assistantChat?.dispose();
     _autoSaveTimer?.cancel();
     _inkTransform.dispose();
@@ -1548,7 +1554,18 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  void _onStylusAction(StylusAction action) {
+    if (_workspace.mode != WorkspaceMode.ink) return;
+    final next = toolAfterStylusAction(
+      action,
+      current: _inkTool,
+      previous: _previousInkTool,
+    );
+    if (next != null) _selectInkTool(next);
+  }
+
   void _selectInkTool(InkTool tool) {
+    if (tool != _inkTool) _previousInkTool = _inkTool;
     setState(() => _inkTool = tool);
     final pen = _ink.pen;
     switch (tool) {
@@ -1563,7 +1580,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       case InkTool.eraser:
         pen
           ..setEraser()
-          ..setStrokeWidth(28);
+          ..setStrokeWidth(InkPenNotifier.eraserRadius);
     }
   }
 

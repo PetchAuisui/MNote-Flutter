@@ -52,15 +52,30 @@ class FirebaseAiAssistant implements AiAssistant {
     // จะได้ไม่ยิงคำขอรอบถัดไประหว่างรอลองใหม่
     final output = StreamController<String>();
     var cancelled = false;
-    output.onListen = () =>
-        unawaited(_run(output, () => cancelled, text, history, document));
-    output.onCancel = () => cancelled = true;
+    // ตัวตัดสายของคำขอที่กำลังรอคำตอบอยู่ ใช้ตอนผู้ใช้ปิดแชต
+    void Function()? stopActive;
+    output.onListen = () => unawaited(
+      _run(
+        output,
+        () => cancelled,
+        (stop) => stopActive = stop,
+        text,
+        history,
+        document,
+      ),
+    );
+    output.onCancel = () {
+      cancelled = true;
+      // ตัดสายทันที ไม่ต้องรอคำตอบชิ้นแรกมาถึงก่อน
+      stopActive?.call();
+    };
     return output.stream;
   }
 
   Future<void> _run(
     StreamController<String> output,
     bool Function() isCancelled,
+    void Function(void Function()? stop) trackActive,
     String text,
     List<ChatMessage> history,
     AiDocumentContext? document,
@@ -111,13 +126,33 @@ class FirebaseAiAssistant implements AiAssistant {
                 systemInstruction: systemInstruction,
               )
               .startChat(history: geminiHistory);
-          await for (final chunk in chat.sendMessageStream(prompt)) {
-            if (isCancelled()) return;
-            final part = chunk.text;
-            if (part != null && part.isNotEmpty) {
-              answered = true;
-              output.add(part);
-            }
+          final done = Completer<void>();
+          final subscription = chat
+              .sendMessageStream(prompt)
+              .listen(
+                (chunk) {
+                  final part = chunk.text;
+                  if (part != null && part.isNotEmpty) {
+                    answered = true;
+                    output.add(part);
+                  }
+                },
+                onError: (Object error, StackTrace stackTrace) {
+                  if (!done.isCompleted) done.completeError(error, stackTrace);
+                },
+                onDone: () {
+                  if (!done.isCompleted) done.complete();
+                },
+                cancelOnError: true,
+              );
+          trackActive(() {
+            unawaited(subscription.cancel());
+            if (!done.isCompleted) done.complete();
+          });
+          try {
+            await done.future;
+          } finally {
+            trackActive(null);
           }
           return;
         } on Exception catch (error) {

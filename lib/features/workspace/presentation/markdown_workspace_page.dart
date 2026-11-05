@@ -100,6 +100,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// จึงเช็กไฟล์ไว้ล่วงหน้าตอนเปิดโน้ต แชต AI จะได้รู้ว่าต้องส่งรูปลายมือ
   bool _savedInkForAi = false;
 
+  /// รูปหน้าโน้ตล่าสุดที่วาดให้ AI (เก็บเป็น Future จึงใช้ได้ทั้งตอนกำลังวาดอยู่
+  /// และตอนวาดเสร็จแล้ว) ใช้ซ้ำเมื่อเนื้อหาและลายมือไม่เปลี่ยน
+  ({String key, Future<Uint8List?> image})? _aiPageImage;
+
   @override
   void initState() {
     super.initState();
@@ -356,6 +360,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _inkTransform.value = Matrix4.identity();
     setState(() => _ink = InkSession());
     _savedInkForAi = false;
+    _aiPageImage = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       previous.dispose();
       if (mounted) _checkSavedInkForAi();
@@ -1377,12 +1382,29 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     }
     if (ink == null) return null;
     if (!mounted) return null;
-    return renderNotePageForAi(
+    // ถามต่อโดยโน้ตไม่เปลี่ยน: ใช้รูปเดิม ไม่วาดและอัปโหลดใหม่
+    // ถ้ารอบก่อนยังวาดไม่เสร็จ (เช่นเกินเวลาที่แชตรอ) ก็รอรอบเดิม ไม่วาดซ้อน
+    final content = _workspace.document.content;
+    final key = '${content.length}:${ink.length}:$content\u0000$ink';
+    final cached = _aiPageImage;
+    if (cached != null && cached.key == key) return cached.image;
+    final image = renderNotePageForAi(
       context,
-      markdown: _workspace.document.content,
+      markdown: content,
       ink: ink,
       imageDirectory: _imageDirectory,
     );
+    _aiPageImage = (key: key, image: image);
+    // วาดไม่สำเร็จไม่เก็บไว้ ครั้งหน้าวาดใหม่
+    unawaited(
+      image.then<void>(
+        (_) {},
+        onError: (Object _) {
+          if (identical(_aiPageImage?.image, image)) _aiPageImage = null;
+        },
+      ),
+    );
+    return image;
   }
 
   Widget _buildDocumentActions() {

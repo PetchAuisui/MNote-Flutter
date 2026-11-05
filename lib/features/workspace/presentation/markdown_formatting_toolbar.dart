@@ -27,7 +27,12 @@ class MarkdownFormattingToolbar extends StatefulWidget {
     required this.onTable,
     this.onDiagramTemplate,
     this.onImportDiagram,
+    this.docked = false,
   });
+
+  /// True when the toolbar sits at the bottom of the screen, just above the
+  /// on-screen keyboard, rather than under the header.
+  final bool docked;
 
   final VoidCallback? onUndo;
   final VoidCallback? onRedo;
@@ -74,7 +79,9 @@ class _MarkdownFormattingToolbarState extends State<MarkdownFormattingToolbar> {
     // count as a tap outside it and close the block the user is typing in.
     return TextFieldTapRegion(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+        padding: widget.docked
+            ? const EdgeInsets.fromLTRB(8, 6, 8, 6)
+            : const EdgeInsets.fromLTRB(16, 4, 16, 0),
         child: Material(
           key: const Key('markdown-toolbar-surface'),
           color: colorScheme.surfaceContainerLow,

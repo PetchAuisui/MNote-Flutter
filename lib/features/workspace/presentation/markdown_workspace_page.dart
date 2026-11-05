@@ -983,8 +983,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                 if (_workspace.isBusy)
                   const LinearProgressIndicator(minHeight: 2),
                 _buildWorkspaceHeader(document),
-                if (_workspace.mode == WorkspaceMode.edit ||
-                    _workspace.mode == WorkspaceMode.split)
+                if (_isTextMode && !_dockToolbarAtBottom)
                   _buildFormattingToolbar()
                 else if (_workspace.mode == WorkspaceMode.ink)
                   _buildInkToolbar(),
@@ -1022,40 +1021,54 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
                                     )
                                   : _buildPreview(),
                             ),
-                            const Divider(height: 1),
-                            Container(
-                              width: double.infinity,
-                              color: const Color(0xFFECEEF3),
-                              padding: const EdgeInsets.fromLTRB(16, 8, 32, 10),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  _workspace.mode == WorkspaceMode.split
-                                      ? context.l10n.statsLive(
-                                          document.content.split('\n').length,
-                                          document.content.characters.length,
-                                        )
-                                      : context.l10n.statsPlain(
-                                          document.content.split('\n').length,
-                                          document.content.characters.length,
+                            if (!_keyboardVisible) ...[
+                              const Divider(height: 1),
+                              Container(
+                                width: double.infinity,
+                                color: const Color(0xFFECEEF3),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  8,
+                                  32,
+                                  10,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    _workspace.mode == WorkspaceMode.split
+                                        ? context.l10n.statsLive(
+                                            document.content.split('\n').length,
+                                            document.content.characters.length,
+                                          )
+                                        : context.l10n.statsPlain(
+                                            document.content.split('\n').length,
+                                            document.content.characters.length,
+                                          ),
+                                    key: const Key('document-statistics'),
+                                    maxLines: 1,
+                                    textAlign: TextAlign.end,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: const Color(0xFF5F6368),
                                         ),
-                                  key: const Key('document-statistics'),
-                                  maxLines: 1,
-                                  textAlign: TextAlign.end,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: const Color(0xFF5F6368),
-                                      ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
+                if (_isTextMode && _dockToolbarAtBottom)
+                  SafeArea(
+                    top: false,
+                    child: _buildFormattingToolbar(docked: true),
+                  ),
               ],
             ),
           ),
@@ -1063,6 +1076,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       ),
     );
   }
+
+  /// On phones the formatting toolbar sits just above the keyboard, where the
+  /// thumb already is, instead of at the far top of the screen.
+  bool get _dockToolbarAtBottom => _isCompact;
+
+  bool get _keyboardVisible => MediaQuery.viewInsetsOf(context).bottom > 0;
 
   /// Below this width Material 3 treats the window as compact, where the
   /// outline opens as a bottom sheet instead of a docked side sheet.
@@ -1478,7 +1497,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   static final _listItem = RegExp(r'^\s*([-*+]|\d+[.)])\s');
 
-  Widget _buildFormattingToolbar() {
+  Widget _buildFormattingToolbar({bool docked = false}) {
     // Rebuilt as the cursor moves so list tools are enabled only where they
     // do something visible.
     return ListenableBuilder(
@@ -1487,6 +1506,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
         final history = _undoController.value;
         final listLines = _selectedLines.where(_listItem.hasMatch).toList();
         return MarkdownFormattingToolbar(
+          docked: docked,
           onUndo: history.canUndo ? _undoController.undo : null,
           onRedo: history.canRedo ? _undoController.redo : null,
           onHeading: _applyHeading,

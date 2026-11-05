@@ -96,6 +96,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่
   AssistantChatController? _assistantChat;
 
+  /// มีลายมือที่บันทึกไว้ไหม หน้าลายมือโหลดลายมือที่บันทึกไว้ก็ต่อเมื่อถูกเปิด
+  /// จึงเช็กไฟล์ไว้ล่วงหน้าตอนเปิดโน้ต แชต AI จะได้รู้ว่าต้องส่งรูปลายมือ
+  bool _savedInkForAi = false;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +121,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
     _loadBundledExample();
+    // ใช้ context อ่าน InkStorageScope ได้หลังเฟรมแรก
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkSavedInkForAi();
+    });
     if (_workspace.mode == WorkspaceMode.ink) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _inkFit.fit();
@@ -347,7 +355,11 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     // A different note starts at its top, not where the last one was left.
     _inkTransform.value = Matrix4.identity();
     setState(() => _ink = InkSession());
-    WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+    _savedInkForAi = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      previous.dispose();
+      if (mounted) _checkSavedInkForAi();
+    });
   }
 
   Future<bool> _runFileAction(
@@ -1327,6 +1339,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  /// เช็กว่าโน้ตที่เปิดอยู่มีลายมือที่บันทึกไว้ไหม (ไม่บล็อกการเปิดแชต)
+  Future<void> _checkSavedInkForAi() async {
+    final name = _workspace.document.name;
+    final ink = await _currentInkSnapshot();
+    if (!mounted || _workspace.document.name != name) return;
+    _savedInkForAi = ink != null;
+  }
+
   void _openAssistant() {
     final assistant = widget.assistant;
     if (assistant == null) return;
@@ -1335,7 +1355,7 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       documentProvider: () => AiDocumentContext(
         title: _workspace.document.name,
         content: _workspace.document.content,
-        hasInk: _ink.hasContent,
+        hasInk: _ink.hasContent || _savedInkForAi,
       ),
       pageImageProvider: _renderPageForAi,
     );

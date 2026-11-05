@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/chat_message.dart';
@@ -619,6 +620,23 @@ void main() {
       );
       expect(controller.canAttachNote, isTrue);
     });
+
+    // ink 6. วาดรูปค้างเกินเวลา: ส่งแค่ข้อความ แชตไม่ค้าง
+    test(
+      'ink 6. a stuck render times out and still sends the note text',
+      () async {
+        final fake = FakeAiAssistant();
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () => inkNote,
+          pageImageProvider: () => Completer<Uint8List?>().future,
+          pageImageTimeout: const Duration(milliseconds: 50),
+        );
+        expect(await controller.send('สวัสดี'), isTrue);
+        expect(fake.lastDocument, isNotNull);
+        expect(fake.lastDocument?.pageImage, isNull);
+      },
+    );
 
     // ink 5. วาดรูปไม่สำเร็จ: ยังส่งข้อความกับโน้ตได้
     test('ink 5. render failure still sends the note text', () async {

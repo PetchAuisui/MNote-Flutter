@@ -327,7 +327,18 @@ void main() {
         ),
         isTrue,
       );
-      expect(isTransientAiError(const FormatException('<html>')), isTrue);
+      expect(
+        isTransientAiError(
+          const FormatException('Unexpected character', '<html>503</html>'),
+        ),
+        isTrue,
+      );
+      expect(
+        isTransientAiError(
+          const FormatException('Unexpected end of input', ''),
+        ),
+        isTrue,
+      );
     });
 
     // 8b. โควตาหมด, App Check, คำขอผิด, เน็ตหลุด ไม่ลองใหม่ (ลองแล้วก็ไม่ผ่าน)
@@ -336,6 +347,20 @@ void main() {
       () {
         expect(isTransientAiError(QuotaExceeded('Quota exceeded')), isFalse);
         expect(isTransientAiError(ServerException('boom')), isFalse);
+        // ข้อความโควตาเต็มมี "try again" แต่ต้องไม่ลองใหม่
+        expect(
+          isTransientAiError(
+            ServerException(
+              'Resource has been exhausted (e.g. check quota). Please try again later.',
+            ),
+          ),
+          isFalse,
+        );
+        // JSON ที่ SDK อ่านไม่ออกเป็นปัญหาถาวร
+        expect(
+          isTransientAiError(const FormatException('bad', '{"unexpected": 1}')),
+          isFalse,
+        );
         expect(
           isTransientAiError(
             FirebaseException(plugin: 'firebase_app_check', code: 'unknown'),

@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:mnote/l10n/language_preferences.dart';
 import 'package:firebase_ai/firebase_ai.dart';
-import 'package:firebase_core/firebase_core.dart'
-    show FirebaseApp, FirebaseException;
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/foundation.dart';
 
 import '../domain/ai_assistant.dart';
@@ -46,81 +47,98 @@ class FirebaseAiAssistant implements AiAssistant {
     String text, {
     List<ChatMessage> history = const [],
     AiDocumentContext? document,
-  }) async* {
-    if (document != null && document.isTooLong) {
-      throw AiAssistantException(LanguagePreferences.current().aiNoteTooLong);
-    }
+  }) {
+    // ใช้ StreamController แทน async* เพื่อรู้ทันทีว่าผู้ใช้ปิดแชต
+    // จะได้ไม่ยิงคำขอรอบถัดไประหว่างรอลองใหม่
+    final output = StreamController<String>();
+    var cancelled = false;
+    output.onListen = () =>
+        unawaited(_run(output, () => cancelled, text, history, document));
+    output.onCancel = () => cancelled = true;
+    return output.stream;
+  }
+
+  Future<void> _run(
+    StreamController<String> output,
+    bool Function() isCancelled,
+    String text,
+    List<ChatMessage> history,
+    AiDocumentContext? document,
+  ) async {
     try {
+      if (document != null && document.isTooLong) {
+        throw AiAssistantException(LanguagePreferences.current().aiNoteTooLong);
+      }
       final aiApp = await AiFirebaseApp.instance();
+      final ai = FirebaseAI.googleAI(app: aiApp);
+      final systemInstruction = Content.system(
+        buildSystemPrompt(
+          hasDocument: document != null,
+          hasPageImage: document?.pageImage != null,
+        ),
+      );
+      // สร้างครั้งเดียว ใช้ซ้ำทุกรอบที่ลองใหม่
+      final prompt = buildUserContent(text, document);
+      final geminiHistory = buildGeminiHistory(history);
+      // โน้ตยาวพอที่อาจเกินเพดาน token: นับจริงก่อนส่งครั้งเดียว (countTokens ฟรี
+      // ไม่ใช้โควตา Gemini) โน้ตทั่วไปสั้นกว่านี้ จึงไม่มีคำขอเพิ่ม
+      // รูปหน้าโน้ตใช้ token คงที่ราวพันกว่า token ห่างจากเพดานมาก จึงไม่นับรวม
+      if (document != null && needsTokenCount(document.content.length)) {
+        final count = await ai
+            .generativeModel(
+              model: modelName,
+              systemInstruction: systemInstruction,
+            )
+            .countTokens([prompt]);
+        if (count.totalTokens > AiDocumentContext.maxPromptTokens) {
+          throw AiAssistantException(
+            LanguagePreferences.current().aiNoteTooLong,
+          );
+        }
+      }
       final plan = aiAttemptPlan();
       for (var i = 0; i < plan.length; i++) {
         final attempt = plan[i];
         if (attempt.delay > Duration.zero) {
           await Future<void>.delayed(attempt.delay);
         }
-        var yielded = false;
+        if (isCancelled()) return;
+        var answered = false;
         try {
-          await for (final part in _sendOnce(
-            aiApp,
-            attempt.model,
-            text,
-            history,
-            document,
-          )) {
-            yielded = true;
-            yield part;
+          final chat = ai
+              .generativeModel(
+                model: attempt.model,
+                systemInstruction: systemInstruction,
+              )
+              .startChat(history: geminiHistory);
+          await for (final chunk in chat.sendMessageStream(prompt)) {
+            if (isCancelled()) return;
+            final part = chunk.text;
+            if (part != null && part.isNotEmpty) {
+              answered = true;
+              output.add(part);
+            }
           }
           return;
         } on Exception catch (error) {
           // ลองใหม่เฉพาะตอนเซิร์ฟเวอร์แน่นและยังไม่ได้ส่งคำตอบให้ผู้ใช้เลย
           // ถ้าตอบไปบางส่วนแล้วลองใหม่ ข้อความจะซ้ำ
           final canRetry =
-              !yielded && i < plan.length - 1 && isTransientAiError(error);
+              !answered && i < plan.length - 1 && isTransientAiError(error);
           if (!canRetry) rethrow;
           debugPrint('AI busy, retrying: ${describeAiError(error)}');
         }
       }
-    } on AiAssistantException {
+    } on AiAssistantException catch (error) {
       // ข้อความของเราเอง (เช่น โน้ตยาวเกิน) ส่งต่อตามเดิม ไม่แปลงเป็นข้อความเน็ตหลุด
-      rethrow;
+      if (!isCancelled()) output.addError(error);
     } on Exception catch (error) {
       debugPrint('AI request failed: ${describeAiError(error)}');
-      throw aiErrorToException(error);
-    }
-  }
-
-  /// ส่งคำถามครั้งเดียวด้วยโมเดล [model]
-  Stream<String> _sendOnce(
-    FirebaseApp aiApp,
-    String model,
-    String text,
-    List<ChatMessage> history,
-    AiDocumentContext? document,
-  ) async* {
-    final generativeModel = FirebaseAI.googleAI(app: aiApp).generativeModel(
-      model: model,
-      systemInstruction: Content.system(
-        buildSystemPrompt(
-          hasDocument: document != null,
-          hasPageImage: document?.pageImage != null,
-        ),
-      ),
-    );
-    final prompt = buildUserContent(text, document);
-    // โน้ตยาวพอที่อาจเกินเพดาน token: นับจริงก่อนส่ง (countTokens ฟรี
-    // ไม่ใช้โควตา Gemini) โน้ตทั่วไปสั้นกว่านี้ จึงไม่มีคำขอเพิ่ม
-    if (document != null && needsTokenCount(document.content.length)) {
-      final count = await generativeModel.countTokens([prompt]);
-      if (count.totalTokens > AiDocumentContext.maxPromptTokens) {
-        throw AiAssistantException(LanguagePreferences.current().aiNoteTooLong);
-      }
-    }
-    final chat = generativeModel.startChat(
-      history: buildGeminiHistory(history),
-    );
-    await for (final chunk in chat.sendMessageStream(prompt)) {
-      final part = chunk.text;
-      if (part != null && part.isNotEmpty) yield part;
+      if (!isCancelled()) output.addError(aiErrorToException(error));
+    } catch (error, stackTrace) {
+      if (!isCancelled()) output.addError(error, stackTrace);
+    } finally {
+      unawaited(output.close());
     }
   }
 }
@@ -211,21 +229,28 @@ List<({String model, Duration delay})> aiAttemptPlan() => const [
   (model: FirebaseAiAssistant.fallbackModelName, delay: Duration(seconds: 2)),
 ];
 
-/// error ที่ลองใหม่แล้วอาจผ่าน: เซิร์ฟเวอร์แน่น (503) หรือขัดข้องชั่วคราว
+/// error ที่ลองใหม่แล้วอาจผ่าน: เซิร์ฟเวอร์แน่น (503)
 ///
 /// ServerException เก็บแค่ข้อความ ไม่มีรหัส HTTP จึงดูจากคำในข้อความ
-/// FormatException คือหน้า error ที่ไม่ใช่ JSON (เช่น 502/503 จากด่านหน้า)
-/// โควตาหมด App Check ไม่ผ่าน หรือคำขอผิด ลองใหม่ก็ไม่ผ่าน จึงไม่นับ
+/// และจับเฉพาะคำที่ชี้ว่าแน่น (overloaded / unavailable) ไม่จับ "try again"
+/// เพราะข้อความโควตาเต็มก็มีคำนี้ โควตา / rate limit ลองใหม่จะยิ่งโดนจำกัดนานขึ้น
+/// FormatException นับเฉพาะหน้า error ที่ไม่ใช่ JSON (HTML หรือว่าง) จากด่านหน้า
+/// JSON ที่ SDK อ่านไม่ออกเป็นปัญหาถาวร ลองใหม่ก็ไม่ผ่าน
 @visibleForTesting
 bool isTransientAiError(Object error) {
-  if (error is FormatException) return true;
+  if (error is FormatException) {
+    final source = error.source;
+    final body = source is String ? source.trimLeft() : '';
+    return body.isEmpty || body.startsWith('<');
+  }
   if (error is! ServerException) return false;
   final message = error.message.toLowerCase();
-  return message.contains('overloaded') ||
-      message.contains('unavailable') ||
-      message.contains('try again') ||
-      message.contains('deadline') ||
-      message.contains('internal error');
+  if (message.contains('quota') ||
+      message.contains('exhausted') ||
+      message.contains('rate limit')) {
+    return false;
+  }
+  return message.contains('overloaded') || message.contains('unavailable');
 }
 
 /// แปลง error เป็นข้อความภาษาไทยที่บอกผู้ใช้ว่าเกิดอะไรขึ้น

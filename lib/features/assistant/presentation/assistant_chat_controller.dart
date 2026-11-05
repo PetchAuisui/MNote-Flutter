@@ -13,10 +13,14 @@ class AssistantChatController extends ChangeNotifier {
   /// วาดรูปหน้าโน้ตรวมลายมือ เรียกตอนกดส่งเฉพาะเมื่อแนบโน้ตที่มีลายมือ
   final Future<Uint8List?> Function()? _pageImageProvider;
 
+  /// รอวาดรูปหน้าโน้ตได้นานสุดเท่านี้ เกินแล้วส่งแค่ข้อความ แชตไม่ค้าง
+  final Duration pageImageTimeout;
+
   AssistantChatController(
     this._assistant, {
     this._documentProvider,
     this._pageImageProvider,
+    this.pageImageTimeout = const Duration(seconds: 10),
   });
 
   static const int maxInputLength = 2000;
@@ -66,13 +70,12 @@ class AssistantChatController extends ChangeNotifier {
 
   /// ใส่รูปหน้าโน้ตให้โน้ตที่แนบและมีลายมือ
   /// วาดไม่สำเร็จก็ส่งแค่ข้อความ ไม่ให้แชตพังเพราะรูป
-  Future<AiDocumentContext?> _withPageImage(AiDocumentContext? document) async {
-    final render = _pageImageProvider;
-    if (document == null || !document.hasInk || render == null) {
-      return document;
-    }
+  Future<AiDocumentContext> _withPageImage(
+    AiDocumentContext document,
+    Future<Uint8List?> Function() render,
+  ) async {
     try {
-      final image = await render();
+      final image = await render().timeout(pageImageTimeout);
       if (image == null) return document;
       return AiDocumentContext(
         title: document.title,
@@ -132,9 +135,9 @@ class AssistantChatController extends ChangeNotifier {
     try {
       // รอวาดรูปเฉพาะโน้ตที่แนบและมีลายมือ โน้ตอื่นส่งทันทีเหมือนเดิม
       // วาดหลังขึ้นสถานะกำลังตอบแล้ว กันกดส่งซ้ำระหว่างรอ
-      final note =
-          document != null && document.hasInk && _pageImageProvider != null
-          ? await _withPageImage(document)
+      final render = _pageImageProvider;
+      final note = document != null && document.hasInk && render != null
+          ? await _withPageImage(document, render)
           : document;
       if (_isDisposed) return false;
       final stream = _assistant.sendMessage(

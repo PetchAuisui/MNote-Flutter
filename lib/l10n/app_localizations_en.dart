@@ -1367,6 +1367,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCopied => 'Copied';
 
   @override
+  String get aiCopyAnswer => 'Copy answer';
+
+  @override
   String get aiNoAnswer =>
       'The AI did not send an answer. Try asking again or rephrase your question.';
 

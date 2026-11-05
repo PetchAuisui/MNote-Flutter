@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mnote/l10n/l10n.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../domain/chat_message.dart';
@@ -473,79 +476,159 @@ class _MessageBubble extends StatelessWidget {
       bottomRight: Radius.circular(isUser ? 4 : 16),
     );
 
+    // ปุ่มคัดลอกอยู่ใต้ฟองคำตอบ AI นอกกรอบ (แบบแอปแชต AI ทั่วไป)
+    // ขึ้นหลังตอบจบเท่านั้น กันได้คำตอบครึ่งเดียว
+    final showCopy =
+        !isUser &&
+        !showTypingIndicator &&
+        !isStreaming &&
+        message.text.trim().isNotEmpty;
+
     return LayoutBuilder(
       builder: (context, constraints) => Align(
         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          key: Key(isUser ? 'assistant-message-user' : 'assistant-message-ai'),
-          constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.85),
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: borderRadius,
-          ),
-          child: showTypingIndicator
-              ? const _TypingIndicator()
-              : isUser
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (message.attachedNoteTitle != null)
-                      Padding(
-                        key: const Key('assistant-message-note-label'),
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.description_outlined,
-                              size: 14,
-                              color: textColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                context.l10n.aiNoteLabel(
-                                  message.attachedNoteTitle!,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
+        child: Column(
+          crossAxisAlignment: isUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              key: Key(
+                isUser ? 'assistant-message-user' : 'assistant-message-ai',
+              ),
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.85,
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: bubbleColor,
+                borderRadius: borderRadius,
+              ),
+              child: showTypingIndicator
+                  ? const _TypingIndicator()
+                  : isUser
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (message.attachedNoteTitle != null)
+                          Padding(
+                            key: const Key('assistant-message-note-label'),
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.description_outlined,
+                                  size: 14,
                                   color: textColor,
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    context.l10n.aiNoteLabel(
+                                      message.attachedNoteTitle!,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: textColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        SelectableText(
+                          message.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: textColor,
+                          ),
                         ),
-                      ),
-                    SelectableText(
-                      message.text,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: textColor,
-                      ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // SelectionArea ให้ลากคลุมข้ามหลายย่อหน้าหรือหลายข้อได้ในครั้งเดียว
+                        // (selectable ของ MarkdownBody เลือกได้ทีละบล็อก)
+                        SelectionArea(
+                          child: MarkdownBody(
+                            // MarkdownBody แปลงใหม่เฉพาะตอน data เปลี่ยน
+                            // พอสตรีมจบ data เท่าเดิม จึงต้องเปลี่ยน key ให้สร้างใหม่
+                            // การ์ด Mermaid จะได้เปลี่ยนจากโค้ดเป็นภาพ
+                            key: ValueKey(isStreaming),
+                            data: message.text,
+                            builders: {
+                              'code': AssistantCodeBlockBuilder(
+                                isStreaming: isStreaming,
+                              ),
+                            },
+                            onTapLink: null,
+                            imageBuilder: (uri, title, alt) => Text(alt ?? ''),
+                            styleSheet: MarkdownStyleSheet.fromTheme(theme)
+                                .copyWith(
+                                  p: theme.textTheme.bodyMedium?.copyWith(
+                                    color: textColor,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                )
-              : MarkdownBody(
-                  // MarkdownBody แปลงใหม่เฉพาะตอน data เปลี่ยน
-                  // พอสตรีมจบ data เท่าเดิม จึงต้องเปลี่ยน key ให้สร้างใหม่
-                  // การ์ด Mermaid จะได้เปลี่ยนจากโค้ดเป็นภาพ
-                  key: ValueKey(isStreaming),
-                  data: message.text,
-                  selectable: true,
-                  builders: {
-                    'code': AssistantCodeBlockBuilder(isStreaming: isStreaming),
-                  },
-                  onTapLink: null,
-                  imageBuilder: (uri, title, alt) => Text(alt ?? ''),
-                  styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                    p: theme.textTheme.bodyMedium?.copyWith(color: textColor),
-                  ),
-                ),
+            ),
+            if (showCopy) _CopyAnswerButton(text: message.text),
+          ],
         ),
       ),
+    );
+  }
+}
+
+/// คัดลอกคำตอบทั้งข้อความเป็น Markdown วางในโน้ตแล้วแสดงผลได้ทันที
+class _CopyAnswerButton extends StatefulWidget {
+  const _CopyAnswerButton({required this.text});
+
+  final String text;
+
+  @override
+  State<_CopyAnswerButton> createState() => _CopyAnswerButtonState();
+}
+
+class _CopyAnswerButtonState extends State<_CopyAnswerButton> {
+  bool _copied = false;
+  Timer? _copiedTimer;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.text));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    _copiedTimer?.cancel();
+    _copiedTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _copiedTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const Key('assistant-copy-answer'),
+      tooltip: _copied ? context.l10n.aiCopied : context.l10n.aiCopyAnswer,
+      visualDensity: VisualDensity.compact,
+      icon: Icon(
+        _copied ? Icons.check_rounded : Icons.content_copy_rounded,
+        size: 18,
+      ),
+      onPressed: _copy,
     );
   }
 }

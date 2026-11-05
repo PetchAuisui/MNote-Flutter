@@ -2576,6 +2576,12 @@ abstract class AppLocalizations {
   /// **'คัดลอกแล้ว'**
   String get aiCopied;
 
+  /// No description provided for @aiCopyAnswer.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกคำตอบ'**
+  String get aiCopyAnswer;
+
   /// No description provided for @aiNoAnswer.
   ///
   /// In th, this message translates to:

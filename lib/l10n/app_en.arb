@@ -413,6 +413,7 @@
   "aiThinking": "Thinking…",
   "aiTabImage": "Diagram",
   "aiCopied": "Copied",
+  "aiCopyAnswer": "Copy answer",
   "aiNoAnswer": "The AI did not send an answer. Try asking again or rephrase your question.",
   "aiFailed": "The AI could not answer. Please try again.",
   "aiQuota": "You have used up the AI assistant quota. Wait a moment and try again. If it still fails, today's quota is used up; try again tomorrow.",

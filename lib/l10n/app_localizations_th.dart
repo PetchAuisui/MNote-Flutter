@@ -1354,6 +1354,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get aiCopied => 'คัดลอกแล้ว';
 
   @override
+  String get aiCopyAnswer => 'คัดลอกคำตอบ';
+
+  @override
   String get aiNoAnswer => 'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
 
   @override

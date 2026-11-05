@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/chat_message.dart';
@@ -622,6 +623,67 @@ void main() {
 
       expect(find.byKey(const Key('assistant-disclaimer')), findsOneWidget);
       expect(find.textContaining('อาจตอบผิดพลาดได้'), findsOneWidget);
+    });
+    // 26. คำตอบ AI ลากคลุมข้ามหลายข้อได้ และมีปุ่มคัดลอกทั้งคำตอบ (Markdown)
+    testWidgets('26. AI answer is one selection area with a copy-all button', (
+      tester,
+    ) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map?)?['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      const answer = '1. ข้อแรก\n2. **ข้อสอง**';
+      final controller = AssistantChatController(
+        FakeAiAssistant(chunks: [answer]),
+      );
+      await tester.pumpWidget(buildTestWidget(controller: controller));
+      await sendText(tester, 'ขอ 2 ข้อ');
+      await tester.pumpAndSettle();
+
+      final aiBubble = find.byKey(const Key('assistant-message-ai'));
+      expect(
+        find.descendant(of: aiBubble, matching: find.byType(SelectionArea)),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('assistant-copy-answer')));
+      await tester.pump();
+      expect(copied, answer);
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    // 27. ระหว่าง AI กำลังตอบ ยังไม่มีปุ่มคัดลอก กันได้คำตอบครึ่งเดียว
+    testWidgets('27. no copy button while the answer is still streaming', (
+      tester,
+    ) async {
+      final stream = StreamController<String>();
+      final controller = AssistantChatController(
+        _ManualStreamAssistant(stream),
+      );
+      await tester.pumpWidget(buildTestWidget(controller: controller));
+      await sendText(tester, 'สวัสดี');
+      await tester.pump();
+      stream.add('กำลังตอบ');
+      await tester.pump();
+
+      expect(find.byKey(const Key('assistant-copy-answer')), findsNothing);
+
+      await stream.close();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('assistant-copy-answer')), findsOneWidget);
     });
   });
 }

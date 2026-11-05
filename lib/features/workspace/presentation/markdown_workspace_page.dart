@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mnote/features/assistant/data/firebase_ai_assistant.dart';
 import 'package:mnote/features/assistant/domain/ai_assistant.dart';
+import 'package:mnote/features/assistant/presentation/ai_page_image.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_controller.dart';
 import 'package:mnote/features/assistant/presentation/assistant_chat_panel.dart';
 import 'package:mnote/features/workspace/data/device_image_picker.dart';
@@ -95,6 +96,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
   /// สร้างตอนกดปุ่ม AI ครั้งแรก ปิดแผงแล้วเปิดใหม่ บทสนทนายังอยู่
   AssistantChatController? _assistantChat;
 
+  /// มีลายมือที่บันทึกไว้ไหม หน้าลายมือโหลดลายมือที่บันทึกไว้ก็ต่อเมื่อถูกเปิด
+  /// จึงเช็กไฟล์ไว้ล่วงหน้าตอนเปิดโน้ต แชต AI จะได้รู้ว่าต้องส่งรูปลายมือ
+  bool _savedInkForAi = false;
+
+  /// รูปหน้าโน้ตล่าสุดที่วาดให้ AI (เก็บเป็น Future จึงใช้ได้ทั้งตอนกำลังวาดอยู่
+  /// และตอนวาดเสร็จแล้ว) ใช้ซ้ำเมื่อเนื้อหาและลายมือไม่เปลี่ยน
+  ({String key, Future<Uint8List?> image})? _aiPageImage;
+
   @override
   void initState() {
     super.initState();
@@ -116,6 +125,10 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     _titleFocusNode = FocusNode()..addListener(_onTitleFocusChanged);
     _undoController = UndoHistoryController();
     _loadBundledExample();
+    // ใช้ context อ่าน InkStorageScope ได้หลังเฟรมแรก
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkSavedInkForAi();
+    });
     if (_workspace.mode == WorkspaceMode.ink) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _inkFit.fit();
@@ -364,7 +377,12 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     // A different note starts at its top, not where the last one was left.
     _inkTransform.value = Matrix4.identity();
     setState(() => _ink = InkSession());
-    WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+    _savedInkForAi = false;
+    _aiPageImage = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      previous.dispose();
+      if (mounted) _checkSavedInkForAi();
+    });
   }
 
   Future<bool> _runFileAction(
@@ -1363,6 +1381,14 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
     );
   }
 
+  /// เช็กว่าโน้ตที่เปิดอยู่มีลายมือที่บันทึกไว้ไหม (ไม่บล็อกการเปิดแชต)
+  Future<void> _checkSavedInkForAi() async {
+    final name = _workspace.document.name;
+    final ink = await _currentInkSnapshot();
+    if (!mounted || _workspace.document.name != name) return;
+    _savedInkForAi = ink != null;
+  }
+
   void _openAssistant() {
     final assistant = widget.assistant;
     if (assistant == null) return;
@@ -1371,9 +1397,51 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       documentProvider: () => AiDocumentContext(
         title: _workspace.document.name,
         content: _workspace.document.content,
+        // แก้ลายมือในรอบนี้แล้ว (isDirty) เชื่อสิ่งที่อยู่บนจอ ไม่ใช้ไฟล์เก่า
+        hasInk: _ink.hasContent || (!_ink.isDirty && _savedInkForAi),
       ),
+      pageImageProvider: _renderPageForAi,
     );
     showAssistantChat(context, controller: chat);
+  }
+
+  /// รูปหน้าโน้ตรวมลายมือให้ AI อ่าน (ใช้ตัวโหลดลายมือเดียวกับการส่งออก)
+  Future<Uint8List?> _renderPageForAi() async {
+    // ลบลายมือหมดแล้วแต่ยังไม่ได้บันทึก: ไฟล์ยังมีลายมือเก่า ห้ามอ่านไฟล์
+    // ใช้ไฟล์เฉพาะตอนยังไม่เคยเปิดหรือแก้หน้าลายมือในรอบนี้
+    final String? ink;
+    if (_ink.hasContent) {
+      ink = _ink.encode();
+    } else if (_ink.isDirty) {
+      ink = null;
+    } else {
+      ink = await _currentInkSnapshot();
+    }
+    if (ink == null) return null;
+    if (!mounted) return null;
+    // ถามต่อโดยโน้ตไม่เปลี่ยน: ใช้รูปเดิม ไม่วาดและอัปโหลดใหม่
+    // ถ้ารอบก่อนยังวาดไม่เสร็จ (เช่นเกินเวลาที่แชตรอ) ก็รอรอบเดิม ไม่วาดซ้อน
+    final content = _workspace.document.content;
+    final key = '${content.length}:${ink.length}:$content\u0000$ink';
+    final cached = _aiPageImage;
+    if (cached != null && cached.key == key) return cached.image;
+    final image = renderNotePageForAi(
+      context,
+      markdown: content,
+      ink: ink,
+      imageDirectory: _imageDirectory,
+    );
+    _aiPageImage = (key: key, image: image);
+    // วาดไม่สำเร็จไม่เก็บไว้ ครั้งหน้าวาดใหม่
+    unawaited(
+      image.then<void>(
+        (_) {},
+        onError: (Object _) {
+          if (identical(_aiPageImage?.image, image)) _aiPageImage = null;
+        },
+      ),
+    );
+    return image;
   }
 
   Widget _buildDocumentActions() {

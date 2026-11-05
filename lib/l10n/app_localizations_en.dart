@@ -1362,6 +1362,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCopied => 'Copied';
 
   @override
+  String get aiCopyAnswer => 'Copy answer';
+
+  @override
   String get aiNoAnswer =>
       'The AI did not send an answer. Try asking again or rephrase your question.';
 
@@ -1375,6 +1378,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiUnavailable =>
       'The AI assistant is temporarily unavailable. Please try again later.';
+
+  @override
+  String get aiBusy =>
+      'The AI assistant is busy right now. Please try again in a moment.';
 
   @override
   String get aiAppCheck =>
@@ -1391,7 +1398,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPrivacyWithNote =>
-      'What you type and the attached note are sent to Google Gemini for processing';
+      'What you type and the attached note (including handwriting and pictures on the page) are sent to Google Gemini for processing';
 
   @override
   String aiNoteChip(String title) {
@@ -1412,6 +1419,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiNoteTooLong =>
       'The note is too long for the AI assistant. Tap x on the note name to send without it.';
+
+  @override
+  String get aiInkFailed =>
+      'Could not read the handwriting in the note. Please try again.';
 
   @override
   String get aiDisclaimer =>

@@ -1348,6 +1348,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get aiCopied => 'คัดลอกแล้ว';
 
   @override
+  String get aiCopyAnswer => 'คัดลอกคำตอบ';
+
+  @override
   String get aiNoAnswer => 'AI ไม่ได้ส่งคำตอบกลับมา ลองถามใหม่หรือเปลี่ยนคำถาม';
 
   @override
@@ -1360,6 +1363,9 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get aiUnavailable =>
       'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง';
+
+  @override
+  String get aiBusy => 'ตอนนี้ผู้ช่วย AI มีผู้ใช้งานมาก กรุณาลองใหม่อีกสักครู่';
 
   @override
   String get aiAppCheck =>
@@ -1376,7 +1382,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get aiPrivacyWithNote =>
-      'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini';
+      'ข้อความที่พิมพ์และโน้ตที่แนบ (รวมลายมือและรูปในหน้าโน้ต) จะถูกส่งไปประมวลผลที่ Google Gemini';
 
   @override
   String aiNoteChip(String title) {
@@ -1397,6 +1403,9 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get aiNoteTooLong =>
       'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
+
+  @override
+  String get aiInkFailed => 'อ่านลายมือในโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
 
   @override
   String get aiDisclaimer =>

@@ -2564,6 +2564,12 @@ abstract class AppLocalizations {
   /// **'คัดลอกแล้ว'**
   String get aiCopied;
 
+  /// No description provided for @aiCopyAnswer.
+  ///
+  /// In th, this message translates to:
+  /// **'คัดลอกคำตอบ'**
+  String get aiCopyAnswer;
+
   /// No description provided for @aiNoAnswer.
   ///
   /// In th, this message translates to:
@@ -2588,6 +2594,12 @@ abstract class AppLocalizations {
   /// **'ผู้ช่วย AI ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง'**
   String get aiUnavailable;
 
+  /// No description provided for @aiBusy.
+  ///
+  /// In th, this message translates to:
+  /// **'ตอนนี้ผู้ช่วย AI มีผู้ใช้งานมาก กรุณาลองใหม่อีกสักครู่'**
+  String get aiBusy;
+
   /// No description provided for @aiAppCheck.
   ///
   /// In th, this message translates to:
@@ -2609,7 +2621,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPrivacyWithNote.
   ///
   /// In th, this message translates to:
-  /// **'ข้อความที่พิมพ์และโน้ตที่แนบจะถูกส่งไปประมวลผลที่ Google Gemini'**
+  /// **'ข้อความที่พิมพ์และโน้ตที่แนบ (รวมลายมือและรูปในหน้าโน้ต) จะถูกส่งไปประมวลผลที่ Google Gemini'**
   String get aiPrivacyWithNote;
 
   /// No description provided for @aiNoteChip.
@@ -2641,6 +2653,12 @@ abstract class AppLocalizations {
   /// In th, this message translates to:
   /// **'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ'**
   String get aiNoteTooLong;
+
+  /// No description provided for @aiInkFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'อ่านลายมือในโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'**
+  String get aiInkFailed;
 
   /// No description provided for @aiDisclaimer.
   ///

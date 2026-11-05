@@ -148,14 +148,27 @@ void main() {
     );
 
     testWidgets(
-      'จอมือถือ 320x640: ยุบลงปุ่ม ... (toolbar-more) แล้วยังแทรกได้',
+      'จอมือถือ 320x640: แถบเครื่องมืออยู่ล่าง เลื่อนข้างได้ แล้วยังแทรกได้',
       (tester) async {
         await _pumpWorkspace(tester, size: const Size(320, 640));
 
-        final moreButton = find.byKey(const Key('toolbar-more'));
-        expect(moreButton, findsOneWidget);
+        expect(find.byKey(const Key('toolbar-more')), findsNothing);
+        final surface = tester.getRect(
+          find.byKey(const Key('document-surface')),
+        );
+        final toolbar = tester.getRect(
+          find.byKey(const Key('markdown-toolbar-surface')),
+        );
+        expect(toolbar.top, greaterThanOrEqualTo(surface.bottom));
 
-        await tester.tap(moreButton);
+        final diagramButton = find.byKey(const Key('toolbar-diagram'));
+        await tester.dragUntilVisible(
+          diagramButton,
+          find.byKey(const Key('markdown-toolbar-scroll')),
+          const Offset(-200, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(diagramButton);
         await tester.pumpAndSettle();
 
         final item = find.text(_flowchart.label);

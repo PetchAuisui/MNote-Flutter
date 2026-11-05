@@ -42,7 +42,12 @@ TextEditingController _source(WidgetTester tester) => tester
 final _editor = find.byKey(const Key('markdown-live-block-editor'));
 Future<void> _action(WidgetTester tester, String key) async {
   final button = find.byKey(Key(key));
-  if (button.evaluate().isEmpty) {
+  final scroll = find.byKey(const Key('markdown-toolbar-scroll'));
+  if (scroll.evaluate().isNotEmpty) {
+    // On phones the toolbar scrolls sideways instead of overflowing.
+    await tester.dragUntilVisible(button, scroll, const Offset(-200, 0));
+    await tester.pumpAndSettle();
+  } else if (button.evaluate().isEmpty) {
     await tester.tap(find.byKey(const Key('toolbar-more')));
     await tester.pumpAndSettle();
   }

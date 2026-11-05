@@ -1355,7 +1355,8 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
       documentProvider: () => AiDocumentContext(
         title: _workspace.document.name,
         content: _workspace.document.content,
-        hasInk: _ink.hasContent || _savedInkForAi,
+        // แก้ลายมือในรอบนี้แล้ว (isDirty) เชื่อสิ่งที่อยู่บนจอ ไม่ใช้ไฟล์เก่า
+        hasInk: _ink.hasContent || (!_ink.isDirty && _savedInkForAi),
       ),
       pageImageProvider: _renderPageForAi,
     );
@@ -1364,7 +1365,16 @@ class _MarkdownWorkspacePageState extends State<MarkdownWorkspacePage> {
 
   /// รูปหน้าโน้ตรวมลายมือให้ AI อ่าน (ใช้ตัวโหลดลายมือเดียวกับการส่งออก)
   Future<Uint8List?> _renderPageForAi() async {
-    final ink = await _currentInkSnapshot();
+    // ลบลายมือหมดแล้วแต่ยังไม่ได้บันทึก: ไฟล์ยังมีลายมือเก่า ห้ามอ่านไฟล์
+    // ใช้ไฟล์เฉพาะตอนยังไม่เคยเปิดหรือแก้หน้าลายมือในรอบนี้
+    final String? ink;
+    if (_ink.hasContent) {
+      ink = _ink.encode();
+    } else if (_ink.isDirty) {
+      ink = null;
+    } else {
+      ink = await _currentInkSnapshot();
+    }
     if (ink == null) return null;
     if (!mounted) return null;
     return renderNotePageForAi(

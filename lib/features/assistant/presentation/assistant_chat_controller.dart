@@ -140,6 +140,15 @@ class AssistantChatController extends ChangeNotifier {
           ? await _withPageImage(document, render)
           : document;
       if (_isDisposed) return false;
+      // โน้ตที่มีแต่ลายมือแต่วาดรูปไม่สำเร็จ: ถ้าส่งไป AI จะได้โน้ตว่าง
+      // แล้วตอบว่าโน้ตว่างหรือเดาเอง จึงแจ้งผู้ใช้ให้ลองใหม่แทน
+      if (note != null &&
+          note.hasInk &&
+          note.pageImage == null &&
+          !_nonWhitespace.hasMatch(note.content)) {
+        _errorMessage = LanguagePreferences.current().aiInkFailed;
+        return false;
+      }
       final stream = _assistant.sendMessage(
         trimmedText,
         history: history,

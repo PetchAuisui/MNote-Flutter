@@ -1423,6 +1423,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The note is too long for the AI assistant. Tap x on the note name to send without it.';
 
   @override
+  String get aiInkFailed =>
+      'Could not read the handwriting in the note. Please try again.';
+
+  @override
   String get aiDisclaimer =>
       'Gemini is an AI and can make mistakes. Check important information.';
 

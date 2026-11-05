@@ -1408,6 +1408,9 @@ class AppLocalizationsTh extends AppLocalizations {
       'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ';
 
   @override
+  String get aiInkFailed => 'อ่านลายมือในโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+
+  @override
   String get aiDisclaimer =>
       'Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ';
 

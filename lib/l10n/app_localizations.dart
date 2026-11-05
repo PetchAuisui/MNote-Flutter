@@ -2660,6 +2660,12 @@ abstract class AppLocalizations {
   /// **'โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ'**
   String get aiNoteTooLong;
 
+  /// No description provided for @aiInkFailed.
+  ///
+  /// In th, this message translates to:
+  /// **'อ่านลายมือในโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'**
+  String get aiInkFailed;
+
   /// No description provided for @aiDisclaimer.
   ///
   /// In th, this message translates to:

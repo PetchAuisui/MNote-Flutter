@@ -765,6 +765,7 @@
     }
   },
   "aiNoteTooLong": "โน้ตยาวเกินไปสำหรับผู้ช่วย AI กด x ที่ชื่อโน้ตเพื่อส่งโดยไม่แนบ",
+  "aiInkFailed": "อ่านลายมือในโน้ตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
   "aiDisclaimer": "Gemini เป็น AI และอาจตอบผิดพลาดได้ ควรตรวจสอบข้อมูลสำคัญ",
   "startWriting": "เริ่มเขียน Markdown…",
   "firebaseSetupError": "ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตั้งค่า Firebase ตาม docs/firebase-setup.md",

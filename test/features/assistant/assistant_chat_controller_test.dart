@@ -638,6 +638,24 @@ void main() {
       },
     );
 
+    // ink 7. โน้ตมีแต่ลายมือแต่วาดรูปไม่สำเร็จ: ไม่ส่งโน้ตว่าง แจ้งให้ลองใหม่
+    test(
+      'ink 7. ink-only note with a failed render is not sent empty',
+      () async {
+        final fake = FakeAiAssistant();
+        final controller = AssistantChatController(
+          fake,
+          documentProvider: () =>
+              const AiDocumentContext(title: 'a.md', content: '', hasInk: true),
+          pageImageProvider: () async => throw StateError('render failed'),
+        );
+        expect(await controller.send('ลายมือเขียนว่าอะไร'), isFalse);
+        expect(fake.callCount, 0);
+        expect(controller.errorMessage, contains('ลายมือ'));
+        expect(controller.messages, isEmpty);
+      },
+    );
+
     // ink 5. วาดรูปไม่สำเร็จ: ยังส่งข้อความกับโน้ตได้
     test('ink 5. render failure still sends the note text', () async {
       final fake = FakeAiAssistant();

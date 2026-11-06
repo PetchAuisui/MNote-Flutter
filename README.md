@@ -28,6 +28,8 @@ Mnote คือ Mobile App สำหรับอ่านและแก้ไ�
 
 ## แนวทาง UI/UX
 
+ดีไซน์และ prototype ของแอป: [Figma prototype](https://www.figma.com/proto/adh4RXlYPdtv1M5MBFbo5E?node-id=10-3&t=Nw48lqim5Xv3sQH4-6)
+
 - Flutter และ Material Design 3
 - ใช้สีส้มเป็น seed color และรองรับ Light/Dark mode
 - Top App Bar สำหรับชื่อไฟล์และคำสั่งเอกสาร
@@ -84,30 +86,77 @@ lib/
 
 แต่ละ feature จะค่อย ๆ แยกเป็น `domain`, `data` และ `presentation` เมื่อมี business logic มากพอ เพื่อหลีกเลี่ยง abstraction ที่ยังไม่จำเป็นในช่วงต้น
 
-## เริ่มต้นใช้งาน
+## การนำไปใช้งาน
 
-ต้องมี Flutter SDK ที่รองรับ Dart `^3.12.2`, Android ตามค่า `flutter.minSdkVersion`, iOS 15 ขึ้นไป และ macOS 12 ขึ้นไป
+### 1. เตรียมเครื่อง
 
-สำหรับ Xcode 27 โปรเจกต์กำหนด Debug simulator เป็น `arm64` เพื่อหลีกเลี่ยงข้อจำกัด `lipo -verify_arch` ของ Flutter 3.44; การ build สำหรับอุปกรณ์จริงและ Release ไม่ได้รับผลกระทบ
+| ต้องมี | ใช้ทำอะไร |
+|---|---|
+| Flutter SDK ช่อง stable ที่มี Dart `^3.12.2` | build และรันแอป (ตรวจด้วย `flutter doctor`) |
+| Android Studio + Android SDK, Java 17 | build Android (`minSdk` ตามค่า `flutter.minSdkVersion`) |
+| Mac + Xcode และ CocoaPods | build iOS 15+ / macOS 12+ (Windows/Linux build iOS ไม่ได้) |
+| Node 22 และ Java 21 (ไม่บังคับ) | รัน security test ของ Firebase rules เท่านั้น |
+
+### 2. Clone และรัน
 
 ```bash
+git clone https://github.com/PetchAuisui/MNote-Flutter.git
+cd MNote-Flutter
 flutter pub get
 flutter run
 ```
 
-เลือก platform โดยตรงได้ด้วย:
+เลือกอุปกรณ์ด้วย `flutter devices` แล้ว `flutter run -d <device-id>` เช่น `flutter run -d macos` หรือ `flutter run -d chrome`
+
+- ไฟล์ config ของ Firebase (`lib/firebase_options.dart`, `android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) อยู่ใน repo แล้ว ค่าเหล่านี้ไม่ใช่ความลับ จึง**รันแล้วต่อ Firebase project ของทีม (`mnote-8db27`) ได้ทันที** ไม่ต้องตั้งค่าเพิ่ม
+- โค้ดที่ generate แล้ว (drift `*.g.dart`, คำแปลใน `lib/l10n/`) อยู่ใน repo แล้ว ถ้าแก้ schema ฐานข้อมูลให้รัน `dart run build_runner build --delete-conflicting-outputs` ถ้าแก้ไฟล์ `.arb` ให้รัน `flutter gen-l10n`
+- Xcode 27: โปรเจกต์กำหนด Debug simulator เป็น `arm64` เพื่อเลี่ยงข้อจำกัด `lipo -verify_arch` ของ Flutter 3.44 ไม่กระทบการ build บนเครื่องจริงและ Release
+
+### 3. เข้าสู่ระบบ
+
+แอปบังคับ login ก่อนใช้งาน (ใช้ Firebase Auth) ถ้า Firebase เริ่มทำงานไม่ได้ แอปจะแสดงหน้าแจ้งให้ตั้งค่าและเข้าใช้งานไม่ได้
+
+- **Email/Password** ใช้ได้ทุกเครื่องทันที
+- **Continue with Google บน Android** ต้องเพิ่ม SHA-1 ของคอมที่ build ใน Firebase Console ก่อน ไม่งั้นกดแล้วไม่ login (วิธีทำใน [docs/android-google-sign-in.md](docs/android-google-sign-in.md))
+
+### 4. เปิดใช้ผู้ช่วย AI (ถ้าต้องการ)
+
+AI (Gemini) อยู่ใน Firebase project แยกชื่อ `mnote-ai` และป้องกันด้วย App Check ฟีเจอร์อื่นใช้ได้ตามปกติแม้ AI ยังไม่พร้อม
+
+| วิธีรัน | ต้องทำ |
+|---|---|
+| `flutter run` (debug) Android/iOS | ส่งข้อความ AI 1 ครั้ง (จะ error) → หา debug token ใน log → ลงทะเบียนใน `mnote-ai` → App Check → Manage debug tokens (ต้องมีสิทธิ์ Editor) |
+| APK release บนเครื่อง Android จริง | เพิ่ม SHA-256 ของคอมที่ build ใน Play Integrity ของ `mnote-ai` (`cd android && ./gradlew signingReport`) |
+| iOS release / แจกคนอื่น | ยังใช้ไม่ได้ ต้องมีบัญชี Apple Developer แบบเสียเงิน |
+
+ขั้นตอนเต็มอยู่ใน [docs/ai-assistant.md](docs/ai-assistant.md) หัวข้อ 7.3–7.5 **debug token เป็นความลับ** ห้ามใส่ในโค้ด, PR หรือแชทกลุ่ม และโควตาฟรีนับรวมทั้งทีม (500 ครั้งต่อวัน, 15 ครั้งต่อนาที)
+
+### 5. ใช้ Firebase project ของตัวเอง (กรณี fork ไปใช้ต่อ)
+
+ถ้าไม่ได้อยู่ในทีม และต้องการให้ข้อมูลไปอยู่ใน project ของตัวเอง:
+
+1. สร้าง Firebase project แล้วเปิด **Authentication** (Email/Password และ Google), **Cloud Firestore** และ **Storage**
+2. เปลี่ยน package/bundle id `com.petchauisui.mnote` เป็นของตัวเอง (`android/app/build.gradle.kts` และ Xcode) ถ้าจะนำไปเผยแพร่
+3. ติดตั้ง Firebase CLI และ FlutterFire CLI แล้วรัน `flutterfire configure` เพื่อสร้าง `firebase_options.dart`, `google-services.json` และ `GoogleService-Info.plist` ชุดใหม่ทับของเดิม
+4. แก้ `_webClientId` ใน `lib/features/auth/data/firebase_auth_repository.dart` เป็น Web client ID ของ project ใหม่ (ดูได้จาก `google-services.json` ที่ `client_type: 3`)
+5. deploy security rules: `firebase deploy --only firestore:rules,storage` (แก้ `projectId` ใน `firebase.json` ก่อน)
+6. AI: สร้าง project แยกที่**ไม่ผูกบัตร** เปิด Firebase AI Logic (Gemini Developer API) และ App Check แล้วใส่ค่าของ project นั้นใน `lib/features/assistant/data/ai_firebase_app.dart` (รายละเอียดใน [docs/firebase-setup.md](docs/firebase-setup.md) และ [docs/ai-assistant.md](docs/ai-assistant.md))
+
+### 6. Build สำหรับแจก
 
 ```bash
-flutter run -d chrome
-flutter run -d macos
-flutter run -d 99DA51DC-293F-438F-819B-B5015B07905D # iPad Simulator
+flutter build apk --release        # Android: build/app/outputs/flutter-apk/app-release.apk
+flutter build ios --release        # iOS: ต้องมี Mac และบัญชี Apple Developer เพื่อ sign
+flutter build macos --release
 ```
 
-ตรวจคุณภาพก่อน commit:
+ตอนนี้ release ของ Android เซ็นด้วย debug key ของแต่ละคอม ถ้าจะขึ้น Google Play ต้องสร้าง release keystore ของตัวเอง (ห้าม commit ไฟล์ key และรหัสผ่าน)
+
+### 7. ตรวจคุณภาพก่อน commit
 
 ```bash
 dart format --output=none --set-exit-if-changed .
-flutter analyze
+flutter analyze --fatal-infos
 flutter test
 ```
 
